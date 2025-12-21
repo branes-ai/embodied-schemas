@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-12-21
+
+### Added
+- `gpu.py` - Comprehensive GPU-specific schemas inspired by TechPowerUp GPU Database
+  - `GPUEntry` - Complete GPU specification for discrete graphics cards
+  - `DieSpec` - Fabrication specs (foundry, process, transistors, die size, chiplet support)
+  - `ComputeResources` - Parallel compute units (shaders, CUDA/Stream processors, TMUs, ROPs, Tensor cores, RT cores)
+  - `ClockSpeeds` - Base/boost/memory frequencies
+  - `MemorySpec` - VRAM configuration (size, type, bus width, bandwidth, cache)
+  - `TheoreticalPerformance` - Peak throughput (FP32/FP16/FP64 TFLOPS, tensor ops, fill rates)
+  - `PowerSpec` - Power delivery (TDP, idle/gaming power, connectors, PSU recommendation)
+  - `BoardSpec` - Physical card specs (slot width, length, PCIe, display outputs)
+  - `FeatureSupport` - API support (DirectX, Vulkan, CUDA, DLSS/FSR, ray tracing)
+  - `MarketInfo` - Pricing and availability (MSRP, launch date, target market)
+  - `EfficiencyMetrics` - Computed metrics (perf/watt, perf/mm², bandwidth/watt)
+  - `GPUArchitectureSummary` - Architecture family reference
+  - Enums: `GPUVendor`, `Foundry`, `MemoryType`, `TargetMarket`, `PCIeGen`, `PowerConnector`, `DirectXVersion`, `ShaderModel`
+- `data/gpus/` - GPU data directory structure (nvidia/, amd/, intel/)
+- Example GPU entry: `data/gpus/nvidia/rtx_4090.yaml` - Complete RTX 4090 specification
+- GPU schema tests in `test_schemas.py` - 4 new tests (19 total)
+  - Minimal entry validation
+  - Efficiency metric computation
+  - Transistor density calculation
+  - Extra field rejection
+
+### Changed
+- Updated `__init__.py` exports to include GPU schemas
+
 ## [0.2.1] - 2025-12-21
 
 ### Added
