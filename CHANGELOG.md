@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-12-21
+
+### Added
+- CLAUDE.md - Claude Code guidance file for repository onboarding
+  - Documents repository role as shared dependency for graphs and Embodied-AI-Architect
+  - Build/test/development commands
+  - Schema design patterns (verdict-first outputs, ID conventions)
+  - Data ownership boundaries (datasheet specs vs roofline/calibration)
+  - Guidelines for adding new data and making schema changes
+  - Versioning and downstream compatibility notes
+
+### Fixed
+- Fixed date in docs/sessions/2025-12-20-initial-setup.md (was incorrectly 2024)
+
 ## [0.2.0] - 2025-12-20
 
 ### Added
