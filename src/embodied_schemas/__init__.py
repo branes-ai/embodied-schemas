@@ -46,6 +46,26 @@ from embodied_schemas.benchmarks import (
     Verdict,
     Confidence,
 )
+from embodied_schemas.gpu import (
+    GPUEntry,
+    GPUVendor,
+    DieSpec,
+    ComputeResources,
+    ClockSpeeds,
+    MemorySpec,
+    MemoryType,
+    TheoreticalPerformance,
+    PowerSpec as GPUPowerSpec,
+    EfficiencyMetrics,
+    BoardSpec,
+    FeatureSupport,
+    MarketInfo,
+    TargetMarket,
+    GPUArchitectureSummary,
+    Foundry,
+    PCIeGen,
+    PowerConnector,
+)
 from embodied_schemas.registry import Registry
 
 __version__ = "0.1.0"
@@ -86,6 +106,25 @@ __all__ = [
     "ThermalMetrics",
     "Verdict",
     "Confidence",
+    # GPU
+    "GPUEntry",
+    "GPUVendor",
+    "DieSpec",
+    "ComputeResources",
+    "ClockSpeeds",
+    "MemorySpec",
+    "MemoryType",
+    "TheoreticalPerformance",
+    "GPUPowerSpec",
+    "EfficiencyMetrics",
+    "BoardSpec",
+    "FeatureSupport",
+    "MarketInfo",
+    "TargetMarket",
+    "GPUArchitectureSummary",
+    "Foundry",
+    "PCIeGen",
+    "PowerConnector",
     # Registry
     "Registry",
     # Version
