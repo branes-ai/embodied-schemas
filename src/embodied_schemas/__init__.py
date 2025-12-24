@@ -46,6 +46,17 @@ from embodied_schemas.benchmarks import (
     Verdict,
     Confidence,
 )
+from embodied_schemas.analysis import (
+    Bottleneck,
+    RooflineResult,
+    EnergyResult,
+    MemoryResult,
+    ConcurrencyResult,
+    SubgraphBreakdown,
+    GraphAnalysisResult,
+    ComparisonResult,
+    BatchSweepResult,
+)
 from embodied_schemas.gpu import (
     GPUEntry,
     GPUVendor,
@@ -106,6 +117,16 @@ __all__ = [
     "ThermalMetrics",
     "Verdict",
     "Confidence",
+    # Analysis (Graph Analysis)
+    "Bottleneck",
+    "RooflineResult",
+    "EnergyResult",
+    "MemoryResult",
+    "ConcurrencyResult",
+    "SubgraphBreakdown",
+    "GraphAnalysisResult",
+    "ComparisonResult",
+    "BatchSweepResult",
     # GPU
     "GPUEntry",
     "GPUVendor",
