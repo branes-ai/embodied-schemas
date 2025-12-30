@@ -14,6 +14,7 @@ from embodied_schemas.models import ModelEntry
 from embodied_schemas.sensors import SensorEntry
 from embodied_schemas.usecases import UseCaseEntry
 from embodied_schemas.benchmarks import BenchmarkResult
+from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -163,6 +164,32 @@ def load_benchmarks(data_dir: Path | None = None) -> dict[str, BenchmarkResult]:
     return load_all_from_directory(data_dir / "benchmarks", BenchmarkResult)
 
 
+def load_gpus(data_dir: Path | None = None) -> dict[str, GPUEntry]:
+    """Load all GPU entries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping GPU IDs to GPUEntry instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "gpus", GPUEntry)
+
+
+def load_gpu_architectures(data_dir: Path | None = None) -> dict[str, GPUArchitectureSummary]:
+    """Load all GPU architecture summaries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping architecture IDs to GPUArchitectureSummary instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "gpu_architectures", GPUArchitectureSummary)
+
+
 def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
     """Validate all data files and return a list of errors.
 
@@ -182,6 +209,8 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("models", ModelEntry),
         ("sensors", SensorEntry),
         ("usecases", UseCaseEntry),
+        ("gpus", GPUEntry),
+        ("gpu_architectures", GPUArchitectureSummary),
     ]
 
     for subdir, model_class in validations:

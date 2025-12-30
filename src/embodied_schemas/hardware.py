@@ -287,6 +287,9 @@ class HardwareEntry(BaseModel):
     chip_id: str | None = Field(
         None, description="Reference to underlying chip/SoC if applicable"
     )
+    gpu_id: str | None = Field(
+        None, description="Reference to GPUEntry for integrated GPU specs (e.g., Jetson, Apple M-series)"
+    )
 
     model_config = {"extra": "forbid"}
 

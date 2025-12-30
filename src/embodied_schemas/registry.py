@@ -13,6 +13,7 @@ from embodied_schemas.models import ModelEntry
 from embodied_schemas.sensors import SensorEntry
 from embodied_schemas.usecases import UseCaseEntry
 from embodied_schemas.benchmarks import BenchmarkResult
+from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
 from embodied_schemas.loaders import (
     get_data_dir,
     load_hardware,
@@ -21,6 +22,8 @@ from embodied_schemas.loaders import (
     load_sensors,
     load_usecases,
     load_benchmarks,
+    load_gpus,
+    load_gpu_architectures,
 )
 
 
@@ -155,6 +158,8 @@ class Registry:
     sensors: CatalogView = field(default_factory=CatalogView)
     usecases: CatalogView = field(default_factory=CatalogView)
     benchmarks: CatalogView = field(default_factory=CatalogView)
+    gpus: CatalogView = field(default_factory=CatalogView)
+    gpu_architectures: CatalogView = field(default_factory=CatalogView)
 
     _data_dir: Path | None = None
 
@@ -177,6 +182,8 @@ class Registry:
         registry.sensors = CatalogView(_entries=load_sensors(data_dir))
         registry.usecases = CatalogView(_entries=load_usecases(data_dir))
         registry.benchmarks = CatalogView(_entries=load_benchmarks(data_dir))
+        registry.gpus = CatalogView(_entries=load_gpus(data_dir))
+        registry.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
 
         return registry
 
@@ -189,6 +196,8 @@ class Registry:
         self.sensors = CatalogView(_entries=load_sensors(data_dir))
         self.usecases = CatalogView(_entries=load_usecases(data_dir))
         self.benchmarks = CatalogView(_entries=load_benchmarks(data_dir))
+        self.gpus = CatalogView(_entries=load_gpus(data_dir))
+        self.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
 
     def get_compatible_hardware(self, model_id: str) -> list[HardwareEntry]:
         """Get hardware compatible with a given model.
@@ -340,4 +349,82 @@ class Registry:
             "sensors": len(self.sensors),
             "usecases": len(self.usecases),
             "benchmarks": len(self.benchmarks),
+            "gpus": len(self.gpus),
+            "gpu_architectures": len(self.gpu_architectures),
         }
+
+    def get_gpus_by_vendor(self, vendor: str) -> list[GPUEntry]:
+        """Get all GPUs from a specific vendor.
+
+        Args:
+            vendor: Vendor name (nvidia, amd, intel, etc.)
+
+        Returns:
+            List of GPUEntry instances from that vendor
+        """
+        return self.gpus.find(vendor=vendor)
+
+    def get_gpus_by_architecture(self, architecture: str) -> list[GPUEntry]:
+        """Get all GPUs using a specific architecture.
+
+        Args:
+            architecture: Architecture name (e.g., 'Ada Lovelace', 'RDNA 3')
+
+        Returns:
+            List of GPUEntry instances using that architecture
+        """
+        return [gpu for gpu in self.gpus if gpu.die.architecture == architecture]
+
+    def get_gpus_by_market(self, target_market: str) -> list[GPUEntry]:
+        """Get all GPUs targeting a specific market.
+
+        Args:
+            target_market: Target market (consumer_desktop, datacenter, etc.)
+
+        Returns:
+            List of GPUEntry instances for that market
+        """
+        return [gpu for gpu in self.gpus if gpu.market.target_market.value == target_market]
+
+    def get_gpu_for_hardware(self, hardware_id: str) -> GPUEntry | None:
+        """Get the GPU entry for a hardware platform with an integrated GPU.
+
+        Args:
+            hardware_id: ID of the hardware entry (e.g., nvidia_jetson_orin_nano)
+
+        Returns:
+            GPUEntry if the hardware has a linked GPU, None otherwise
+        """
+        hardware = self.hardware.get(hardware_id)
+        if not hardware or not hardware.gpu_id:
+            return None
+        return self.gpus.get(hardware.gpu_id)
+
+    def get_hardware_with_gpu(self, gpu_id: str) -> list[HardwareEntry]:
+        """Get all hardware platforms that use a specific GPU.
+
+        Args:
+            gpu_id: ID of the GPU entry
+
+        Returns:
+            List of HardwareEntry instances that embed this GPU
+        """
+        gpu = self.gpus.get(gpu_id)
+        if not gpu:
+            return []
+
+        # Check both directions of the relationship
+        results = []
+
+        # From GPU's embedded_in_hardware_ids list
+        for hw_id in gpu.embedded_in_hardware_ids:
+            hw = self.hardware.get(hw_id)
+            if hw:
+                results.append(hw)
+
+        # Also check hardware entries that reference this GPU
+        for hw in self.hardware:
+            if hw.gpu_id == gpu_id and hw not in results:
+                results.append(hw)
+
+        return results
