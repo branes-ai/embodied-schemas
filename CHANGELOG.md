@@ -5,6 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-12-30
+
+### Added
+
+#### CPU Schema (`cpu.py`)
+- Complete CPU schema for server, desktop, and mobile processors
+- `CPUEntry` - Full processor specification with cores, clocks, cache, memory, power, platform
+- `CoreConfig` - Hybrid architecture support (Intel P+E cores, ARM big.LITTLE)
+- `ClockSpeeds` - Base/boost frequencies with per-core-type clocks
+- `CacheSpec` - L1/L2/L3 hierarchy with 3D V-Cache support
+- `MemorySpec` - Memory controller specs (channels, speed, ECC, computed bandwidth)
+- `InstructionExtensions` - AVX-512, AMX, SVE, NEON, security extensions (SGX, SEV)
+- `PowerSpec` - TDP with configurable power modes
+- `PlatformSpec` - Socket, PCIe lanes, CXL support
+- `IntegratedGraphics` - iGPU specs for APUs
+- `MarketInfo` - Launch date, MSRP, target market
+- Enums: `CPUVendor`, `CPUArchitecture`, `SocketType`, `TargetMarket`, `ProcessNode`
+- Computed field: `threads_per_watt` efficiency metric
+
+#### CPU Data (25 processors)
+**Datacenter (8)**:
+- Intel: Xeon 6980P (Granite Rapids), Xeon 6766E (Sierra Forest), Xeon Platinum 8592+ (Emerald Rapids), Xeon W9-3595X (Sapphire Rapids)
+- AMD: EPYC 9965 (Turin 192-core), EPYC 9654 (Genoa), EPYC 9754 (Bergamo 128-core), EPYC 9575F (Turin V-Cache)
+
+**Desktop (10)**:
+- Intel: Core Ultra 9 285K (Arrow Lake), Core i9-14900K, i7-14700K, i7-12700K, i5-14600K, i3-14100
+- AMD: Ryzen 9 9950X, Ryzen 9 7950X3D, Ryzen 7 9700X, Ryzen 5 9600X, Threadripper 7980X
+
+**Mobile (4)**:
+- Intel: Core Ultra 7 268V (Lunar Lake)
+- AMD: Ryzen 9 8945HS, Ryzen 7 8845HS (Hawk Point)
+- Apple: M4 Pro, M4 Max
+- Qualcomm: Snapdragon X Elite X1E-84-100
+
+#### Hardware Platform Data
+- `nvidia_jetson_orin_nano_8gb` - Complete dev kit specification
+  - Power modes (7W/15W), interfaces (CSI, USB, PCIe, GPIO)
+  - Software ecosystem (JetPack, TensorRT, DeepStream)
+  - Physical and environmental specs
+
+#### Chip/SoC Data
+- `nvidia_orin_nano_soc` - Orin Nano SoC specification (6x A78AE, 1024 CUDA cores, Ampere)
+
+#### GPU Data Expansion (15 GPUs total)
+**Datacenter AI GPUs**:
+- NVIDIA: H100 SXM5, H200 SXM5, A100 SXM4, V100 SXM2, B100 SXM5, B200 SXM5, L40
+- AMD: MI300X, MI250X, MI250
+- Qualcomm: Cloud AI 100
+
+**Consumer GPUs**:
+- NVIDIA: RTX 4090, RTX 4080
+- AMD: RX 7900 XTX
+- Intel: Arc A770
+
+#### Architecture Documentation
+- `docs/architecture.md` - Explains data ownership split between embodied-schemas (datasheet facts) and graphs/hardware_registry (analysis params)
+
+#### Registry Enhancements
+- `cpus` CatalogView in Registry
+- CPU query methods: `get_cpus_by_vendor()`, `get_cpus_by_architecture()`, `get_cpus_by_market()`, `get_cpus_by_socket()`
+
+#### Testing
+- `test_cpu_integration.py` - 20 tests for CPU loader, registry, data integrity, efficiency
+- Total: 81 tests passing
+
+### Changed
+- GPU file naming standardized to `{model}_{form_factor}_{memory}_{memtype}.yaml`
+- Updated `loaders.py` with `load_cpus()` function
+- Updated `registry.py` with CPU catalog and query methods
+- Updated `__init__.py` with CPU exports
+
 ## [0.2.2] - 2025-12-21
 
 ### Added
