@@ -179,8 +179,10 @@ class TestGPUDataIntegrity:
         """Test that all GPUs have valid performance specs."""
         for gpu_id, gpu in gpus.items():
             assert gpu.performance.fp32_tflops > 0, f"{gpu_id} has invalid fp32_tflops"
-            assert gpu.performance.pixel_rate_gpixels > 0, f"{gpu_id} has invalid pixel_rate"
-            assert gpu.performance.texture_rate_gtexels > 0, f"{gpu_id} has invalid texture_rate"
+            # AI accelerators (like Qualcomm) don't have pixel/texture rates
+            if gpu.vendor.value != "qualcomm":
+                assert gpu.performance.pixel_rate_gpixels > 0, f"{gpu_id} has invalid pixel_rate"
+                assert gpu.performance.texture_rate_gtexels > 0, f"{gpu_id} has invalid texture_rate"
 
     def test_all_gpus_have_valid_memory(self, gpus):
         """Test that all GPUs have valid memory specs."""

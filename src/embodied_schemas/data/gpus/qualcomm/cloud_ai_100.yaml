@@ -1,0 +1,100 @@
+# Qualcomm Cloud AI 100 - Datacenter AI Accelerator
+# Source: https://www.qualcomm.com/products/technology/processors/cloud-artificial-intelligence/cloud-ai-100
+
+id: qualcomm_cloud_ai_100
+name: Qualcomm Cloud AI 100
+vendor: qualcomm
+
+die:
+  gpu_name: Cloud AI 100
+  architecture: Qualcomm AI Engine
+  architecture_codename: Cloud AI 100
+  foundry: tsmc
+  process_nm: 7
+  process_name: N7
+  transistors_billion: 20.0
+  die_size_mm2: 490.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  # AI accelerator cores (not traditional GPU shaders)
+  shaders: 16  # 16 AI cores
+  compute_units: 16
+  tmus: 0  # Not applicable - AI accelerator
+  rops: 0  # Not applicable - AI accelerator
+  warp_size: 1
+
+clocks:
+  base_clock_mhz: 1000
+  boost_clock_mhz: 1400
+  memory_clock_mhz: 2133
+  memory_effective_gbps: 4.27
+
+memory:
+  memory_size_gb: 32.0
+  memory_type: lpddr4x
+  memory_bus_bits: 512
+  memory_bandwidth_gbps: 273.0
+  l2_cache_mb: 144.0
+  ecc_support: true
+
+performance:
+  # AI inference focused - INT8/FP16 optimized
+  fp32_tflops: 50.0  # Derived from INT8 TOPS
+  fp16_tflops: 200.0
+  fp64_tflops: 0.0  # Not supported
+  bf16_tflops: 0.0  # Not supported
+  int8_tops: 400.0
+  tensor_tflops_fp16: 200.0
+  tensor_tflops_int8: 400.0
+  pixel_rate_gpixels: 0.0  # Not a graphics GPU
+  texture_rate_gtexels: 0.0  # Not a graphics GPU
+
+power:
+  tdp_watts: 75
+  max_power_watts: 75
+  idle_power_watts: 10.0
+  power_connectors: []
+  slot_power_watts: 75
+  recommended_psu_watts: 0
+
+board:
+  slot_width: 1.0
+  length_mm: 180
+  pcie_interface: pcie_4.0
+  pcie_lanes: 16
+  hdmi_ports: 0
+  displayport_ports: 0
+  fans: 0
+  cooler_type: passive
+
+features:
+  directx: "12.1"
+  opengl: "4.6"
+  vulkan: "1.1"
+  opencl: "2.1"
+  max_displays: 0
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2020-09-15"
+  launch_msrp_usd: 2500.0
+  target_market: datacenter
+  product_family: Qualcomm Cloud AI
+  model_tier: flagship
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+notes: |
+  Purpose-built AI inference accelerator for datacenter workloads.
+  Optimized for transformer models, computer vision, and NLP inference.
+  Industry-leading performance per watt (400 TOPS @ 75W = 5.33 TOPS/W).
+  Supports ONNX, TensorFlow, PyTorch via Qualcomm AI Stack.
+  Used in Microsoft Azure, AWS, and other cloud providers.
+  Low power makes it suitable for edge datacenter deployments.
+datasheet_url: https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/prod_brief_qcom_cloud_ai_100.pdf
+techpowerup_url: https://www.techpowerup.com/gpu-specs/qualcomm-cloud-ai-100.c3778
+last_updated: "2025-12-29"

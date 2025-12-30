@@ -1,0 +1,102 @@
+# NVIDIA B200 - Blackwell Flagship Datacenter GPU
+# Source: https://www.nvidia.com/en-us/data-center/blackwell/
+
+id: nvidia_b200
+name: NVIDIA B200
+vendor: nvidia
+
+die:
+  gpu_name: GB202
+  architecture: Blackwell
+  architecture_codename: Blackwell
+  foundry: tsmc
+  process_nm: 4
+  process_name: N4P
+  transistors_billion: 208.0
+  die_size_mm2: 744.0  # Per die, 2 dies in package
+  is_chiplet: true
+  num_dies: 2
+  chiplet_breakdown:
+    compute_die: 2
+
+compute:
+  shaders: 20736
+  cuda_cores: 20736
+  streaming_multiprocessors: 162
+  tmus: 648
+  rops: 288
+  tensor_cores: 648
+  tensor_core_gen: 5
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 1500
+  boost_clock_mhz: 2200
+  memory_clock_mhz: 4000
+  memory_effective_gbps: 8.0
+
+memory:
+  memory_size_gb: 192.0
+  memory_type: hbm3e
+  memory_bus_bits: 8192
+  memory_bandwidth_gbps: 8000.0
+  l2_cache_mb: 72.0
+  ecc_support: true
+
+performance:
+  fp32_tflops: 91.2
+  fp16_tflops: 182.5
+  fp64_tflops: 45.6
+  bf16_tflops: 182.5
+  int8_tops: 365.0
+  tensor_tflops_fp16: 2250.0
+  tensor_tflops_fp16_sparse: 4500.0
+  tensor_tflops_int8: 4500.0
+  tensor_tflops_fp8: 9000.0
+  pixel_rate_gpixels: 633.6
+  texture_rate_gtexels: 1425.6
+
+power:
+  tdp_watts: 1000
+  max_power_watts: 1000
+  idle_power_watts: 80.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+features:
+  directx: "12.2"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.8"
+  cuda_compute: "10.0"
+  nvenc: false
+  nvdec: false
+  dlss: false
+  max_displays: 0
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2024-03-18"
+  launch_msrp_usd: 40000.0
+  target_market: datacenter
+  product_family: NVIDIA Blackwell
+  model_tier: flagship
+  is_available: false
+  is_discontinued: false
+
+reference_design: true
+parent_gpu_id: nvidia_b100
+notes: |
+  Flagship Blackwell GPU with higher clocks and more SMs than B100.
+  Up to 20 PFLOPS of FP4 inference performance. 5th gen Tensor Cores.
+  Designed for largest AI models - GPT-4 class and beyond.
+  Available in GB200 superchip (2x B200 + Grace CPU).
+  1000W TDP requires liquid cooling in most deployments.
+datasheet_url: https://www.nvidia.com/en-us/data-center/blackwell/
+techpowerup_url: https://www.techpowerup.com/gpu-specs/blackwell-b200.c4256
+last_updated: "2025-12-29"

@@ -1,0 +1,94 @@
+# NVIDIA V100 SXM2 32GB - Volta Datacenter GPU
+# Source: https://www.nvidia.com/en-us/data-center/v100/
+
+id: nvidia_v100_sxm2_32gb
+name: NVIDIA V100 SXM2 32GB
+vendor: nvidia
+
+die:
+  gpu_name: GV100
+  architecture: Volta
+  architecture_codename: Volta
+  foundry: tsmc
+  process_nm: 12
+  process_name: 12FFN
+  transistors_billion: 21.1
+  die_size_mm2: 815.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 5120
+  cuda_cores: 5120
+  streaming_multiprocessors: 80
+  tmus: 320
+  rops: 128
+  tensor_cores: 640
+  tensor_core_gen: 1
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 1290
+  boost_clock_mhz: 1530
+  memory_clock_mhz: 877
+  memory_effective_gbps: 1.75
+
+memory:
+  memory_size_gb: 32.0
+  memory_type: hbm2
+  memory_bus_bits: 4096
+  memory_bandwidth_gbps: 900.0
+  l2_cache_mb: 6.0
+  ecc_support: true
+
+performance:
+  fp32_tflops: 15.67
+  fp16_tflops: 31.33
+  fp64_tflops: 7.83
+  bf16_tflops: 31.33
+  int8_tops: 62.67
+  tensor_tflops_fp16: 125.0
+  pixel_rate_gpixels: 195.8
+  texture_rate_gtexels: 489.6
+
+power:
+  tdp_watts: 300
+  max_power_watts: 300
+  idle_power_watts: 35.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+features:
+  directx: "12.1"
+  opengl: "4.6"
+  vulkan: "1.2"
+  opencl: "3.0"
+  shader_model: "6.4"
+  cuda_compute: "7.0"
+  nvenc: false
+  nvdec: false
+  dlss: false
+  max_displays: 0
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2018-03-27"
+  launch_msrp_usd: 10000.0
+  target_market: datacenter
+  product_family: NVIDIA V100
+  model_tier: flagship
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+notes: |
+  First GPU with Tensor Cores. Volta architecture introduced mixed-precision training.
+  NVLink 2.0 (300 GB/s bidirectional). Widely deployed in cloud instances (AWS p3, GCP).
+  Also available in 16GB variant and PCIe form factor.
+datasheet_url: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
+techpowerup_url: https://www.techpowerup.com/gpu-specs/tesla-v100-sxm2-32-gb.c3184
+last_updated: "2025-12-29"
