@@ -535,6 +535,10 @@ class GPUEntry(BaseModel):
     parent_gpu_id: str | None = Field(
         None, description="Parent GPU if this is a variant (e.g., Super, Ti, XT)"
     )
+    embedded_in_hardware_ids: list[str] = Field(
+        default_factory=list,
+        description="HardwareEntry IDs where this GPU is embedded (for SoC/integrated GPUs)",
+    )
 
     # Metadata
     notes: str = Field("", description="Additional notes")

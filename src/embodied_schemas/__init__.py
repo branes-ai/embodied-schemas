@@ -78,6 +78,16 @@ from embodied_schemas.gpu import (
     PowerConnector,
 )
 from embodied_schemas.registry import Registry
+from embodied_schemas.loaders import (
+    load_gpus,
+    load_gpu_architectures,
+    load_hardware,
+    load_chips,
+    load_models,
+    load_sensors,
+    load_usecases,
+    load_benchmarks,
+)
 
 __version__ = "0.1.0"
 
@@ -148,6 +158,15 @@ __all__ = [
     "PowerConnector",
     # Registry
     "Registry",
+    # Loaders
+    "load_gpus",
+    "load_gpu_architectures",
+    "load_hardware",
+    "load_chips",
+    "load_models",
+    "load_sensors",
+    "load_usecases",
+    "load_benchmarks",
     # Version
     "__version__",
 ]
