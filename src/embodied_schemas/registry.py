@@ -14,6 +14,7 @@ from embodied_schemas.sensors import SensorEntry
 from embodied_schemas.usecases import UseCaseEntry
 from embodied_schemas.benchmarks import BenchmarkResult
 from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
+from embodied_schemas.cpu import CPUEntry
 from embodied_schemas.loaders import (
     get_data_dir,
     load_hardware,
@@ -24,6 +25,7 @@ from embodied_schemas.loaders import (
     load_benchmarks,
     load_gpus,
     load_gpu_architectures,
+    load_cpus,
 )
 
 
@@ -160,6 +162,7 @@ class Registry:
     benchmarks: CatalogView = field(default_factory=CatalogView)
     gpus: CatalogView = field(default_factory=CatalogView)
     gpu_architectures: CatalogView = field(default_factory=CatalogView)
+    cpus: CatalogView = field(default_factory=CatalogView)
 
     _data_dir: Path | None = None
 
@@ -184,6 +187,7 @@ class Registry:
         registry.benchmarks = CatalogView(_entries=load_benchmarks(data_dir))
         registry.gpus = CatalogView(_entries=load_gpus(data_dir))
         registry.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
+        registry.cpus = CatalogView(_entries=load_cpus(data_dir))
 
         return registry
 
@@ -198,6 +202,7 @@ class Registry:
         self.benchmarks = CatalogView(_entries=load_benchmarks(data_dir))
         self.gpus = CatalogView(_entries=load_gpus(data_dir))
         self.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
+        self.cpus = CatalogView(_entries=load_cpus(data_dir))
 
     def get_compatible_hardware(self, model_id: str) -> list[HardwareEntry]:
         """Get hardware compatible with a given model.
@@ -351,6 +356,7 @@ class Registry:
             "benchmarks": len(self.benchmarks),
             "gpus": len(self.gpus),
             "gpu_architectures": len(self.gpu_architectures),
+            "cpus": len(self.cpus),
         }
 
     def get_gpus_by_vendor(self, vendor: str) -> list[GPUEntry]:
@@ -428,3 +434,48 @@ class Registry:
                 results.append(hw)
 
         return results
+
+    def get_cpus_by_vendor(self, vendor: str) -> list[CPUEntry]:
+        """Get all CPUs from a specific vendor.
+
+        Args:
+            vendor: Vendor name (intel, amd, arm, etc.)
+
+        Returns:
+            List of CPUEntry instances from that vendor
+        """
+        return self.cpus.find(vendor=vendor)
+
+    def get_cpus_by_architecture(self, architecture: str) -> list[CPUEntry]:
+        """Get all CPUs using a specific microarchitecture.
+
+        Args:
+            architecture: Architecture name (e.g., 'sapphire_rapids', 'zen4')
+
+        Returns:
+            List of CPUEntry instances using that architecture
+        """
+        return [cpu for cpu in self.cpus if cpu.architecture.value == architecture]
+
+    def get_cpus_by_market(self, target_market: str) -> list[CPUEntry]:
+        """Get all CPUs targeting a specific market.
+
+        Args:
+            target_market: Target market (datacenter, workstation, desktop_mainstream, etc.)
+
+        Returns:
+            List of CPUEntry instances for that market
+        """
+        return [cpu for cpu in self.cpus if cpu.market.target_market.value == target_market]
+
+    def get_cpus_by_socket(self, socket: str) -> list[CPUEntry]:
+        """Get all CPUs for a specific socket.
+
+        Args:
+            socket: Socket type (lga4677, sp5, am5, etc.)
+
+        Returns:
+            List of CPUEntry instances for that socket
+        """
+        return [cpu for cpu in self.cpus
+                if cpu.platform and cpu.platform.socket.value == socket]

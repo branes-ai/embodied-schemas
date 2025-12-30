@@ -1,0 +1,75 @@
+# AMD EPYC 9965 - Turin 192-Core Datacenter Flagship
+# Source: https://www.amd.com/en/products/processors/server/epyc/5th-generation-9005-series.html
+
+id: amd_epyc_9965_sp5
+name: AMD EPYC 9965
+vendor: amd
+
+architecture: zen5
+process_node: tsmc_n4
+
+cores:
+  total_cores: 192
+  total_threads: 384
+  smt_enabled: true
+  threads_per_core: 2
+
+clocks:
+  base_clock_mhz: 2250
+  boost_clock_mhz: 3700
+  all_core_boost_mhz: 3400
+
+cache:
+  l1_data_kb: 48
+  l1_instruction_kb: 32
+  l2_cache_mb: 1.0
+  l3_cache_mb: 384.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 6144
+  memory_channels: 12
+  memory_type: DDR5
+  max_memory_speed_mts: 6000
+  ecc_support: true
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: true
+  avx512_bf16: true
+  avx512_vnni: true
+  avx512_supported: true
+  sev: true
+
+power:
+  tdp_watts: 500
+  base_power_watts: 500
+  max_turbo_power_watts: 550
+  configurable_tdp_down_watts: 400
+  configurable_tdp_up_watts: 550
+
+platform:
+  socket: sp5
+  pcie_lanes: 128
+  pcie_version: "5.0"
+  cxl_support: true
+  cxl_version: "2.0"
+
+market:
+  launch_date: "2024-10-10"
+  launch_msrp_usd: 14813.0
+  target_market: datacenter
+  product_family: EPYC
+  product_line: "9005 series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  5th Gen AMD EPYC (Turin) flagship with 192 Zen 5 cores.
+  World's highest core count x86 server processor.
+  Enhanced Zen 5 IPC improvements over Zen 4.
+  CXL 2.0 support for memory expansion.
+datasheet_url: https://www.amd.com/en/products/processors/server/epyc/5th-generation-9005-series.html
+last_updated: "2025-12-30"
