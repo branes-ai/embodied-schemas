@@ -143,9 +143,14 @@ class TestGPUEfficiency:
         # All GPUs should have efficiency metrics
         assert len(efficiencies) == len(gpus)
 
-        # RTX 4090 should be most efficient among NVIDIA GPUs
+        # L40 should be most efficient NVIDIA GPU (90.5 TFLOPS @ 300W = 0.30 TFLOPS/W)
         nvidia_effs = {k: v for k, v in efficiencies.items() if "nvidia" in k}
-        assert max(nvidia_effs.values()) == efficiencies["nvidia_geforce_rtx_4090"]
+        assert max(nvidia_effs.values()) == efficiencies["nvidia_l40"]
+
+        # Consumer GPUs: RTX 4090 should be most efficient
+        consumer_nvidia = {k: v for k, v in efficiencies.items()
+                         if "nvidia_geforce" in k}
+        assert max(consumer_nvidia.values()) == efficiencies["nvidia_geforce_rtx_4090"]
 
 
 class TestGPUDataIntegrity:

@@ -1,0 +1,99 @@
+# NVIDIA H100 SXM5 - Flagship Hopper Datacenter GPU
+# Source: https://www.nvidia.com/en-us/data-center/h100/
+
+id: nvidia_h100_sxm5_80gb
+name: NVIDIA H100 SXM5 80GB
+vendor: nvidia
+
+die:
+  gpu_name: GH100
+  architecture: Hopper
+  architecture_codename: Hopper
+  foundry: tsmc
+  process_nm: 4
+  process_name: N4
+  transistors_billion: 80.0
+  die_size_mm2: 814.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 16896
+  cuda_cores: 16896
+  streaming_multiprocessors: 132
+  tmus: 528
+  rops: 192
+  tensor_cores: 528
+  tensor_core_gen: 4
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 1620
+  boost_clock_mhz: 1980
+  memory_clock_mhz: 2619
+  memory_effective_gbps: 3.35
+
+memory:
+  memory_size_gb: 80.0
+  memory_type: hbm3
+  memory_bus_bits: 5120
+  memory_bandwidth_gbps: 3350.0
+  l2_cache_mb: 50.0
+  ecc_support: true
+
+performance:
+  fp32_tflops: 66.91
+  fp16_tflops: 133.82
+  fp64_tflops: 33.45
+  bf16_tflops: 133.82
+  int8_tops: 267.64
+  tensor_tflops_fp16: 989.4
+  tensor_tflops_fp16_sparse: 1978.9
+  tensor_tflops_int8: 1978.9
+  tensor_tflops_fp8: 3958.0
+  pixel_rate_gpixels: 380.2
+  texture_rate_gtexels: 1045.4
+
+power:
+  tdp_watts: 700
+  max_power_watts: 700
+  idle_power_watts: 50.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+# No board spec - SXM form factor connects directly to baseboard
+
+features:
+  directx: "12.2"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.7"
+  cuda_compute: "9.0"
+  nvenc: false
+  nvdec: false
+  dlss: false
+  max_displays: 0
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2022-09-20"
+  launch_msrp_usd: 30000.0
+  target_market: datacenter
+  product_family: NVIDIA H100
+  model_tier: flagship
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+notes: |
+  Flagship Hopper datacenter GPU. Features 4th gen Tensor Cores with FP8 support,
+  Transformer Engine for automatic mixed precision, and NVLink 4.0 (900 GB/s bidirectional).
+  Supports MIG (Multi-Instance GPU) with up to 7 instances.
+datasheet_url: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
+techpowerup_url: https://www.techpowerup.com/gpu-specs/h100-sxm5-80-gb.c3900
+last_updated: "2025-12-29"
