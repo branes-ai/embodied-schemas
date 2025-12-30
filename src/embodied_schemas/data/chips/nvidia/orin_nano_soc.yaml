@@ -1,0 +1,29 @@
+# NVIDIA Orin Nano SoC
+# Source: https://developer.nvidia.com/embedded/jetson-modules
+
+id: nvidia_orin_nano_soc
+name: NVIDIA Orin Nano SoC
+vendor: nvidia
+architecture: Ampere
+process_node_nm: 8
+
+# CPU
+cpu_cores: 6
+cpu_architecture: Cortex-A78AE
+
+# GPU
+gpu_cores: 1024  # CUDA cores
+gpu_architecture: Ampere
+
+# AI accelerators
+npu_tops: 0  # No separate NPU, uses GPU
+dla_tops: 0  # No DLA on Orin Nano (only on higher Orin SKUs)
+
+# Memory
+memory_interface: LPDDR5
+memory_channels: 1
+max_memory_gb: 8.0
+
+announcement_date: "2022-09-20"
+datasheet_url: https://developer.nvidia.com/embedded/jetson-orin-nano
+last_updated: "2025-12-30"

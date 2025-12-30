@@ -1,0 +1,80 @@
+# AMD Ryzen 9 8945HS - Hawk Point Mobile APU Flagship
+# Source: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-9-8945hs.html
+
+id: amd_ryzen_9_8945hs_bga
+name: AMD Ryzen 9 8945HS
+vendor: amd
+
+architecture: zen4
+process_node: tsmc_n4
+
+cores:
+  total_cores: 8
+  total_threads: 16
+  smt_enabled: true
+  threads_per_core: 2
+
+clocks:
+  base_clock_mhz: 4000
+  boost_clock_mhz: 5200
+  all_core_boost_mhz: 4800
+
+cache:
+  l1_data_kb: 32
+  l1_instruction_kb: 32
+  l2_cache_mb: 8.0
+  l3_cache_mb: 16.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 64
+  memory_channels: 2
+  memory_type: DDR5
+  max_memory_speed_mts: 5600
+  ecc_support: false
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: true
+  avx512_bf16: true
+  avx512_vnni: true
+  avx512_supported: true
+
+power:
+  tdp_watts: 45
+  base_power_watts: 35
+  max_turbo_power_watts: 54
+  configurable_tdp_down_watts: 35
+  configurable_tdp_up_watts: 54
+
+platform:
+  socket: bga
+  pcie_lanes: 20
+  pcie_version: "4.0"
+  usb4_support: true
+
+graphics:
+  has_igpu: true
+  igpu_name: AMD Radeon 780M
+  igpu_cores: 12
+  igpu_base_mhz: 400
+  igpu_boost_mhz: 2800
+  igpu_tflops_fp32: 8.29
+
+market:
+  launch_date: "2024-01-08"
+  target_market: mobile_performance
+  product_family: Ryzen 9
+  product_line: "8000 series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  AMD Hawk Point flagship mobile APU - highest clocked 8000 series.
+  Same 8 Zen 4 cores but higher boost clocks than 8845HS.
+  Radeon 780M iGPU with 12 RDNA 3 compute units.
+  Ryzen AI NPU with 16 TOPS for on-device AI.
+datasheet_url: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-9-8945hs.html
+last_updated: "2025-12-30"
