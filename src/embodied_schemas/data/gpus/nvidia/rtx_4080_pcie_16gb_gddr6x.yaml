@@ -1,7 +1,7 @@
 # NVIDIA GeForce RTX 4080 - High-End Ada Lovelace Consumer GPU
 # Source: https://www.techpowerup.com/gpu-specs/geforce-rtx-4080.c3888
 
-id: nvidia_geforce_rtx_4080
+id: nvidia_rtx_4080_pcie_16gb_gddr6x
 name: NVIDIA GeForce RTX 4080
 vendor: nvidia
 

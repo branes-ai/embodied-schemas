@@ -1,7 +1,7 @@
 # AMD Radeon RX 7900 XTX - Flagship RDNA 3 Consumer GPU
 # Source: https://www.techpowerup.com/gpu-specs/radeon-rx-7900-xtx.c3941
 
-id: amd_radeon_rx_7900_xtx
+id: amd_rx_7900_xtx_pcie_24gb_gddr6
 name: AMD Radeon RX 7900 XTX
 vendor: amd
 

@@ -1,7 +1,7 @@
 # NVIDIA B100 - Blackwell Datacenter GPU
 # Source: https://www.nvidia.com/en-us/data-center/blackwell/
 
-id: nvidia_b100
+id: nvidia_b100_sxm5_192gb_hbm3e
 name: NVIDIA B100
 vendor: nvidia
 

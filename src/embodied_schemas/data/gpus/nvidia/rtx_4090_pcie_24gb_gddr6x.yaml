@@ -1,7 +1,7 @@
 # NVIDIA GeForce RTX 4090 - Flagship Ada Lovelace Consumer GPU
 # Source: https://www.techpowerup.com/gpu-specs/geforce-rtx-4090.c3889
 
-id: nvidia_geforce_rtx_4090
+id: nvidia_rtx_4090_pcie_24gb_gddr6x
 name: NVIDIA GeForce RTX 4090
 vendor: nvidia
 

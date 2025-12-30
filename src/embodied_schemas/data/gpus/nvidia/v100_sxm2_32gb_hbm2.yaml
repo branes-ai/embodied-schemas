@@ -1,7 +1,7 @@
 # NVIDIA V100 SXM2 32GB - Volta Datacenter GPU
 # Source: https://www.nvidia.com/en-us/data-center/v100/
 
-id: nvidia_v100_sxm2_32gb
+id: nvidia_v100_sxm2_32gb_hbm2
 name: NVIDIA V100 SXM2 32GB
 vendor: nvidia
 

@@ -1,7 +1,7 @@
 # NVIDIA A100 SXM4 80GB - Ampere Datacenter GPU
 # Source: https://www.nvidia.com/en-us/data-center/a100/
 
-id: nvidia_a100_sxm4_80gb
+id: nvidia_a100_sxm4_80gb_hbm2e
 name: NVIDIA A100 SXM4 80GB
 vendor: nvidia
 

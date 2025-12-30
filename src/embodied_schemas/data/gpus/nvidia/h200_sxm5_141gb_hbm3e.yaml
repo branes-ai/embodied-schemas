@@ -1,7 +1,7 @@
 # NVIDIA H200 SXM - Hopper with HBM3e Memory
 # Source: https://www.nvidia.com/en-us/data-center/h200/
 
-id: nvidia_h200_sxm_141gb
+id: nvidia_h200_sxm5_141gb_hbm3e
 name: NVIDIA H200 SXM 141GB
 vendor: nvidia
 
@@ -88,7 +88,7 @@ market:
   is_discontinued: false
 
 reference_design: true
-parent_gpu_id: nvidia_h100_sxm5_80gb
+parent_gpu_id: nvidia_h100_sxm5_80gb_hbm3
 notes: |
   H200 is an upgraded H100 with HBM3e memory providing 76% more memory capacity (141GB vs 80GB)
   and 43% more bandwidth (4.8 TB/s vs 3.35 TB/s). Same GH100 die and compute specs as H100.

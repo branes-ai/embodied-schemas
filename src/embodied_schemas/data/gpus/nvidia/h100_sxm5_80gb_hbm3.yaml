@@ -1,7 +1,7 @@
 # NVIDIA H100 SXM5 - Flagship Hopper Datacenter GPU
 # Source: https://www.nvidia.com/en-us/data-center/h100/
 
-id: nvidia_h100_sxm5_80gb
+id: nvidia_h100_sxm5_80gb_hbm3
 name: NVIDIA H100 SXM5 80GB
 vendor: nvidia
 

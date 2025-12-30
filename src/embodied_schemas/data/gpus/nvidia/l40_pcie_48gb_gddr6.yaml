@@ -1,7 +1,7 @@
 # NVIDIA L40 - Ada Lovelace Datacenter GPU for Inference
 # Source: https://www.nvidia.com/en-us/data-center/l40/
 
-id: nvidia_l40
+id: nvidia_l40_pcie_48gb_gddr6
 name: NVIDIA L40
 vendor: nvidia
 
