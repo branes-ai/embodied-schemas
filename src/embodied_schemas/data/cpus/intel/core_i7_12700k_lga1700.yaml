@@ -1,0 +1,83 @@
+# Intel Core i7-12700K - Alder Lake Desktop
+# Source: https://ark.intel.com/content/www/us/en/ark/products/134594/intel-core-i7-12700k-processor-25m-cache-up-to-5-00-ghz.html
+
+id: intel_core_i7_12700k_lga1700
+name: Intel Core i7-12700K
+vendor: intel
+
+architecture: alder_lake
+process_node: intel_7
+
+cores:
+  total_cores: 12
+  total_threads: 20
+  p_cores: 8
+  e_cores: 4
+  p_core_threads: 2
+  e_core_threads: 1
+  smt_enabled: true
+  threads_per_core: 2
+  p_core_arch: Golden Cove
+  e_core_arch: Gracemont
+
+clocks:
+  base_clock_mhz: 3600
+  boost_clock_mhz: 5000
+  p_core_base_mhz: 3600
+  p_core_boost_mhz: 5000
+  e_core_base_mhz: 2700
+  e_core_boost_mhz: 3800
+
+cache:
+  l1_data_kb: 48
+  l1_instruction_kb: 32
+  l2_cache_mb: 12.0
+  l3_cache_mb: 25.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 128
+  memory_channels: 2
+  memory_type: DDR5
+  max_memory_speed_mts: 4800
+  ecc_support: false
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: false
+
+power:
+  tdp_watts: 125
+  base_power_watts: 125
+  max_turbo_power_watts: 190
+
+platform:
+  socket: lga1700
+  pcie_lanes: 20
+  pcie_version: "5.0"
+  chipset_pcie_lanes: 28
+
+graphics:
+  has_igpu: true
+  igpu_name: Intel UHD Graphics 770
+  igpu_cores: 32
+  igpu_base_mhz: 300
+  igpu_boost_mhz: 1500
+
+market:
+  launch_date: "2021-11-04"
+  launch_msrp_usd: 409.0
+  target_market: desktop_enthusiast
+  product_family: Core i7
+  product_line: "12th Gen"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  12th Gen Intel Core (Alder Lake) - first hybrid architecture consumer CPU.
+  8 Performance cores + 4 Efficiency cores.
+  Introduced LGA1700 socket and DDR5 support.
+datasheet_url: https://ark.intel.com/content/www/us/en/ark/products/134594/intel-core-i7-12700k-processor-25m-cache-up-to-5-00-ghz.html
+last_updated: "2025-12-30"
