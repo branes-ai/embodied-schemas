@@ -1,7 +1,7 @@
 # AMD Instinct MI300X - Flagship CDNA 3 Datacenter GPU
 # Source: https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html
 
-id: amd_instinct_mi300x
+id: amd_mi300x_oam_192gb_hbm3
 name: AMD Instinct MI300X
 vendor: amd
 

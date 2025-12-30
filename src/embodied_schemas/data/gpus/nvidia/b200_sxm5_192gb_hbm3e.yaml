@@ -1,7 +1,7 @@
 # NVIDIA B200 - Blackwell Flagship Datacenter GPU
 # Source: https://www.nvidia.com/en-us/data-center/blackwell/
 
-id: nvidia_b200
+id: nvidia_b200_sxm5_192gb_hbm3e
 name: NVIDIA B200
 vendor: nvidia
 
@@ -90,7 +90,7 @@ market:
   is_discontinued: false
 
 reference_design: true
-parent_gpu_id: nvidia_b100
+parent_gpu_id: nvidia_b100_sxm5_192gb_hbm3e
 notes: |
   Flagship Blackwell GPU with higher clocks and more SMs than B100.
   Up to 20 PFLOPS of FP4 inference performance. 5th gen Tensor Cores.

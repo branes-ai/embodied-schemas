@@ -1,7 +1,7 @@
 # AMD Instinct MI250X - CDNA 2 Datacenter GPU
 # Source: https://www.amd.com/en/products/accelerators/instinct/mi200/mi250x.html
 
-id: amd_instinct_mi250x
+id: amd_mi250x_oam_128gb_hbm2e
 name: AMD Instinct MI250X
 vendor: amd
 

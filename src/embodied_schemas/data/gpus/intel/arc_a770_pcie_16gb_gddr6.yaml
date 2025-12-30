@@ -1,7 +1,7 @@
 # Intel Arc A770 - Flagship Alchemist Consumer GPU
 # Source: https://www.techpowerup.com/gpu-specs/arc-a770.c3914
 
-id: intel_arc_a770
+id: intel_arc_a770_pcie_16gb_gddr6
 name: Intel Arc A770
 vendor: intel
 

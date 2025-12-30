@@ -36,10 +36,10 @@ class TestGPULoader:
         gpus = load_gpus()
         # We seeded these GPUs
         expected_gpus = [
-            "nvidia_geforce_rtx_4090",
-            "nvidia_geforce_rtx_4080",
-            "amd_radeon_rx_7900_xtx",
-            "intel_arc_a770",
+            "nvidia_rtx_4090_pcie_24gb_gddr6x",
+            "nvidia_rtx_4080_pcie_16gb_gddr6x",
+            "amd_rx_7900_xtx_pcie_24gb_gddr6",
+            "intel_arc_a770_pcie_16gb_gddr6",
         ]
         for gpu_id in expected_gpus:
             assert gpu_id in gpus, f"Expected GPU {gpu_id} not found"
@@ -71,7 +71,7 @@ class TestGPURegistry:
 
     def test_registry_gpu_query(self, registry):
         """Test querying GPUs from registry."""
-        gpu = registry.gpus.get("nvidia_geforce_rtx_4090")
+        gpu = registry.gpus.get("nvidia_rtx_4090_pcie_24gb_gddr6x")
         assert gpu is not None
         assert gpu.name == "NVIDIA GeForce RTX 4090"
         assert gpu.vendor == GPUVendor.NVIDIA
@@ -121,7 +121,7 @@ class TestGPUEfficiency:
 
     def test_efficiency_metrics_rtx_4090(self, registry):
         """Test efficiency metric calculation for RTX 4090."""
-        gpu = registry.gpus.get("nvidia_geforce_rtx_4090")
+        gpu = registry.gpus.get("nvidia_rtx_4090_pcie_24gb_gddr6x")
         assert gpu is not None
 
         efficiency = gpu.compute_efficiency_metrics()
@@ -145,12 +145,12 @@ class TestGPUEfficiency:
 
         # L40 should be most efficient NVIDIA GPU (90.5 TFLOPS @ 300W = 0.30 TFLOPS/W)
         nvidia_effs = {k: v for k, v in efficiencies.items() if "nvidia" in k}
-        assert max(nvidia_effs.values()) == efficiencies["nvidia_l40"]
+        assert max(nvidia_effs.values()) == efficiencies["nvidia_l40_pcie_48gb_gddr6"]
 
         # Consumer GPUs: RTX 4090 should be most efficient
         consumer_nvidia = {k: v for k, v in efficiencies.items()
-                         if "nvidia_geforce" in k}
-        assert max(consumer_nvidia.values()) == efficiencies["nvidia_geforce_rtx_4090"]
+                         if "nvidia_rtx" in k}
+        assert max(consumer_nvidia.values()) == efficiencies["nvidia_rtx_4090_pcie_24gb_gddr6x"]
 
 
 class TestGPUDataIntegrity:
@@ -214,7 +214,7 @@ class TestCrossReference:
     def test_get_hardware_with_gpu_returns_empty_for_discrete(self, registry):
         """Test that discrete GPUs have no embedded hardware by default."""
         # Discrete GPUs aren't embedded in any hardware
-        hardware_list = registry.get_hardware_with_gpu("nvidia_geforce_rtx_4090")
+        hardware_list = registry.get_hardware_with_gpu("nvidia_rtx_4090_pcie_24gb_gddr6x")
         assert hardware_list == []
 
     def test_embedded_in_hardware_ids_default(self):

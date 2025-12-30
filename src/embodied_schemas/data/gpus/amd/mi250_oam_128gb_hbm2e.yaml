@@ -1,7 +1,7 @@
 # AMD Instinct MI250 - CDNA 2 Datacenter GPU
 # Source: https://www.amd.com/en/products/accelerators/instinct/mi200/mi250.html
 
-id: amd_instinct_mi250
+id: amd_mi250_oam_128gb_hbm2e
 name: AMD Instinct MI250
 vendor: amd
 
@@ -79,7 +79,7 @@ market:
   is_discontinued: false
 
 reference_design: true
-parent_gpu_id: amd_instinct_mi250x
+parent_gpu_id: amd_mi250x_oam_128gb_hbm2e
 notes: |
   CDNA 2 architecture with 2 GCDs. Slightly lower specs than MI250X
   (208 vs 220 CUs, 500W vs 560W TDP). PCIe form factor option available.

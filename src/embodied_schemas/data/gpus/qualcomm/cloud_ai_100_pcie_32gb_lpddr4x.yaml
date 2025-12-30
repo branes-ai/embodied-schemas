@@ -1,7 +1,7 @@
 # Qualcomm Cloud AI 100 - Datacenter AI Accelerator
 # Source: https://www.qualcomm.com/products/technology/processors/cloud-artificial-intelligence/cloud-ai-100
 
-id: qualcomm_cloud_ai_100
+id: qualcomm_cloud_ai_100_pcie_32gb_lpddr4x
 name: Qualcomm Cloud AI 100
 vendor: qualcomm
 
