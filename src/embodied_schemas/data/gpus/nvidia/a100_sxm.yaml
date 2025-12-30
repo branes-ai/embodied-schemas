@@ -1,0 +1,97 @@
+# NVIDIA A100 SXM4 80GB - Ampere Datacenter GPU
+# Source: https://www.nvidia.com/en-us/data-center/a100/
+
+id: nvidia_a100_sxm4_80gb
+name: NVIDIA A100 SXM4 80GB
+vendor: nvidia
+
+die:
+  gpu_name: GA100
+  architecture: Ampere
+  architecture_codename: Ampere
+  foundry: tsmc
+  process_nm: 7
+  process_name: N7
+  transistors_billion: 54.2
+  die_size_mm2: 826.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 6912
+  cuda_cores: 6912
+  streaming_multiprocessors: 108
+  tmus: 432
+  rops: 160
+  tensor_cores: 432
+  tensor_core_gen: 3
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 1095
+  boost_clock_mhz: 1410
+  memory_clock_mhz: 1593
+  memory_effective_gbps: 2.04
+
+memory:
+  memory_size_gb: 80.0
+  memory_type: hbm2e
+  memory_bus_bits: 5120
+  memory_bandwidth_gbps: 2039.0
+  l2_cache_mb: 40.0
+  ecc_support: true
+
+performance:
+  fp32_tflops: 19.49
+  fp16_tflops: 77.97
+  fp64_tflops: 9.75
+  bf16_tflops: 77.97
+  int8_tops: 311.87
+  tensor_tflops_fp16: 311.87
+  tensor_tflops_fp16_sparse: 623.74
+  tensor_tflops_int8: 623.74
+  pixel_rate_gpixels: 225.6
+  texture_rate_gtexels: 609.1
+
+power:
+  tdp_watts: 400
+  max_power_watts: 400
+  idle_power_watts: 40.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+features:
+  directx: "12.2"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.5"
+  cuda_compute: "8.0"
+  nvenc: false
+  nvdec: false
+  dlss: false
+  max_displays: 0
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2020-11-16"
+  launch_msrp_usd: 15000.0
+  target_market: datacenter
+  product_family: NVIDIA A100
+  model_tier: flagship
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+notes: |
+  Ampere datacenter GPU, widely deployed for AI training and HPC workloads.
+  Features 3rd gen Tensor Cores with TF32 support, NVLink 3.0 (600 GB/s bidirectional).
+  Supports MIG (Multi-Instance GPU) with up to 7 instances.
+  Also available in 40GB variant and PCIe form factor.
+datasheet_url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+techpowerup_url: https://www.techpowerup.com/gpu-specs/a100-sxm4-80-gb.c3683
+last_updated: "2025-12-29"

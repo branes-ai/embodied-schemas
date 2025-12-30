@@ -1,0 +1,114 @@
+# NVIDIA L40 - Ada Lovelace Datacenter GPU for Inference
+# Source: https://www.nvidia.com/en-us/data-center/l40/
+
+id: nvidia_l40
+name: NVIDIA L40
+vendor: nvidia
+
+die:
+  gpu_name: AD102
+  architecture: Ada Lovelace
+  architecture_codename: Ada
+  foundry: tsmc
+  process_nm: 5
+  process_name: N4
+  transistors_billion: 76.3
+  die_size_mm2: 608.5
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 18176
+  cuda_cores: 18176
+  streaming_multiprocessors: 142
+  tmus: 568
+  rops: 192
+  tensor_cores: 568
+  tensor_core_gen: 4
+  rt_cores: 142
+  rt_core_gen: 3
+  warp_size: 32
+  max_warps_per_sm: 48
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 735
+  boost_clock_mhz: 2490
+  memory_clock_mhz: 1125
+  memory_effective_gbps: 18.0
+
+memory:
+  memory_size_gb: 48.0
+  memory_type: gddr6
+  memory_bus_bits: 384
+  memory_bandwidth_gbps: 864.0
+  l2_cache_mb: 96.0
+  ecc_support: true
+
+performance:
+  fp32_tflops: 90.52
+  fp16_tflops: 181.05
+  fp64_tflops: 1.41
+  bf16_tflops: 181.05
+  int8_tops: 362.1
+  tensor_tflops_fp16: 362.1
+  tensor_tflops_fp16_sparse: 724.19
+  tensor_tflops_int8: 724.19
+  tensor_tflops_fp8: 1448.38
+  pixel_rate_gpixels: 478.1
+  texture_rate_gtexels: 1414.3
+
+power:
+  tdp_watts: 300
+  max_power_watts: 300
+  idle_power_watts: 30.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+board:
+  slot_width: 2.0
+  length_mm: 267
+  pcie_interface: pcie_4.0
+  pcie_lanes: 16
+  hdmi_ports: 0
+  displayport_ports: 4
+  displayport_version: "1.4a"
+  fans: 0
+  cooler_type: passive
+
+features:
+  directx: "12.2"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.7"
+  cuda_compute: "8.9"
+  nvenc: true
+  nvenc_gen: 8
+  nvdec: true
+  dlss: true
+  dlss_version: "3.0"
+  max_resolution: "7680x4320"
+  max_displays: 4
+  hdr_support: true
+  variable_refresh: true
+
+market:
+  launch_date: "2022-09-20"
+  launch_msrp_usd: 7500.0
+  target_market: datacenter
+  product_family: NVIDIA L40
+  model_tier: high-end
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+notes: |
+  Ada Lovelace datacenter GPU optimized for AI inference, graphics rendering, and video processing.
+  Full AD102 die with NVENC/NVDEC for media workloads. PCIe form factor with passive cooling.
+  Suitable for inference servers, virtual workstations, and media processing.
+  No NVLink support (PCIe only). Lower power (300W) than consumer RTX 4090.
+datasheet_url: https://resources.nvidia.com/en-us-l40/l40-datasheet-28413
+techpowerup_url: https://www.techpowerup.com/gpu-specs/l40.c3931
+last_updated: "2025-12-29"
