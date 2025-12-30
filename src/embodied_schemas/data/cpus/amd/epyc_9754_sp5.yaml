@@ -1,0 +1,75 @@
+# AMD EPYC 9754 - Bergamo 128-Core Cloud-Native
+# Source: https://www.amd.com/en/products/cpu/amd-epyc-9754
+
+id: amd_epyc_9754_sp5
+name: AMD EPYC 9754
+vendor: amd
+
+architecture: zen4c
+process_node: tsmc_n5
+
+cores:
+  total_cores: 128
+  total_threads: 256
+  smt_enabled: true
+  threads_per_core: 2
+
+clocks:
+  base_clock_mhz: 2250
+  boost_clock_mhz: 3100
+  all_core_boost_mhz: 2950
+
+cache:
+  l1_data_kb: 32
+  l1_instruction_kb: 32
+  l2_cache_mb: 1.0
+  l3_cache_mb: 256.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 6144
+  memory_channels: 12
+  memory_type: DDR5
+  max_memory_speed_mts: 4800
+  ecc_support: true
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: true
+  avx512_bf16: true
+  avx512_vnni: true
+  avx512_supported: true
+  sev: true
+
+power:
+  tdp_watts: 360
+  base_power_watts: 360
+  max_turbo_power_watts: 400
+  configurable_tdp_down_watts: 320
+  configurable_tdp_up_watts: 400
+
+platform:
+  socket: sp5
+  pcie_lanes: 128
+  pcie_version: "5.0"
+  cxl_support: true
+  cxl_version: "1.1"
+
+market:
+  launch_date: "2023-06-13"
+  launch_msrp_usd: 10632.0
+  target_market: datacenter
+  product_family: EPYC
+  product_line: "9004 series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  AMD EPYC (Bergamo) with 128 Zen 4c cores for cloud-native workloads.
+  Zen 4c is a compact version of Zen 4, optimized for density.
+  Lower L3 cache per core but more cores for scale-out.
+  Ideal for cloud services, containers, and microservices.
+datasheet_url: https://www.amd.com/en/products/cpu/amd-epyc-9754
+last_updated: "2025-12-30"

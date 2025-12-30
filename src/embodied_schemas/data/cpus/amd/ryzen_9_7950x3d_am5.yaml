@@ -1,0 +1,78 @@
+# AMD Ryzen 9 7950X3D - Zen 4 with 3D V-Cache
+# Source: https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-9-7950x3d.html
+
+id: amd_ryzen_9_7950x3d_am5
+name: AMD Ryzen 9 7950X3D
+vendor: amd
+
+architecture: zen4
+process_node: tsmc_n5
+
+cores:
+  total_cores: 16
+  total_threads: 32
+  smt_enabled: true
+  threads_per_core: 2
+
+clocks:
+  base_clock_mhz: 4200
+  boost_clock_mhz: 5700
+  all_core_boost_mhz: 5100
+
+cache:
+  l1_data_kb: 32
+  l1_instruction_kb: 32
+  l2_cache_mb: 16.0
+  l3_cache_mb: 128.0
+  l2_per_core: true
+  l3_shared: true
+  vcache_mb: 64.0
+
+memory:
+  max_memory_gb: 128
+  memory_channels: 2
+  memory_type: DDR5
+  max_memory_speed_mts: 5200
+  ecc_support: true
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: true
+  avx512_bf16: true
+  avx512_vnni: true
+  avx512_supported: true
+
+power:
+  tdp_watts: 120
+  base_power_watts: 120
+  max_turbo_power_watts: 162
+
+platform:
+  socket: am5
+  pcie_lanes: 24
+  pcie_version: "5.0"
+  chipset_pcie_lanes: 12
+
+graphics:
+  has_igpu: true
+  igpu_name: AMD Radeon Graphics
+  igpu_cores: 2
+  igpu_boost_mhz: 2200
+
+market:
+  launch_date: "2023-02-28"
+  launch_msrp_usd: 699.0
+  target_market: desktop_enthusiast
+  product_family: Ryzen 9
+  product_line: "7000 series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Zen 4 with 3D V-Cache - 128MB total L3 cache.
+  Best gaming CPU due to massive cache helping game workloads.
+  One CCD has V-Cache, one doesn't - asymmetric design.
+  Lower TDP than 7950X due to V-Cache power constraints.
+datasheet_url: https://www.amd.com/en/products/processors/desktops/ryzen/7000-series/amd-ryzen-9-7950x3d.html
+last_updated: "2025-12-30"

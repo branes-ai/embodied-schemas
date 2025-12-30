@@ -1,0 +1,87 @@
+# Intel Core Ultra 9 285K - Arrow Lake Desktop Flagship
+# Source: https://www.intel.com/content/www/us/en/products/sku/240919/intel-core-ultra-9-processor-285k-36m-cache-up-to-5-70-ghz/specifications.html
+
+id: intel_core_ultra_9_285k_lga1851
+name: Intel Core Ultra 9 285K
+vendor: intel
+
+architecture: arrow_lake
+process_node: intel_4
+
+cores:
+  total_cores: 24
+  total_threads: 24
+  p_cores: 8
+  e_cores: 16
+  p_core_threads: 1
+  e_core_threads: 1
+  smt_enabled: false
+  threads_per_core: 1
+  p_core_arch: Lion Cove
+  e_core_arch: Skymont
+
+clocks:
+  base_clock_mhz: 3700
+  boost_clock_mhz: 5700
+  p_core_base_mhz: 3700
+  p_core_boost_mhz: 5700
+  e_core_base_mhz: 3200
+  e_core_boost_mhz: 4600
+
+cache:
+  l1_data_kb: 48
+  l1_instruction_kb: 64
+  l2_cache_mb: 40.0
+  l3_cache_mb: 36.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 192
+  memory_channels: 2
+  memory_type: DDR5
+  max_memory_speed_mts: 6400
+  ecc_support: false
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: false
+  avx512_bf16: false
+  avx512_vnni: false
+
+power:
+  tdp_watts: 125
+  base_power_watts: 125
+  max_turbo_power_watts: 250
+
+platform:
+  socket: lga1851
+  pcie_lanes: 20
+  pcie_version: "5.0"
+  chipset_pcie_lanes: 24
+  usb4_support: true
+
+graphics:
+  has_igpu: true
+  igpu_name: Intel Arc Graphics
+  igpu_cores: 4
+  igpu_base_mhz: 300
+  igpu_boost_mhz: 2000
+
+market:
+  launch_date: "2024-10-24"
+  launch_msrp_usd: 589.0
+  target_market: desktop_enthusiast
+  product_family: Core Ultra 9
+  product_line: "200 series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Intel Arrow Lake desktop flagship with Lion Cove P-cores and Skymont E-cores.
+  No hyperthreading - each core is single-threaded for improved efficiency.
+  Integrated Intel Arc graphics with XMX AI engines.
+  New LGA1851 socket, incompatible with LGA1700.
+datasheet_url: https://www.intel.com/content/www/us/en/products/sku/240919/intel-core-ultra-9-processor-285k-36m-cache-up-to-5-70-ghz/specifications.html
+last_updated: "2025-12-30"

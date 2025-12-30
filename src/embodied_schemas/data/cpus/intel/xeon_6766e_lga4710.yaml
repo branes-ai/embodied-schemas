@@ -1,0 +1,76 @@
+# Intel Xeon 6766E - Sierra Forest E-core Datacenter
+# Source: https://www.intel.com/content/www/us/en/products/sku/240761/intel-xeon-6766e-processor-288m-cache-2-40-ghz/specifications.html
+
+id: intel_xeon_6766e_lga4710
+name: Intel Xeon 6766E
+vendor: intel
+
+architecture: granite_rapids
+process_node: intel_3
+
+cores:
+  total_cores: 144
+  total_threads: 144
+  smt_enabled: false
+  threads_per_core: 1
+
+clocks:
+  base_clock_mhz: 2400
+  boost_clock_mhz: 3500
+
+cache:
+  l1_data_kb: 32
+  l1_instruction_kb: 64
+  l2_cache_mb: 4.0
+  l3_cache_mb: 288.0
+  l2_per_core: false
+  l3_shared: true
+
+memory:
+  max_memory_gb: 8192
+  memory_channels: 8
+  memory_type: DDR5
+  max_memory_speed_mts: 6400
+  ecc_support: true
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: false
+  avx512_bf16: false
+  avx512_vnni: false
+  avx512_fp16: false
+  amx: false
+  amx_bf16: false
+  amx_int8: false
+  sgx: false
+  tme: true
+
+power:
+  tdp_watts: 250
+  base_power_watts: 250
+  max_turbo_power_watts: 300
+
+platform:
+  socket: lga4710
+  pcie_lanes: 96
+  pcie_version: "5.0"
+  cxl_support: true
+  cxl_version: "2.0"
+
+market:
+  launch_date: "2024-06-04"
+  launch_msrp_usd: 6230.0
+  target_market: datacenter
+  product_family: Xeon 6
+  product_line: "6700E series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Intel Xeon 6 with E-cores (Sierra Forest) for density-optimized workloads.
+  144 efficiency cores without SMT - optimized for throughput.
+  No AVX-512 or AMX - E-cores focused on power efficiency.
+  Ideal for cloud-native, microservices, and scale-out workloads.
+datasheet_url: https://www.intel.com/content/www/us/en/products/sku/240761/intel-xeon-6766e-processor-288m-cache-2-40-ghz/specifications.html
+last_updated: "2025-12-30"

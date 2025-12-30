@@ -1,0 +1,78 @@
+# Intel Xeon 6980P - Granite Rapids Datacenter Flagship
+# Source: https://www.intel.com/content/www/us/en/products/sku/240777/intel-xeon-6980p-processor-504m-cache-2-00-ghz/specifications.html
+
+id: intel_xeon_6980p_lga4710
+name: Intel Xeon 6980P
+vendor: intel
+
+architecture: granite_rapids
+process_node: intel_3
+
+cores:
+  total_cores: 128
+  total_threads: 256
+  smt_enabled: true
+  threads_per_core: 2
+
+clocks:
+  base_clock_mhz: 2000
+  boost_clock_mhz: 3800
+  all_core_boost_mhz: 2800
+
+cache:
+  l1_data_kb: 48
+  l1_instruction_kb: 32
+  l2_cache_mb: 2.0
+  l3_cache_mb: 504.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 12288
+  memory_channels: 12
+  memory_type: DDR5
+  max_memory_speed_mts: 6400
+  ecc_support: true
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: true
+  avx512_bf16: true
+  avx512_vnni: true
+  avx512_fp16: true
+  amx: true
+  amx_bf16: true
+  amx_int8: true
+  amx_fp16: true
+  sgx: true
+  tme: true
+
+power:
+  tdp_watts: 500
+  base_power_watts: 500
+  max_turbo_power_watts: 600
+
+platform:
+  socket: lga4710
+  pcie_lanes: 96
+  pcie_version: "5.0"
+  cxl_support: true
+  cxl_version: "2.0"
+
+market:
+  launch_date: "2024-09-10"
+  launch_msrp_usd: 17800.0
+  target_market: datacenter
+  product_family: Xeon 6
+  product_line: "6900P series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Intel Xeon 6 with P-cores (Granite Rapids) flagship.
+  128 performance cores, 504MB L3 cache.
+  12-channel DDR5-6400 memory, PCIe 5.0, CXL 2.0.
+  AMX with FP16 support for enhanced AI inference.
+datasheet_url: https://www.intel.com/content/www/us/en/products/sku/240777/intel-xeon-6980p-processor-504m-cache-2-00-ghz/specifications.html
+last_updated: "2025-12-30"

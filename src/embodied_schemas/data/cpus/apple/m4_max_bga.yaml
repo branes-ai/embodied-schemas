@@ -1,0 +1,75 @@
+# Apple M4 Max - Apple Silicon Workstation-Class
+# Source: https://www.apple.com/newsroom/2024/10/apple-introduces-m4-pro-and-m4-max/
+
+id: apple_m4_max_bga
+name: Apple M4 Max
+vendor: apple
+
+architecture: m4
+process_node: tsmc_n3e
+
+cores:
+  total_cores: 16
+  total_threads: 16
+  p_cores: 12
+  e_cores: 4
+  p_core_threads: 1
+  e_core_threads: 1
+  smt_enabled: false
+  threads_per_core: 1
+
+clocks:
+  base_clock_mhz: 600
+  boost_clock_mhz: 4500
+  p_core_boost_mhz: 4500
+  e_core_boost_mhz: 2800
+
+cache:
+  l1_data_kb: 128
+  l1_instruction_kb: 192
+  l2_cache_mb: 48.0
+  l3_cache_mb: 0
+  l2_per_core: false
+  l3_shared: false
+
+memory:
+  max_memory_gb: 128
+  memory_channels: 8
+  memory_type: LPDDR5X
+  max_memory_speed_mts: 6400
+  memory_bandwidth_gbps: 546.0
+  ecc_support: false
+
+power:
+  tdp_watts: 40
+  max_turbo_power_watts: 80
+  idle_power_watts: 2.0
+
+platform:
+  socket: bga
+  pcie_lanes: 0
+  pcie_version: "N/A"
+  usb4_support: true
+
+graphics:
+  has_igpu: true
+  igpu_name: Apple M4 Max GPU
+  igpu_cores: 40
+  igpu_boost_mhz: 1500
+  igpu_tflops_fp32: 16.0
+
+market:
+  launch_date: "2024-11-08"
+  target_market: workstation
+  product_family: Apple Silicon M4
+  product_line: "M4"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Apple M4 Max - flagship Apple Silicon for MacBook Pro.
+  16 CPU cores, 40 GPU cores, 16-core Neural Engine.
+  546 GB/s memory bandwidth with unified memory.
+  Up to 128GB unified memory for creative workloads.
+datasheet_url: https://www.apple.com/macbook-pro/specs/
+last_updated: "2025-12-30"

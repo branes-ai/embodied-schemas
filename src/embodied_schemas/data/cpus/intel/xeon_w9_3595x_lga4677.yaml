@@ -1,0 +1,76 @@
+# Intel Xeon w9-3595X - Sapphire Rapids Workstation Flagship
+# Source: https://ark.intel.com/content/www/us/en/ark/products/232780/intel-xeon-w9-3595x-processor-105m-cache-2-00-ghz.html
+
+id: intel_xeon_w9_3595x_lga4677
+name: Intel Xeon w9-3595X
+vendor: intel
+
+architecture: sapphire_rapids
+process_node: intel_7
+
+cores:
+  total_cores: 56
+  total_threads: 112
+  smt_enabled: true
+  threads_per_core: 2
+
+clocks:
+  base_clock_mhz: 2000
+  boost_clock_mhz: 4700
+  all_core_boost_mhz: 3900
+
+cache:
+  l1_data_kb: 48
+  l1_instruction_kb: 32
+  l2_cache_mb: 2.0
+  l3_cache_mb: 105.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 4096
+  memory_channels: 8
+  memory_type: DDR5
+  max_memory_speed_mts: 4800
+  ecc_support: true
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: true
+  avx512_bf16: true
+  avx512_vnni: true
+  avx512_fp16: true
+  amx: true
+  amx_bf16: true
+  amx_int8: true
+  sgx: true
+  tme: true
+
+power:
+  tdp_watts: 350
+  base_power_watts: 350
+  max_turbo_power_watts: 420
+
+platform:
+  socket: lga4677
+  pcie_lanes: 112
+  pcie_version: "5.0"
+  cxl_support: true
+  cxl_version: "1.1"
+
+market:
+  launch_date: "2023-Q1"
+  launch_msrp_usd: 5889.0
+  target_market: workstation
+  product_family: Xeon w9
+  product_line: "3500 series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Flagship Sapphire Rapids workstation processor with 56 cores.
+  Supports 8-channel DDR5 memory and PCIe 5.0.
+  AMX (Advanced Matrix Extensions) for AI acceleration.
+datasheet_url: https://ark.intel.com/content/www/us/en/ark/products/232780/intel-xeon-w9-3595x-processor-105m-cache-2-00-ghz.html
+last_updated: "2025-12-30"

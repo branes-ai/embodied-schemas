@@ -1,0 +1,86 @@
+# Intel Core i9-14900K - Raptor Lake Refresh Desktop Flagship
+# Source: https://ark.intel.com/content/www/us/en/ark/products/236773/intel-core-i9-processor-14900k-36m-cache-up-to-6-00-ghz.html
+
+id: intel_core_i9_14900k_lga1700
+name: Intel Core i9-14900K
+vendor: intel
+
+architecture: raptor_lake
+process_node: intel_7
+
+cores:
+  total_cores: 24
+  total_threads: 32
+  p_cores: 8
+  e_cores: 16
+  p_core_threads: 2
+  e_core_threads: 1
+  smt_enabled: true
+  threads_per_core: 2
+  p_core_arch: Raptor Cove
+  e_core_arch: Gracemont
+
+clocks:
+  base_clock_mhz: 3200
+  boost_clock_mhz: 6000
+  p_core_base_mhz: 3200
+  p_core_boost_mhz: 6000
+  e_core_base_mhz: 2400
+  e_core_boost_mhz: 4400
+
+cache:
+  l1_data_kb: 48
+  l1_instruction_kb: 32
+  l2_cache_mb: 32.0
+  l3_cache_mb: 36.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 192
+  memory_channels: 2
+  memory_type: DDR5
+  max_memory_speed_mts: 5600
+  ecc_support: false
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: false
+  avx512_bf16: false
+  avx512_vnni: false
+
+power:
+  tdp_watts: 125
+  base_power_watts: 125
+  max_turbo_power_watts: 253
+
+platform:
+  socket: lga1700
+  pcie_lanes: 20
+  pcie_version: "5.0"
+  chipset_pcie_lanes: 28
+
+graphics:
+  has_igpu: true
+  igpu_name: Intel UHD Graphics 770
+  igpu_cores: 32
+  igpu_base_mhz: 300
+  igpu_boost_mhz: 1650
+
+market:
+  launch_date: "2023-10-17"
+  launch_msrp_usd: 589.0
+  target_market: desktop_enthusiast
+  product_family: Core i9
+  product_line: "14th Gen"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  14th Gen Intel Core (Raptor Lake Refresh) desktop flagship.
+  6.0 GHz max turbo frequency - fastest consumer Intel processor.
+  Hybrid architecture with P-cores having hyperthreading, E-cores without.
+  Known for high power consumption at stock settings.
+datasheet_url: https://ark.intel.com/content/www/us/en/ark/products/236773/intel-core-i9-processor-14900k-36m-cache-up-to-6-00-ghz.html
+last_updated: "2025-12-30"

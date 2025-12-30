@@ -1,0 +1,76 @@
+# Intel Xeon Platinum 8592+ - Emerald Rapids Datacenter
+# Source: https://ark.intel.com/content/www/us/en/ark/products/237257/intel-xeon-platinum-8592-processor-320m-cache-1-90-ghz.html
+
+id: intel_xeon_platinum_8592_lga4677
+name: Intel Xeon Platinum 8592+
+vendor: intel
+
+architecture: emerald_rapids
+process_node: intel_7
+
+cores:
+  total_cores: 64
+  total_threads: 128
+  smt_enabled: true
+  threads_per_core: 2
+
+clocks:
+  base_clock_mhz: 1900
+  boost_clock_mhz: 3900
+  all_core_boost_mhz: 3200
+
+cache:
+  l1_data_kb: 48
+  l1_instruction_kb: 32
+  l2_cache_mb: 2.0
+  l3_cache_mb: 320.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 8192
+  memory_channels: 8
+  memory_type: DDR5
+  max_memory_speed_mts: 5600
+  ecc_support: true
+
+instructions:
+  avx: true
+  avx2: true
+  avx512: true
+  avx512_bf16: true
+  avx512_vnni: true
+  avx512_fp16: true
+  amx: true
+  amx_bf16: true
+  amx_int8: true
+  sgx: true
+  tme: true
+
+power:
+  tdp_watts: 350
+  base_power_watts: 350
+  max_turbo_power_watts: 420
+
+platform:
+  socket: lga4677
+  pcie_lanes: 80
+  pcie_version: "5.0"
+  cxl_support: true
+  cxl_version: "1.1"
+
+market:
+  launch_date: "2023-12-14"
+  launch_msrp_usd: 11600.0
+  target_market: datacenter
+  product_family: Xeon Platinum
+  product_line: "8500 series"
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  5th Gen Intel Xeon Scalable (Emerald Rapids) with 64 cores.
+  320MB of L3 cache, enhanced over Sapphire Rapids.
+  Optimized for AI, HPC, and cloud workloads.
+datasheet_url: https://ark.intel.com/content/www/us/en/ark/products/237257/intel-xeon-platinum-8592-processor-320m-cache-1-90-ghz.html
+last_updated: "2025-12-30"
