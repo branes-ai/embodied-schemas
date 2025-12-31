@@ -125,3 +125,4 @@ datasheet_url: https://developer.nvidia.com/embedded/jetson-orin-nano-developer-
 product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
 last_updated: "2025-12-30"
 chip_id: nvidia_orin_nano_soc
+gpu_id: nvidia_orin_nano_gpu_8gb_lpddr5
