@@ -1,28 +1,28 @@
 # GPU-Hardware Cross-Reference
 
-This document explains how GPUs and hardware platforms are linked in embodied-schemas, and when to use each type of entry.
+This document explains how GPUs and hardware platforms are linked in embodied-schemas.
 
-## The Problem
+## The Core Insight
 
-Embodied AI systems use two distinct types of GPU configurations:
+**All GPUs operate within a hardware platform context.** There is no such thing as a GPU running in isolation:
 
-1. **Discrete GPUs** - Standalone graphics cards (RTX 4090, MI300X) that plug into a system
-2. **Integrated GPUs** - GPUs embedded in SoCs (Jetson Orin, Apple M4, Qualcomm Snapdragon)
+| GPU | Platform Reality |
+|-----|------------------|
+| H100 SXM | Physically requires DGX/HGX baseboard - cannot operate outside it |
+| H100 PCIe | Needs server with PCIe 5.0 lanes, 700W cooling, host CPUs |
+| RTX 4090 | Needs workstation with 850W PSU, adequate airflow, fast CPU |
+| Orin Nano | Part of Jetson module requiring carrier board |
 
-These have different characteristics:
+The host platform directly affects GPU performance:
 
-| Aspect | Discrete GPU | Integrated GPU |
-|--------|--------------|----------------|
-| Memory | Dedicated VRAM (GDDR6X, HBM3) | Shared system RAM (LPDDR5) |
-| Power | 75-700W, external power | 5-45W, battery compatible |
-| Form factor | PCIe card | SoM, BGA package |
-| Deployment | Workstation, server | Edge, robotics, mobile |
+- **Kernel launch latency** - Host CPU speed determines how fast kernels are dispatched
+- **Data transfer throughput** - PCIe topology, NUMA architecture, CPU memory bandwidth
+- **Multi-GPU scaling** - NVLink fabric vs PCIe switches, topology configuration
+- **Sustainable performance** - System cooling capacity, power delivery limits
 
-**The problem**: How do we model integrated GPUs that are part of a larger hardware platform?
+## The Design
 
-## The Solution: Bidirectional Cross-References
-
-We use two entry types with cross-reference fields:
+We model the complete system using two entry types with cross-references:
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -31,241 +31,258 @@ We use two entry types with cross-reference fields:
 │   (Platform specs)                   (GPU specs)               │
 │                                                                │
 │   ┌───────────────────┐             ┌───────────────────┐      │
+│   │ DGX H100          │             │ H100 SXM5         │      │
+│   │                   │   gpu_id    │                   │      │
+│   │ - 2x Intel Xeon   │ ─────────►  │ - 16896 CUDA      │      │
+│   │ - 8x H100 GPUs    │             │ - 80GB HBM3       │      │
+│   │ - NVLink fabric   │  ◄───────── │ - 3.35 TB/s BW    │      │
+│   │ - 10.2 kW power   │  embedded_  │ - 700W TDP        │      │
+│   └───────────────────┘  in_hardware└───────────────────┘      │
+│                          _ids                                  │
+│                                                                │
+│   ┌───────────────────┐             ┌───────────────────┐      │
 │   │ Jetson Orin Nano  │             │ Orin Nano GPU     │      │
 │   │                   │   gpu_id    │                   │      │
-│   │ - Power modes     │ ─────────►  │ - CUDA cores      │      │
-│   │ - Interfaces      │             │ - Tensor cores    │      │
-│   │ - Form factor     │  ◄───────── │ - Memory spec     │      │
-│   │ - Software SDK    │  embedded_  │ - Performance     │      │
+│   │ - 6x Cortex-A78   │ ─────────►  │ - 1024 CUDA       │      │
+│   │ - 8GB LPDDR5      │             │ - 32 Tensor       │      │
+│   │ - CSI/USB/GPIO    │  ◄───────── │ - 40 TOPS INT8    │      │
+│   │ - 7W/15W modes    │  embedded_  │ - 15W TDP         │      │
 │   └───────────────────┘  in_hardware└───────────────────┘      │
 │                          _ids                                  │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
 ```
 
-### HardwareEntry
+### Why Two Entry Types?
 
-Captures **platform-level** specifications:
-- Physical specs (weight, dimensions, form factor)
-- Power delivery (input voltage, power modes, battery compatibility)
-- Interfaces (CSI cameras, USB, PCIe, GPIO, CAN bus)
-- Environmental (operating temperature, IP rating)
-- Software ecosystem (OS, SDK, frameworks)
-- Deployment context (edge, robotics, drone)
-
-### GPUEntry
-
-Captures **GPU-specific** specifications:
+**GPUEntry** captures GPU-specific specifications that are constant regardless of deployment:
 - Compute resources (CUDA cores, tensor cores, SMs)
 - Clock speeds (base, boost, memory)
-- Memory (size, type, bandwidth, cache)
-- Performance (TFLOPS, TOPS, fill rates)
+- Memory interface (size, type, bandwidth, cache)
+- Theoretical performance (TFLOPS, TOPS, fill rates)
 - Features (CUDA compute capability, API support)
+
+**HardwareEntry** captures platform specifications that define the deployment context:
+- Host compute (CPU cores, architecture, memory)
+- Physical specs (form factor, weight, dimensions)
+- Power delivery (input voltage, modes, cooling capacity)
+- Interfaces (PCIe topology, NVLink, network, storage)
+- Software ecosystem (OS, SDK, drivers)
 
 ### Cross-Reference Fields
 
 **In HardwareEntry:**
 ```yaml
-gpu_id: nvidia_orin_nano_gpu_8gb_lpddr5  # Reference to GPUEntry
+gpu_id: nvidia_h100_sxm5_80gb_hbm3  # Primary GPU in this platform
 ```
 
 **In GPUEntry:**
 ```yaml
 embedded_in_hardware_ids:
-  - nvidia_jetson_orin_nano_8gb  # List of HardwareEntry IDs
+  - nvidia_dgx_h100        # DGX H100 system
+  - nvidia_hgx_h100_8gpu   # HGX 8-GPU baseboard
 ```
 
-## When to Use Each Entry Type
+## Platform Categories
 
-### Use GPUEntry alone for discrete GPUs
+### Tightly Coupled (SoC/Module)
 
-Discrete GPUs don't need a HardwareEntry because they:
-- Plug into any compatible system
-- Have dedicated memory
-- Don't define platform interfaces
+GPU and platform are designed, sold, and operate as a unit:
 
-```yaml
-# data/gpus/nvidia/rtx_4090_pcie_24gb_gddr6x.yaml
-id: nvidia_rtx_4090_pcie_24gb_gddr6x
-name: NVIDIA GeForce RTX 4090
-# ... full GPU specs, no embedded_in_hardware_ids needed
-```
+| Platform | GPU | Relationship |
+|----------|-----|--------------|
+| Jetson Orin Nano | Orin Nano GPU | Same silicon die |
+| Jetson AGX Orin | Orin GPU | Same silicon die |
+| Apple Mac Studio | M4 Max GPU | Same package |
+| DGX H100 | 8x H100 SXM | Fixed configuration |
 
-### Use both for integrated GPUs
+### Configurable (Server/Workstation)
 
-Integrated GPUs need both entries because:
-- GPU specs (cores, TFLOPS) live in GPUEntry
-- Platform specs (interfaces, power modes) live in HardwareEntry
-- Users may query from either direction
+GPU installs into platform, but platform specs still matter:
 
-```yaml
-# data/hardware/nvidia/jetson_orin_nano_8gb.yaml
-id: nvidia_jetson_orin_nano_8gb
-gpu_id: nvidia_orin_nano_gpu_8gb_lpddr5  # Link to GPU
-# ... platform specs (CSI, USB, power modes, SDK)
-
-# data/gpus/nvidia/orin_nano_gpu_8gb_lpddr5.yaml
-id: nvidia_orin_nano_gpu_8gb_lpddr5
-embedded_in_hardware_ids:
-  - nvidia_jetson_orin_nano_8gb  # Back-reference to platform
-# ... GPU specs (CUDA cores, tensor cores, TFLOPS)
-```
+| Platform | GPU Options | Platform Impact |
+|----------|-------------|-----------------|
+| Dell PowerEdge R750xa | 2-4x A100/H100 PCIe | CPU, PCIe lanes, cooling |
+| Supermicro GPU Server | 8x L40S | Power delivery, airflow |
+| Custom Workstation | RTX 4090 | PSU, case airflow, CPU |
 
 ## Code Examples
 
-### Loading and Querying
+### Complete System Query
 
 ```python
 from embodied_schemas import Registry
 
 registry = Registry.load()
 
-# Get all GPUs
-print(f"Total GPUs: {len(registry.gpus)}")  # 16
+# Get a hardware platform
+platform = registry.hardware.get("nvidia_jetson_orin_nano_8gb")
 
-# Get all hardware platforms
-print(f"Total hardware: {len(registry.hardware)}")  # 1
-```
+# Get platform specs
+print(f"Platform: {platform.name}")
+print(f"Form factor: {platform.physical.form_factor.value}")
+print(f"Power modes: {[m.name for m in platform.power.power_modes]}")
+print(f"Interfaces: CSI={platform.interfaces.camera_csi}, USB3={platform.interfaces.usb3}")
 
-### Finding GPU Specs for a Hardware Platform
-
-When you have a Jetson and want to know its GPU capabilities:
-
-```python
-from embodied_schemas import Registry
-
-registry = Registry.load()
-
-# Start with hardware platform
-hardware = registry.hardware.get("nvidia_jetson_orin_nano_8gb")
-print(f"Platform: {hardware.name}")
-print(f"Power modes: {[m.name for m in hardware.power.power_modes]}")
-# Output: ['7W', '15W']
-
-# Get linked GPU specs
-gpu = registry.get_gpu_for_hardware("nvidia_jetson_orin_nano_8gb")
-if gpu:
-    print(f"GPU: {gpu.name}")
-    print(f"CUDA cores: {gpu.compute.cuda_cores}")
-    print(f"Tensor cores: {gpu.compute.tensor_cores}")
-    print(f"INT8 TOPS: {gpu.performance.int8_tops}")
-    print(f"Memory: {gpu.memory.memory_size_gb}GB {gpu.memory.memory_type.upper()}")
+# Get GPU specs via cross-reference
+gpu = registry.get_gpu_for_hardware(platform.id)
+print(f"\nGPU: {gpu.name}")
+print(f"Compute: {gpu.compute.cuda_cores} CUDA, {gpu.compute.tensor_cores} Tensor")
+print(f"Performance: {gpu.performance.int8_tops} TOPS INT8")
+print(f"Memory: {gpu.memory.memory_size_gb}GB {gpu.memory.memory_type.upper()}")
 ```
 
 Output:
 ```
 Platform: NVIDIA Jetson Orin Nano 8GB Developer Kit
+Form factor: som
 Power modes: ['7W', '15W']
+Interfaces: CSI=2, USB3=4
+
 GPU: NVIDIA Jetson Orin Nano GPU
-CUDA cores: 1024
-Tensor cores: 32
-INT8 TOPS: 40.0
+Compute: 1024 CUDA, 32 Tensor
+Performance: 40.0 TOPS INT8
 Memory: 8.0GB LPDDR5
 ```
 
-### Finding Hardware Platforms for a GPU
-
-When you have a GPU and want to know what platforms use it:
+### Finding All Platforms for a GPU
 
 ```python
 from embodied_schemas import Registry
 
 registry = Registry.load()
 
-# Start with GPU
-gpu = registry.gpus.get("nvidia_orin_nano_gpu_8gb_lpddr5")
+# An H100 might be deployed in multiple platform types
+gpu = registry.gpus.get("nvidia_h100_sxm5_80gb_hbm3")
+
+platforms = registry.get_hardware_with_gpu(gpu.id)
+for platform in platforms:
+    print(f"{platform.name}")
+    print(f"  Host CPU: {platform.capabilities.compute_units} cores")
+    print(f"  System power: {platform.power.tdp_watts}W")
+    print(f"  GPU count: {len([g for g in platform... if 'gpu' in g])}")
+```
+
+### System-Level Analysis
+
+```python
+from embodied_schemas import Registry
+
+registry = Registry.load()
+
+# For AI inference, we need both GPU and platform specs
+platform = registry.hardware.get("nvidia_jetson_orin_nano_8gb")
+gpu = registry.get_gpu_for_hardware(platform.id)
+
+# Calculate system-level metrics
+system_power = platform.power.tdp_watts
+gpu_tops = gpu.performance.int8_tops
+tops_per_watt = gpu_tops / system_power
+
+print(f"System: {platform.name}")
 print(f"GPU: {gpu.name}")
+print(f"System power: {system_power}W")
+print(f"INT8 performance: {gpu_tops} TOPS")
+print(f"System efficiency: {tops_per_watt:.2f} TOPS/W")
 
-# Get platforms using this GPU
-platforms = registry.get_hardware_with_gpu("nvidia_orin_nano_gpu_8gb_lpddr5")
-for hw in platforms:
-    print(f"Platform: {hw.name}")
-    print(f"  Form factor: {hw.physical.form_factor.value}")
-    print(f"  TDP: {hw.power.tdp_watts}W")
-    print(f"  CSI cameras: {hw.interfaces.camera_csi}")
+# Compare power modes
+for mode in platform.power.power_modes:
+    # GPU performance scales with frequency
+    freq_ratio = mode.gpu_freq_mhz / gpu.clocks.boost_clock_mhz
+    scaled_tops = gpu_tops * freq_ratio
+    efficiency = scaled_tops / mode.power_watts
+    print(f"  {mode.name}: {scaled_tops:.1f} TOPS, {efficiency:.2f} TOPS/W")
 ```
 
 Output:
 ```
+System: NVIDIA Jetson Orin Nano 8GB Developer Kit
 GPU: NVIDIA Jetson Orin Nano GPU
-Platform: NVIDIA Jetson Orin Nano 8GB Developer Kit
-  Form factor: som
-  TDP: 15W
-  CSI cameras: 2
+System power: 15W
+INT8 performance: 40.0 TOPS
+System efficiency: 2.67 TOPS/W
+  7W: 19.6 TOPS, 2.80 TOPS/W
+  15W: 40.0 TOPS, 2.67 TOPS/W
 ```
 
-### Comparing Discrete vs Integrated GPUs
+### Comparing Deployment Options
 
 ```python
 from embodied_schemas import Registry
 
 registry = Registry.load()
 
-# Compare RTX 4090 (discrete) vs Orin Nano (integrated)
-rtx4090 = registry.gpus.get("nvidia_rtx_4090_pcie_24gb_gddr6x")
-orin = registry.gpus.get("nvidia_orin_nano_gpu_8gb_lpddr5")
-
-print(f"{'Metric':<20} {'RTX 4090':>15} {'Orin Nano':>15}")
-print("-" * 50)
-print(f"{'CUDA cores':<20} {rtx4090.compute.cuda_cores:>15,} {orin.compute.cuda_cores:>15,}")
-print(f"{'Tensor cores':<20} {rtx4090.compute.tensor_cores:>15} {orin.compute.tensor_cores:>15}")
-print(f"{'FP32 TFLOPS':<20} {rtx4090.performance.fp32_tflops:>15.1f} {orin.performance.fp32_tflops:>15.2f}")
-print(f"{'INT8 TOPS':<20} {rtx4090.performance.tensor_tflops_int8:>15.0f} {orin.performance.int8_tops:>15.0f}")
-print(f"{'TDP (W)':<20} {rtx4090.power.tdp_watts:>15} {orin.power.tdp_watts:>15}")
-print(f"{'Memory (GB)':<20} {rtx4090.memory.memory_size_gb:>15.0f} {orin.memory.memory_size_gb:>15.0f}")
-print(f"{'Memory type':<20} {rtx4090.memory.memory_type.upper():>15} {orin.memory.memory_type.upper():>15}")
-
-# Check if integrated
-rtx_platforms = registry.get_hardware_with_gpu(rtx4090.id)
-orin_platforms = registry.get_hardware_with_gpu(orin.id)
-print(f"{'Integrated':<20} {'No' if not rtx_platforms else 'Yes':>15} {'Yes' if orin_platforms else 'No':>15}")
-```
-
-Output:
-```
-Metric                       RTX 4090       Orin Nano
---------------------------------------------------
-CUDA cores                     16,384           1,024
-Tensor cores                      512              32
-FP32 TFLOPS                      82.6            1.28
-INT8 TOPS                         661              40
-TDP (W)                           450              15
-Memory (GB)                        24               8
-Memory type                    GDDR6X          LPDDR5
-Integrated                         No             Yes
-```
-
-### Filtering Embedded GPUs
-
-```python
-from embodied_schemas import Registry
-
-registry = Registry.load()
-
-# Find all GPUs that are embedded in hardware platforms
-embedded_gpus = [
-    gpu for gpu in registry.gpus
-    if gpu.embedded_in_hardware_ids
+# Compare the same workload across different platforms
+platforms_to_compare = [
+    "nvidia_jetson_orin_nano_8gb",
+    "nvidia_dgx_h100",  # Future entry
 ]
 
-print(f"Embedded GPUs: {len(embedded_gpus)}")
-for gpu in embedded_gpus:
-    platforms = registry.get_hardware_with_gpu(gpu.id)
-    print(f"  {gpu.name}")
-    for hw in platforms:
-        print(f"    -> {hw.name} ({hw.power.tdp_watts}W)")
+print(f"{'Platform':<30} {'GPU':<20} {'TOPS':<10} {'Power':<10} {'TOPS/W':<10}")
+print("-" * 80)
+
+for platform_id in platforms_to_compare:
+    platform = registry.hardware.get(platform_id)
+    if not platform:
+        continue
+
+    gpu = registry.get_gpu_for_hardware(platform_id)
+    if not gpu:
+        continue
+
+    tops = gpu.performance.int8_tops or 0
+    power = platform.power.tdp_watts or gpu.power.tdp_watts
+    efficiency = tops / power if power else 0
+
+    print(f"{platform.name:<30} {gpu.name:<20} {tops:<10.0f} {power:<10.0f} {efficiency:<10.2f}")
+```
+
+## Data Modeling Guidelines
+
+### When Adding a New GPU
+
+1. **Create GPUEntry** with GPU-specific specs (cores, memory, TFLOPS)
+2. **Create HardwareEntry** for each platform configuration that uses it
+3. **Link via cross-references** in both directions
+
+### Example: Adding DGX H100
+
+```yaml
+# data/gpus/nvidia/h100_sxm5_80gb_hbm3.yaml (already exists)
+id: nvidia_h100_sxm5_80gb_hbm3
+embedded_in_hardware_ids:
+  - nvidia_dgx_h100
+  - nvidia_hgx_h100_8gpu
+# ... GPU specs
+
+# data/hardware/nvidia/dgx_h100.yaml (new)
+id: nvidia_dgx_h100
+name: NVIDIA DGX H100
+gpu_id: nvidia_h100_sxm5_80gb_hbm3
+capabilities:
+  # System-level specs
+  peak_tops_int8: 32000.0  # 8x H100
+  memory_gb: 640.0  # 8x 80GB
+hardware_type: gpu
+# Host CPUs
+# cpu_id: intel_xeon_platinum_8480_lga4677  # Future link
+power:
+  tdp_watts: 10200  # Full system
+# NVLink topology, networking, storage...
 ```
 
 ## Future Extensions
 
-This pattern will be used for other SoC-based platforms:
+This unified model enables:
 
-- **Jetson Orin NX / AGX Orin** - Higher-end Jetson variants
-- **Apple M4 Pro/Max** - Mac systems with integrated GPU
-- **Qualcomm Snapdragon X Elite** - Windows laptops with Adreno GPU
-- **AMD Ryzen AI** - Laptops with RDNA 3 iGPU
+1. **Full system simulation** - Model CPU-GPU interactions, data movement
+2. **TCO analysis** - Power, cooling, rack space across platform options
+3. **Deployment planning** - Match workloads to appropriate platforms
+4. **Performance prediction** - Account for host bottlenecks
 
-Each will have:
-- A `GPUEntry` with GPU-specific specs
-- A `HardwareEntry` with platform specs
-- Cross-references linking them together
+Planned platform additions:
+- DGX H100 / H200 / B200
+- HGX baseboards
+- Cloud instances (AWS p5, Azure ND H100)
+- Dell/HPE/Supermicro GPU servers
+- Apple Mac Studio / Mac Pro
