@@ -1,0 +1,164 @@
+# NVIDIA Jetson AGX Thor 128GB Module
+# Source: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
+
+id: nvidia_jetson_agx_thor_128gb
+name: NVIDIA Jetson AGX Thor 128GB
+vendor: nvidia
+model: Jetson AGX Thor 128GB
+hardware_type: gpu
+
+compute_paradigm: simd
+optimized_for:
+  - matrix_multiply
+  - convolution
+  - attention
+  - int_quantized
+  - fp16
+  - fp32
+
+capabilities:
+  peak_tops_int8: 1040.0  # 2070 FP4 TFLOPS -> ~1040 INT8 TOPS
+  peak_tflops_fp16: 520.0
+  peak_tflops_fp32: 260.0
+  peak_tflops_bf16: 520.0
+  memory_gb: 128.0
+  memory_type: LPDDR5X
+  memory_bandwidth_gbps: 273.0
+  compute_units: 17408  # Blackwell CUDA cores
+  tensor_cores: 544
+  sparse_acceleration: true
+  int4_support: true
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+    - TensorRT
+    - JAX
+    - Transformers
+  quantization_support:
+    - fp32
+    - fp16
+    - bf16
+    - fp8
+    - int8
+    - int4
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton
+    - Isaac ROS
+    - vLLM
+
+physical:
+  weight_grams: 280.0
+  dimensions_mm: [100.0, 87.0, 20.0]
+  form_factor: som
+  mounting: carrier_board
+
+environmental:
+  operating_temp_c: [-25, 80]
+  storage_temp_c: [-40, 85]
+
+power:
+  input_voltage_v: [9.0, 20.0]
+  power_modes:
+    - name: "40W"
+      power_watts: 40.0
+      gpu_freq_mhz: 420
+      cpu_freq_mhz: 1200
+      description: Power-efficient mode
+    - name: "70W"
+      power_watts: 70.0
+      gpu_freq_mhz: 700
+      cpu_freq_mhz: 1800
+      description: Balanced mode
+    - name: "100W"
+      power_watts: 100.0
+      gpu_freq_mhz: 900
+      cpu_freq_mhz: 2200
+      description: High performance mode
+    - name: "MAXN"
+      power_watts: 130.0
+      gpu_freq_mhz: 1100
+      cpu_freq_mhz: 2500
+      description: Maximum performance mode
+  tdp_watts: 130.0
+  typical_power_watts: 70.0
+  battery_compatible: false
+
+interfaces:
+  camera_csi: 16
+  camera_usb: 4
+  usb3: 4
+  usb2: 4
+  usb_c: 2
+  pcie_lanes: 24
+  pcie_gen: 5
+  gpio: 44
+  ethernet: 25gbps
+  wifi: null
+  bluetooth: null
+  can_bus: 4
+  i2c: 8
+  spi: 4
+  uart: 6
+  hdmi: 1
+  displayport: 4
+
+software:
+  os:
+    - Ubuntu 24.04 (JetPack 7.x)
+  sdk: JetPack
+  sdk_version: "7.0"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+    - JAX
+    - Transformers
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton Inference Server
+    - Isaac ROS
+    - vLLM
+  container_support: true
+
+suitable_for:
+  - edge
+  - robotics
+  - autonomous_vehicles
+  - humanoid
+  - industrial
+  - datacenter_edge
+
+target_applications:
+  - vision
+  - object_detection
+  - segmentation
+  - pose_estimation
+  - nlp
+  - multimodal
+  - generative_ai
+  - llm
+  - vlm
+  - embodied_ai
+
+cost_usd: 2999.0
+availability: limited
+lifecycle_status: new
+
+notes: |
+  Next-generation Jetson with Blackwell GPU architecture.
+  2070 FP4 TFLOPS performance for transformer models.
+  14-core Arm Neoverse V3AE CPU (up to 2.5 GHz).
+  Supports Multi-Instance GPU (MIG) for workload isolation.
+  Transformer Engine for efficient LLM/VLM inference.
+  7.5x AI performance vs AGX Orin, 3.5x efficiency.
+  Supports Llama, DeepSeek, Qwen, and Isaac GR00T models.
+  First Jetson designed for general-purpose humanoid robotics.
+datasheet_url: https://developer.nvidia.com/embedded/jetson-thor
+product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
+last_updated: "2025-12-31"
+chip_id: nvidia_thor_soc
+gpu_id: nvidia_thor_gpu_128gb_lpddr5x

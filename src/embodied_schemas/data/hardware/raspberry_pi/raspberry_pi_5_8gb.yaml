@@ -1,0 +1,125 @@
+# Raspberry Pi 5 8GB
+# Source: https://www.raspberrypi.com/products/raspberry-pi-5/
+
+id: raspberry_pi_5_8gb
+name: Raspberry Pi 5 8GB
+vendor: raspberry_pi
+model: Raspberry Pi 5
+hardware_type: cpu
+
+compute_paradigm: von_neumann
+optimized_for:
+  - general_purpose
+
+capabilities:
+  peak_tops_int8: 0.0  # No dedicated AI accelerator
+  peak_tflops_fp16: 0.0
+  peak_tflops_fp32: 0.05  # Estimated from CPU GFLOPS
+  memory_gb: 8.0
+  memory_type: LPDDR4X
+  memory_bandwidth_gbps: 34.1  # LPDDR4X-4267
+  compute_units: 4  # CPU cores
+  tensor_cores: 0
+  frameworks:
+    - PyTorch
+    - TensorFlow Lite
+    - ONNX Runtime
+  quantization_support:
+    - fp32
+    - int8
+  inference_runtimes:
+    - TensorFlow Lite
+    - ONNX Runtime
+    - OpenVINO
+    - NCNN
+
+physical:
+  weight_grams: 46.0
+  dimensions_mm: [85.0, 56.0, 17.0]
+  form_factor: standalone
+  mounting: direct
+
+environmental:
+  operating_temp_c: [0, 50]
+  storage_temp_c: [-20, 70]
+
+power:
+  input_voltage_v: [5.0, 5.0]
+  power_modes:
+    - name: "Idle"
+      power_watts: 2.5
+      cpu_freq_mhz: 1000
+      description: Idle power consumption
+    - name: "Active"
+      power_watts: 8.0
+      cpu_freq_mhz: 2400
+      description: Full CPU load
+  tdp_watts: 12.0
+  typical_power_watts: 5.0
+  battery_compatible: true
+
+interfaces:
+  camera_csi: 2
+  camera_usb: 2
+  usb3: 2
+  usb2: 2
+  usb_c: 1
+  pcie_lanes: 1
+  pcie_gen: 2
+  gpio: 40
+  ethernet: 1gbps
+  wifi: wifi6
+  bluetooth: "5.0"
+  can_bus: 0
+  i2c: 2
+  spi: 2
+  uart: 6
+  hdmi: 2
+  displayport: 0
+
+software:
+  os:
+    - Raspberry Pi OS (Debian 12)
+    - Ubuntu 24.04
+    - Ubuntu 22.04
+  sdk: null
+  sdk_version: null
+  frameworks:
+    - PyTorch
+    - TensorFlow Lite
+    - ONNX Runtime
+  inference_runtimes:
+    - TensorFlow Lite
+    - ONNX Runtime
+    - OpenVINO
+  container_support: true
+
+suitable_for:
+  - edge
+  - embedded
+  - robotics
+  - education
+  - prototyping
+
+target_applications:
+  - vision
+  - object_detection
+  - iot
+  - automation
+
+cost_usd: 80.0
+availability: widely_available
+lifecycle_status: new
+
+notes: |
+  Raspberry Pi 5 with Broadcom BCM2712 SoC.
+  Quad-core Arm Cortex-A76 @ 2.4 GHz.
+  VideoCore VII GPU @ 800 MHz (OpenGL ES 3.1, Vulkan 1.3).
+  Dual 4Kp60 HDMI output.
+  PCIe 2.0 x1 for NVMe or AI accelerators (e.g., Hailo-8).
+  First Pi with dedicated power button.
+  Requires active cooling for sustained performance.
+datasheet_url: https://datasheets.raspberrypi.com/rpi5/raspberry-pi-5-product-brief.pdf
+product_url: https://www.raspberrypi.com/products/raspberry-pi-5/
+last_updated: "2025-12-31"
+chip_id: broadcom_bcm2712
