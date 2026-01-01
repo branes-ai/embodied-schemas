@@ -22,6 +22,10 @@ class CPUVendor(str, Enum):
     AMPERE = "ampere"
     AWS = "aws"  # Graviton
     NVIDIA = "nvidia"  # Grace
+    NXP = "nxp"  # i.MX embedded processors
+    STMICRO = "stmicro"  # STM32 microcontrollers
+    GOOGLE = "google"  # Tensor mobile SoCs
+    SAMSUNG = "samsung"  # Exynos mobile SoCs
 
 
 class CPUArchitecture(str, Enum):
@@ -44,12 +48,23 @@ class CPUArchitecture(str, Enum):
     ZEN3 = "zen3"
     ZEN2 = "zen2"
 
-    # ARM
+    # ARM Server
     NEOVERSE_V2 = "neoverse_v2"
+    NEOVERSE_V1 = "neoverse_v1"
     NEOVERSE_N2 = "neoverse_n2"
+    NEOVERSE_N1 = "neoverse_n1"
+
+    # ARM Application
     CORTEX_A78 = "cortex_a78"
     CORTEX_X4 = "cortex_x4"
     CORTEX_A720 = "cortex_a720"
+    CORTEX_A55 = "cortex_a55"
+    CORTEX_A53 = "cortex_a53"
+
+    # ARM Microcontroller
+    CORTEX_M7 = "cortex_m7"
+    CORTEX_M4 = "cortex_m4"
+    CORTEX_M33 = "cortex_m33"
 
     # Apple
     M1 = "m1"
@@ -89,9 +104,11 @@ class SocketType(str, Enum):
     BGA = "bga"  # Soldered
     FCBGA = "fcbga"  # Flip-chip BGA
 
-    # ARM
+    # ARM Server
     SXM = "sxm"  # NVIDIA Grace
     OAM = "oam"  # OCP Accelerator Module
+    LGA4926 = "lga4926"  # Ampere Altra
+    LGA5964 = "lga5964"  # AmpereOne
 
 
 class TargetMarket(str, Enum):
@@ -111,16 +128,28 @@ class TargetMarket(str, Enum):
 class ProcessNode(str, Enum):
     """Semiconductor process nodes."""
 
+    # Intel
     INTEL_7 = "intel_7"  # 10nm Enhanced
     INTEL_4 = "intel_4"
     INTEL_3 = "intel_3"
     INTEL_20A = "intel_20a"
     INTEL_18A = "intel_18a"
+
+    # TSMC
+    TSMC_N7 = "tsmc_n7"
     TSMC_N5 = "tsmc_n5"
     TSMC_N4 = "tsmc_n4"
     TSMC_N3 = "tsmc_n3"
     TSMC_N3E = "tsmc_n3e"
+    TSMC_N28 = "tsmc_n28"
+
+    # Samsung
     SAMSUNG_4LPP = "samsung_4lpp"
+    SAMSUNG_14LPC = "samsung_14lpc"
+    SAMSUNG_3GAE = "samsung_3gae"
+
+    # Legacy/Embedded
+    CUSTOM = "custom"  # Non-standard or undisclosed process
 
 
 # =============================================================================

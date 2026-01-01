@@ -1,0 +1,74 @@
+# Ampere AmpereOne A192-32X - 192-Core ARM Server CPU
+# Source: https://amperecomputing.com/briefs/ampereone-family-product-brief
+
+id: ampere_ampereone_a192_32x
+name: Ampere AmpereOne A192-32X
+vendor: ampere
+
+architecture: custom  # AmpereOne custom ARM v8.6 cores
+process_node: tsmc_n5
+
+cores:
+  total_cores: 192
+  total_threads: 192
+  smt_enabled: false
+  threads_per_core: 1
+
+clocks:
+  base_clock_mhz: 3000
+  boost_clock_mhz: 3200
+  all_core_boost_mhz: 3200
+
+cache:
+  l1_data_kb: 64
+  l1_instruction_kb: 64
+  l2_cache_mb: 2.0
+  l3_cache_mb: 0.0  # No L3, uses SLC
+  l2_per_core: true
+  l3_shared: false
+
+memory:
+  max_memory_gb: 8192
+  memory_channels: 8
+  memory_type: DDR5
+  max_memory_speed_mts: 5200
+  ecc_support: true
+
+instructions:
+  avx: false
+  avx2: false
+  avx512: false
+  neon: true
+  sve: false
+  bf16: true
+
+power:
+  tdp_watts: 400
+  base_power_watts: 276
+  max_turbo_power_watts: 400
+
+platform:
+  socket: lga5964
+  pcie_lanes: 128
+  pcie_version: "5.0"
+  cxl_support: true
+  cxl_version: "2.0"
+
+market:
+  launch_date: "2023-09-18"
+  launch_msrp_usd: 5555.0
+  target_market: datacenter
+  product_family: AmpereOne
+  product_line: A192
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  192-core custom ARM v8.6+ server processor.
+  First generation with custom Ampere-designed cores.
+  5nm process, 2MB L2 per core.
+  8-channel DDR5-5200 (up to 8TB per socket).
+  128 lanes PCIe Gen5 with CXL 2.0 support.
+  Designed for cloud, AI inference, and HPC workloads.
+datasheet_url: https://amperecomputing.com/briefs/ampereone-family-product-brief
+last_updated: "2025-12-31"

@@ -1,0 +1,76 @@
+# AWS Graviton4 - 96-Core ARM Cloud Server CPU
+# Source: https://aws.amazon.com/ec2/graviton/
+
+id: aws_graviton4
+name: AWS Graviton4
+vendor: aws
+
+architecture: neoverse_v2
+process_node: tsmc_n4
+
+cores:
+  total_cores: 96
+  total_threads: 96
+  smt_enabled: false
+  threads_per_core: 1
+
+clocks:
+  base_clock_mhz: 2800
+  boost_clock_mhz: 2800
+  all_core_boost_mhz: 2800
+
+cache:
+  l1_data_kb: 64
+  l1_instruction_kb: 64
+  l2_cache_mb: 2.0
+  l3_cache_mb: 64.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 3072
+  memory_channels: 12
+  memory_type: DDR5
+  max_memory_speed_mts: 5600
+  ecc_support: true
+
+instructions:
+  avx: false
+  avx2: false
+  avx512: false
+  neon: true
+  sve: true
+  sve2: true
+  bf16: true
+  int8_dp: true
+
+power:
+  tdp_watts: 130
+  base_power_watts: 130
+  max_turbo_power_watts: 130
+
+platform:
+  socket: bga
+  pcie_lanes: 96
+  pcie_version: "5.0"
+  cxl_support: false
+
+market:
+  launch_date: "2023-11-28"
+  launch_msrp_usd: 0.0  # Cloud-only
+  target_market: datacenter
+  product_family: Graviton
+  product_line: Graviton4
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  AWS custom ARM Neoverse V2 server processor.
+  96 cores with 2MB L2 per core.
+  12-channel DDR5-5600 (536.7 GB/s bandwidth).
+  75% more memory bandwidth vs Graviton3.
+  30% better compute performance vs Graviton3.
+  7-chiplet design manufactured on 4nm.
+  Powers EC2 C8g, M8g, R8g, X8g instances.
+datasheet_url: https://aws.amazon.com/ec2/graviton/
+last_updated: "2025-12-31"

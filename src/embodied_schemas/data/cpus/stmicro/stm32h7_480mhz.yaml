@@ -1,0 +1,79 @@
+# ST Microelectronics STM32H7 (Dual-Core 480 MHz)
+# Source: https://www.st.com/en/microcontrollers-microprocessors/stm32h7-series.html
+
+id: stmicro_stm32h7_480mhz
+name: STMicroelectronics STM32H7 Dual-Core
+vendor: stmicro
+
+architecture: cortex_m7
+process_node: custom  # ST 40nm
+
+cores:
+  total_cores: 2  # Cortex-M7 + Cortex-M4
+  total_threads: 2
+  smt_enabled: false
+  threads_per_core: 1
+  p_cores: 1
+  e_cores: 1
+  p_core_arch: Cortex-M7
+  e_core_arch: Cortex-M4
+
+clocks:
+  base_clock_mhz: 480  # M7 core
+  boost_clock_mhz: 480
+  all_core_boost_mhz: 480
+  # M4 core runs at 240 MHz
+
+cache:
+  l1_data_kb: 16
+  l1_instruction_kb: 16
+  l2_cache_mb: 0.0
+  l3_cache_mb: 0.0
+  l2_per_core: false
+  l3_shared: false
+
+memory:
+  max_memory_gb: 0  # 2 MB Flash + 1 MB SRAM (sub-GB embedded)
+  memory_channels: 0
+  memory_type: embedded
+  max_memory_speed_mts: 0
+  ecc_support: false
+
+instructions:
+  avx: false
+  avx2: false
+  avx512: false
+  neon: false
+  # DSP and FPU capabilities noted in notes field
+
+power:
+  tdp_watts: 1  # ~500mW typical, rounded up
+  base_power_watts: 1
+  max_turbo_power_watts: 1
+
+platform:
+  socket: bga
+  pcie_lanes: 0
+  pcie_version: "0"  # No PCIe
+  cxl_support: false
+
+market:
+  launch_date: "2019-02-25"
+  launch_msrp_usd: 15.0
+  target_market: embedded
+  product_family: STM32
+  product_line: STM32H7
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Highest performance STM32 microcontroller.
+  Cortex-M7 @ 480 MHz + Cortex-M4 @ 240 MHz.
+  Up to 2 MB Flash, 1 MB SRAM.
+  Double-precision FPU, DSP instructions.
+  2x ADC, 2x DAC, JPEG codec, Chrom-ART.
+  Hardware crypto acceleration (AES, HASH).
+  Power: ~300-500mW typical (sub-watt MCU).
+  Target: motor control, HMI, industrial automation.
+datasheet_url: https://www.st.com/resource/en/datasheet/stm32h747xi.pdf
+last_updated: "2025-12-31"

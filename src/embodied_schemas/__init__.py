@@ -57,6 +57,15 @@ from embodied_schemas.analysis import (
     ComparisonResult,
     BatchSweepResult,
 )
+from embodied_schemas.scheduling import (
+    OperatorTiming,
+    DataTransfer,
+    DataMovementAnalysis,
+    ExecutionTargetUtilization,
+    RateFeasibility,
+    SchedulingAnalysisResult,
+    ArchitectureAnalysisResult,
+)
 from embodied_schemas.gpu import (
     GPUEntry,
     GPUVendor,
@@ -172,6 +181,14 @@ __all__ = [
     "GraphAnalysisResult",
     "ComparisonResult",
     "BatchSweepResult",
+    # Scheduling (Architecture Analysis)
+    "OperatorTiming",
+    "DataTransfer",
+    "DataMovementAnalysis",
+    "ExecutionTargetUtilization",
+    "RateFeasibility",
+    "SchedulingAnalysisResult",
+    "ArchitectureAnalysisResult",
     # GPU
     "GPUEntry",
     "GPUVendor",
