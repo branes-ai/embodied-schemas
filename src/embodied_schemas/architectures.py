@@ -150,6 +150,20 @@ EXECUTION_TARGET_INFO = {
             "precision": ["INT8", "INT4", "FP16"],
             "typical_tops": "10-40 TOPS",
         },
+        "vendor_details": {
+            "amd_xdna": {
+                "name": "AMD XDNA",
+                "description": (
+                    "AMD's AI engine architecture integrated into Ryzen AI processors. "
+                    "Features spatial dataflow architecture optimized for transformer and "
+                    "CNN workloads. Supports INT8/INT4/FP16 with 16+ TOPS performance."
+                ),
+                "tops_int8": "16 TOPS (Hawk Point)",
+                "supported_ops": ["conv2d", "matmul", "attention", "layernorm", "softmax"],
+                "runtime": "ONNX Runtime with Ryzen AI Execution Provider",
+                "sdk": "Ryzen AI SDK",
+            },
+        },
     },
     ExecutionTarget.TPU: {
         "name": "TPU",

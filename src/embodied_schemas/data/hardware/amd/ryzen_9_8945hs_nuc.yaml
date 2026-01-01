@@ -1,0 +1,163 @@
+# AMD Ryzen 9 8945HS AI NUC
+# Hawk Point APU with Zen 4 CPU + RDNA 3 GPU + XDNA NPU (higher clocks)
+# Source: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-9-8945hs.html
+
+id: amd_ryzen_9_8945hs_nuc
+name: AMD Ryzen 9 8945HS AI NUC
+vendor: amd
+model: Ryzen 9 8945HS
+hardware_type: npu  # Primary differentiator is the AI NPU
+
+compute_paradigm: simd
+optimized_for:
+  - matrix_multiply
+  - convolution
+  - int_quantized
+  - fp16
+  - attention
+
+capabilities:
+  # NPU (XDNA) capabilities
+  peak_tops_int8: 16.0  # XDNA NPU (same as 8845HS)
+  # GPU (Radeon 780M) capabilities - slightly higher clocks
+  peak_tflops_fp16: 8.6  # 12 CUs @ 2900 MHz (higher bin)
+  peak_tflops_fp32: 4.3
+  # System memory (typical NUC config)
+  memory_gb: 32.0
+  memory_type: DDR5-5600
+  memory_bandwidth_gbps: 89.6  # Dual channel DDR5-5600
+  cache_hierarchy:
+    L2: 8.0  # 8 MB total (1 MB per core)
+    L3: 16.0
+  compute_units: 12  # GPU CUs
+  tensor_cores: null  # AMD uses different terminology
+  sparse_acceleration: false
+  int4_support: true  # XDNA supports INT4
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+  quantization_support:
+    - fp32
+    - fp16
+    - int8
+    - int4
+  inference_runtimes:
+    - ONNX Runtime
+    - ROCm
+    - DirectML
+    - Ryzen AI SDK
+
+physical:
+  weight_grams: 800.0  # Typical NUC weight
+  dimensions_mm: [117.0, 112.0, 54.0]  # Typical NUC dimensions
+  form_factor: standalone
+  mounting: desktop
+
+environmental:
+  operating_temp_c: [0, 35]  # Ambient for NUC
+  storage_temp_c: [-20, 60]
+
+power:
+  input_voltage_v: [19.0, 20.0]  # DC barrel jack
+  power_modes:
+    - name: "15W"
+      power_watts: 15.0
+      gpu_freq_mhz: 1900
+      cpu_freq_mhz: 2700
+      description: Silent/battery mode - reduced clocks
+    - name: "35W"
+      power_watts: 35.0
+      gpu_freq_mhz: 2600
+      cpu_freq_mhz: 4500
+      description: Balanced mode for typical workloads
+    - name: "54W"
+      power_watts: 54.0
+      gpu_freq_mhz: 2900
+      cpu_freq_mhz: 5200
+      description: Performance mode - full boost
+  tdp_watts: 54.0
+  typical_power_watts: 35.0
+  battery_compatible: true
+
+interfaces:
+  camera_csi: 0
+  camera_usb: 4
+  usb3: 2
+  usb2: 0
+  usb_c: 2  # USB4 capable
+  pcie_lanes: 8  # For M.2 NVMe
+  pcie_gen: 4
+  gpio: 0
+  ethernet: 2.5gbps
+  wifi: wifi6e
+  bluetooth: "5.3"
+  can_bus: 0
+  i2c: 0
+  spi: 0
+  uart: 0
+  hdmi: 1
+  displayport: 2  # Via USB-C
+
+software:
+  os:
+    - Ubuntu 22.04
+    - Ubuntu 24.04
+    - Windows 11
+  sdk: Ryzen AI SDK
+  sdk_version: "1.2"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+  inference_runtimes:
+    - ONNX Runtime (CPU, DirectML, Ryzen AI EP)
+    - ROCm (GPU)
+    - OpenVINO
+  container_support: true
+
+suitable_for:
+  - edge
+  - robotics
+  - desktop
+  - embedded
+  - workstation
+target_applications:
+  - vision
+  - object_detection
+  - nlp
+  - robotics
+  - ai_inference
+  - content_creation
+
+cost_usd: 1000.0  # Estimated NUC price (higher SKU)
+availability: widely_available
+lifecycle_status: new
+
+notes: |
+  AMD Hawk Point APU (top-tier mobile SKU) with heterogeneous compute:
+  - CPU: 8-core Zen 4 (4.0 GHz base, 5.2 GHz boost) - higher than 8845HS
+  - GPU: Radeon 780M with 12 RDNA 3 Compute Units (higher bin)
+  - NPU: XDNA architecture with 16 TOPS INT8
+
+  Performance advantages over Ryzen 7 8845HS:
+  - ~5% higher CPU clocks (4.0/5.2 vs 3.8/5.1 GHz)
+  - ~5% higher GPU clocks (2900 vs 2800 MHz peak)
+  - Higher sustained TDP (54W vs 45W)
+  - Better binned silicon
+
+  NUC form factor ideal for performance robotics:
+  - Compact (fits in robot chassis)
+  - Higher power budget (15-54W configurable)
+  - Triple execution targets (CPU, GPU, NPU)
+
+  Recommended for:
+  - Higher accuracy models (YOLOv8s/m instead of n)
+  - Multi-stream processing
+  - Heavier perception pipelines
+  - When power budget allows 35-50W
+
+datasheet_url: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-9-8945hs.html
+product_url: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series.html
+last_updated: "2026-01-01"
+chip_id: amd_hawk_point_8945hs

@@ -45,6 +45,21 @@ perf_profiles:
     latency_ms: 1.2
     memory_mb: 50
     conditions: "100 detections, CPU"
+  # AMD Ryzen AI NUC profiles (estimated, pending measurement)
+  - hardware_id: amd_ryzen_7_8845hs_nuc
+    execution_target: cpu
+    latency_ms: 1.8
+    memory_mb: 50
+    power_w: 2.0
+    conditions: "100 detections, Zen 4 CPU"
+    measured: false
+  - hardware_id: amd_ryzen_9_8945hs_nuc
+    execution_target: cpu
+    latency_ms: 1.5
+    memory_mb: 50
+    power_w: 2.5
+    conditions: "100 detections, Zen 4 CPU (higher clocks)"
+    measured: false
 
 reference_hardware: Jetson-Orin-Nano
 typical_latency_ms: 2.5

@@ -55,6 +55,39 @@ perf_profiles:
     memory_mb: 420
     throughput_fps: 1250
     conditions: "FP16, batch_size=1, 640x640"
+  # AMD Ryzen AI NUC profiles (estimated, pending measurement)
+  - hardware_id: amd_ryzen_7_8845hs_nuc
+    execution_target: npu
+    latency_ms: 12.5
+    memory_mb: 180
+    power_w: 3.2
+    throughput_fps: 80
+    conditions: "INT8, batch_size=1, 640x640, ONNX Runtime + Ryzen AI EP"
+    measured: false
+  - hardware_id: amd_ryzen_7_8845hs_nuc
+    execution_target: gpu
+    latency_ms: 22.0
+    memory_mb: 450
+    power_w: 8.5
+    throughput_fps: 45
+    conditions: "FP16, batch_size=1, 640x640, ROCm/HIP"
+    measured: false
+  - hardware_id: amd_ryzen_9_8945hs_nuc
+    execution_target: npu
+    latency_ms: 8.3
+    memory_mb: 180
+    power_w: 4.1
+    throughput_fps: 120
+    conditions: "INT8, batch_size=1, 640x640, ONNX Runtime + Ryzen AI EP"
+    measured: false
+  - hardware_id: amd_ryzen_9_8945hs_nuc
+    execution_target: gpu
+    latency_ms: 18.0
+    memory_mb: 450
+    power_w: 12.0
+    throughput_fps: 55
+    conditions: "FP16, batch_size=1, 640x640, ROCm/HIP"
+    measured: false
 
 reference_hardware: Jetson-Orin-Nano
 typical_latency_ms: 18.0

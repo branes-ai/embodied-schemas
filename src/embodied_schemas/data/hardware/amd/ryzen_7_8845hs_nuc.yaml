@@ -1,0 +1,157 @@
+# AMD Ryzen 7 8845HS AI NUC
+# Hawk Point APU with Zen 4 CPU + RDNA 3 GPU + XDNA NPU
+# Source: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-7-8845hs.html
+
+id: amd_ryzen_7_8845hs_nuc
+name: AMD Ryzen 7 8845HS AI NUC
+vendor: amd
+model: Ryzen 7 8845HS
+hardware_type: npu  # Primary differentiator is the AI NPU
+
+compute_paradigm: simd
+optimized_for:
+  - matrix_multiply
+  - convolution
+  - int_quantized
+  - fp16
+  - attention
+
+capabilities:
+  # NPU (XDNA) capabilities
+  peak_tops_int8: 16.0  # XDNA NPU
+  # GPU (Radeon 780M) capabilities
+  peak_tflops_fp16: 8.1  # 12 CUs @ 2800 MHz
+  peak_tflops_fp32: 4.0
+  # System memory (typical NUC config)
+  memory_gb: 32.0
+  memory_type: DDR5-5600
+  memory_bandwidth_gbps: 89.6  # Dual channel DDR5-5600
+  cache_hierarchy:
+    L2: 8.0  # 8 MB total (1 MB per core)
+    L3: 16.0
+  compute_units: 12  # GPU CUs
+  tensor_cores: null  # AMD uses different terminology
+  sparse_acceleration: false
+  int4_support: true  # XDNA supports INT4
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+  quantization_support:
+    - fp32
+    - fp16
+    - int8
+    - int4
+  inference_runtimes:
+    - ONNX Runtime
+    - ROCm
+    - DirectML
+    - Ryzen AI SDK
+
+physical:
+  weight_grams: 800.0  # Typical NUC weight
+  dimensions_mm: [117.0, 112.0, 54.0]  # Typical NUC dimensions
+  form_factor: standalone
+  mounting: desktop
+
+environmental:
+  operating_temp_c: [0, 35]  # Ambient for NUC
+  storage_temp_c: [-20, 60]
+
+power:
+  input_voltage_v: [19.0, 20.0]  # DC barrel jack
+  power_modes:
+    - name: "15W"
+      power_watts: 15.0
+      gpu_freq_mhz: 1800
+      cpu_freq_mhz: 2500
+      description: Silent/battery mode - reduced clocks
+    - name: "28W"
+      power_watts: 28.0
+      gpu_freq_mhz: 2400
+      cpu_freq_mhz: 4000
+      description: Balanced mode for typical workloads
+    - name: "45W"
+      power_watts: 45.0
+      gpu_freq_mhz: 2700
+      cpu_freq_mhz: 5100
+      description: Performance mode - full boost
+  tdp_watts: 45.0
+  typical_power_watts: 28.0
+  battery_compatible: true
+
+interfaces:
+  camera_csi: 0
+  camera_usb: 4
+  usb3: 2
+  usb2: 0
+  usb_c: 2  # USB4 capable
+  pcie_lanes: 8  # For M.2 NVMe
+  pcie_gen: 4
+  gpio: 0
+  ethernet: 2.5gbps
+  wifi: wifi6e
+  bluetooth: "5.3"
+  can_bus: 0
+  i2c: 0
+  spi: 0
+  uart: 0
+  hdmi: 1
+  displayport: 2  # Via USB-C
+
+software:
+  os:
+    - Ubuntu 22.04
+    - Ubuntu 24.04
+    - Windows 11
+  sdk: Ryzen AI SDK
+  sdk_version: "1.2"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+  inference_runtimes:
+    - ONNX Runtime (CPU, DirectML, Ryzen AI EP)
+    - ROCm (GPU)
+    - OpenVINO
+  container_support: true
+
+suitable_for:
+  - edge
+  - robotics
+  - desktop
+  - embedded
+target_applications:
+  - vision
+  - object_detection
+  - nlp
+  - robotics
+  - ai_inference
+
+cost_usd: 800.0  # Estimated NUC price
+availability: widely_available
+lifecycle_status: new
+
+notes: |
+  AMD Hawk Point APU with heterogeneous compute:
+  - CPU: 8-core Zen 4 (3.8 GHz base, 5.1 GHz boost)
+  - GPU: Radeon 780M with 12 RDNA 3 Compute Units
+  - NPU: XDNA architecture with 16 TOPS INT8
+
+  NUC form factor ideal for robotics:
+  - Compact (fits in robot chassis)
+  - Low power (15-45W configurable)
+  - Triple execution targets (CPU, GPU, NPU)
+
+  NPU supported models via Ryzen AI SDK:
+  - Quantized CNNs (YOLO, ResNet, MobileNet)
+  - Transformer models (BERT, ViT)
+  - Custom ONNX models
+
+  GPU via ROCm/HIP for CUDA-like compute.
+  CPU handles control loops and non-parallel workloads.
+
+datasheet_url: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-7-8845hs.html
+product_url: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series.html
+last_updated: "2026-01-01"
+chip_id: amd_hawk_point_8845hs
