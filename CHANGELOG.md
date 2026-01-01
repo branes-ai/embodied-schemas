@@ -5,6 +5,102 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-31
+
+### Added
+
+#### ARM CPU Expansion (11 processors)
+
+**Server CPUs**:
+- Ampere: Altra Max M128-30 (128 cores, Neoverse N1), AmpereOne A192-32X (192 cores)
+- AWS: Graviton3 (64 cores, Neoverse V1), Graviton4 (96 cores, Neoverse V2)
+- NVIDIA: Grace CPU (72 cores, Neoverse V2)
+
+**Embedded Processors**:
+- NXP: i.MX 8M Plus (Quad A53 + 2.3 TOPS NPU), i.MX 93 (Dual A55 + 0.5 TOPS NPU)
+- ST Micro: STM32H7 (Dual-core Cortex-M7 + M4, 480 MHz)
+
+**Mobile SoCs**:
+- Qualcomm: Snapdragon 8 Gen 3 (Cortex-X4 + A720 + A520)
+- Google: Tensor G4 (Cortex-X4 + A720 + A520, Mali-G715)
+- Samsung: Exynos 2400 (10-core, Xclipse 940 GPU)
+
+#### Hardware Platforms (11 devices)
+
+**NVIDIA Jetson**:
+- Jetson Orin NX 8GB/16GB, AGX Orin 32GB/64GB, AGX Thor 128GB, TX2 8GB
+
+**Raspberry Pi**:
+- Raspberry Pi 5 8GB, Raspberry Pi 4 8GB
+
+**Hailo Accelerators**:
+- Hailo-8 M.2 (26 TOPS), Hailo-8L M.2 (13 TOPS), Hailo-10H M.2 (40 TOPS)
+
+#### Embedded GPU Entries (6 GPUs)
+
+Cross-referenced GPUs for hardware platforms:
+- Orin NX GPU 8GB/16GB, Orin GPU 32GB/64GB, Thor GPU 128GB, TX2 GPU 8GB
+
+#### Chip/SoC Entries (9 chips)
+
+- NVIDIA: Orin NX SoC, Orin SoC, Thor SoC, Tegra X2 SoC
+- Broadcom: BCM2712 (Pi 5), BCM2711 (Pi 4)
+- Hailo: Hailo-8, Hailo-8L, Hailo-10H chips
+
+#### CPU Schema Expansion
+
+New vendors: `nxp`, `stmicro`, `google`, `samsung`
+
+New architectures:
+- Server: `neoverse_v1`, `neoverse_n1`
+- Application: `cortex_a55`, `cortex_a53`
+- Microcontroller: `cortex_m7`, `cortex_m4`, `cortex_m33`
+
+New process nodes: `tsmc_n7`, `tsmc_n28`, `samsung_14lpc`, `samsung_3gae`, `custom`
+
+New sockets: `lga4926` (Ampere Altra), `lga5964` (AmpereOne)
+
+#### Software Architecture Schema (`architectures.py`)
+
+New schema for modeling software architectures as operator graphs:
+- `SoftwareArchitecture` - Complete architecture with stages and flows
+- `ArchitectureStage` - Processing stage with operators and QoS
+- `ArchitectureOperator` - Operator instance in stage
+- `DataFlow` - Data flow between stages
+- Enums: `StageRole`, `DataFlowType`, `StageExecutionMode`
+
+Reference architectures:
+- `drone_perception_v1` - Drone perception pipeline
+- `simple_adas_v1` - ADAS perception pipeline
+- `pick_and_place_v1` - Manipulation pipeline
+
+#### Operator Schema (`operators.py`)
+
+New schema for modeling computational operators:
+- `Operator` - Complete operator with compute, I/O, QoS
+- `ComputeProfile` - FLOPs, memory, parallelization
+- `OperatorIO` - Input/output specifications
+- `QoSRequirements` - Latency, throughput, accuracy
+- Enums: `OperatorCategory`, `OperatorType`, `ComputeParadigm`
+
+20 reference operators across categories:
+- Perception: YOLO detectors (N/S/M/L/X), depth estimation, tracking
+- Reasoning: behavior classifier, collision detector, trajectory predictor
+- State Estimation: Kalman filters, scene graph manager
+- Control: PID controller, A* path planner
+- Infrastructure: image preprocessor, NMS postprocessor
+
+### Changed
+
+- GPU-Hardware cross-reference: All embedded GPUs now link to their hardware platforms
+- Standardized hardware entry structure with complete cross-references
+
+### Fixed
+
+- STM32 power values rounded to integers (schema constraint)
+- Mobile SoC `pcie_version: null` changed to `"0"` (string required)
+- Mobile SoC `igpu:` renamed to `graphics:` (schema field name)
+
 ## [0.3.0] - 2025-12-30
 
 ### Added
