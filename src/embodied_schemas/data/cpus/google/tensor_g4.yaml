@@ -1,0 +1,86 @@
+# Google Tensor G4 - Pixel 9 Series SoC
+# Source: https://blog.google/products/pixel/google-tensor-g4/
+
+id: google_tensor_g4
+name: Google Tensor G4
+vendor: google
+
+architecture: cortex_x4
+process_node: samsung_3gae
+
+cores:
+  total_cores: 8
+  total_threads: 8
+  smt_enabled: false
+  threads_per_core: 1
+  p_cores: 1  # Cortex-X4 prime core
+  e_cores: 7  # 3x A720 + 4x A520
+  p_core_arch: Cortex-X4
+  e_core_arch: Cortex-A720
+
+clocks:
+  base_clock_mhz: 1950  # A520 base
+  boost_clock_mhz: 3100  # X4 prime
+  all_core_boost_mhz: 2850
+
+cache:
+  l1_data_kb: 64
+  l1_instruction_kb: 64
+  l2_cache_mb: 8.0
+  l3_cache_mb: 8.0
+  l2_per_core: false
+  l3_shared: true
+
+memory:
+  max_memory_gb: 16
+  memory_channels: 4
+  memory_type: LPDDR5X
+  max_memory_speed_mts: 8533
+  ecc_support: false
+
+instructions:
+  avx: false
+  avx2: false
+  avx512: false
+  neon: true
+  sve: false
+
+power:
+  tdp_watts: 10
+  base_power_watts: 4
+  max_turbo_power_watts: 10
+
+platform:
+  socket: bga
+  pcie_lanes: 0
+  pcie_version: "0"  # No PCIe
+  cxl_support: false
+
+graphics:
+  has_igpu: true
+  igpu_name: Mali-G715
+  igpu_cores: 7
+  igpu_boost_mhz: 940
+  igpu_tflops_fp32: 2.0
+
+market:
+  launch_date: "2024-08-13"
+  launch_msrp_usd: 0.0  # Bundled with Pixel devices
+  target_market: mobile_performance
+  product_family: Tensor
+  product_line: G4
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Google's 4th-gen custom mobile SoC for Pixel 9 series.
+  1x Cortex-X4 @ 3.1 GHz (prime core).
+  3x Cortex-A720 @ 2.6 GHz (performance).
+  4x Cortex-A520 @ 1.95 GHz (efficiency).
+  ARM Mali-G715 GPU (7 cores).
+  Google TPU for on-device ML (>45 TOPS).
+  Titan M2 security coprocessor.
+  Samsung 3nm GAE process node.
+  Optimized for Gemini Nano on-device AI.
+datasheet_url: https://blog.google/products/pixel/google-tensor-g4/
+last_updated: "2025-12-31"

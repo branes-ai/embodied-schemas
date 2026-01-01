@@ -1,0 +1,74 @@
+# AWS Graviton3 - 64-Core ARM Cloud Server CPU
+# Source: https://aws.amazon.com/ec2/graviton/
+
+id: aws_graviton3
+name: AWS Graviton3
+vendor: aws
+
+architecture: neoverse_v1
+process_node: tsmc_n5
+
+cores:
+  total_cores: 64
+  total_threads: 64
+  smt_enabled: false
+  threads_per_core: 1
+
+clocks:
+  base_clock_mhz: 2600
+  boost_clock_mhz: 2600
+  all_core_boost_mhz: 2600
+
+cache:
+  l1_data_kb: 64
+  l1_instruction_kb: 64
+  l2_cache_mb: 1.0
+  l3_cache_mb: 32.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 512
+  memory_channels: 8
+  memory_type: DDR5
+  max_memory_speed_mts: 4800
+  ecc_support: true
+
+instructions:
+  avx: false
+  avx2: false
+  avx512: false
+  neon: true
+  sve: true
+  bf16: true
+
+power:
+  tdp_watts: 100
+  base_power_watts: 100
+  max_turbo_power_watts: 100
+
+platform:
+  socket: bga
+  pcie_lanes: 64
+  pcie_version: "5.0"
+  cxl_support: false
+
+market:
+  launch_date: "2021-11-30"
+  launch_msrp_usd: 0.0  # Cloud-only, no retail
+  target_market: datacenter
+  product_family: Graviton
+  product_line: Graviton3
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  AWS custom ARM Neoverse V1 server processor.
+  64 cores, single-threaded for predictable performance.
+  First Graviton with SVE (Scalable Vector Extension).
+  BF16 support for ML inference acceleration.
+  25% better compute vs Graviton2, 2x FP performance.
+  Powers EC2 C7g, M7g, R7g instances.
+  Cloud-only, not available for retail purchase.
+datasheet_url: https://aws.amazon.com/ec2/graviton/
+last_updated: "2025-12-31"

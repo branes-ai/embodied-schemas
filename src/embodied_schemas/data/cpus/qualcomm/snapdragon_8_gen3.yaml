@@ -1,0 +1,85 @@
+# Qualcomm Snapdragon 8 Gen 3 - Flagship Mobile SoC
+# Source: https://www.qualcomm.com/products/mobile/snapdragon/smartphones/snapdragon-8-series-mobile-platforms/snapdragon-8-gen-3-mobile-platform
+
+id: qualcomm_snapdragon_8_gen3
+name: Qualcomm Snapdragon 8 Gen 3
+vendor: qualcomm
+
+architecture: cortex_x4
+process_node: tsmc_n4
+
+cores:
+  total_cores: 8
+  total_threads: 8
+  smt_enabled: false
+  threads_per_core: 1
+  p_cores: 1  # Cortex-X4 prime core
+  e_cores: 7  # 5x A720 + 2x A520
+  p_core_arch: Cortex-X4
+  e_core_arch: Cortex-A720
+
+clocks:
+  base_clock_mhz: 2300  # A520 base
+  boost_clock_mhz: 3300  # X4 prime
+  all_core_boost_mhz: 3200
+
+cache:
+  l1_data_kb: 64
+  l1_instruction_kb: 64
+  l2_cache_mb: 8.0
+  l3_cache_mb: 12.0
+  l2_per_core: false
+  l3_shared: true
+
+memory:
+  max_memory_gb: 24
+  memory_channels: 4
+  memory_type: LPDDR5X
+  max_memory_speed_mts: 9600
+  ecc_support: false
+
+instructions:
+  avx: false
+  avx2: false
+  avx512: false
+  neon: true
+  sve: false
+
+power:
+  tdp_watts: 12
+  base_power_watts: 5
+  max_turbo_power_watts: 12
+
+platform:
+  socket: bga
+  pcie_lanes: 0
+  pcie_version: "0"  # No PCIe
+  cxl_support: false
+
+graphics:
+  has_igpu: true
+  igpu_name: Adreno 750
+  igpu_cores: 6
+  igpu_boost_mhz: 903
+  igpu_tflops_fp32: 2.8
+
+market:
+  launch_date: "2023-10-24"
+  launch_msrp_usd: 0.0  # Sold to OEMs
+  target_market: mobile_performance
+  product_family: Snapdragon 8
+  product_line: Gen 3
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  Flagship Android smartphone SoC for 2024.
+  1x Cortex-X4 @ 3.3 GHz (prime core).
+  5x Cortex-A720 @ 3.2 GHz (performance).
+  2x Cortex-A520 @ 2.3 GHz (efficiency).
+  Adreno 750 GPU with ray tracing.
+  Hexagon NPU with 45 TOPS INT8.
+  Snapdragon X75 5G modem (10 Gbps).
+  Wi-Fi 7 and Bluetooth 5.4 support.
+datasheet_url: https://www.qualcomm.com/products/mobile/snapdragon/smartphones/snapdragon-8-series-mobile-platforms/snapdragon-8-gen-3-mobile-platform
+last_updated: "2025-12-31"

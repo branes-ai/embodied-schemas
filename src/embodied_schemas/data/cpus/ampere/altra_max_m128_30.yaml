@@ -1,0 +1,72 @@
+# Ampere Altra Max M128-30 - 128-Core ARM Server CPU
+# Source: https://amperecomputing.com/briefs/ampere-altra-family-product-brief
+
+id: ampere_altra_max_m128_30
+name: Ampere Altra Max M128-30
+vendor: ampere
+
+architecture: neoverse_n1
+process_node: tsmc_n7
+
+cores:
+  total_cores: 128
+  total_threads: 128  # Single-threaded cores
+  smt_enabled: false
+  threads_per_core: 1
+
+clocks:
+  base_clock_mhz: 2800
+  boost_clock_mhz: 3000
+  all_core_boost_mhz: 3000
+
+cache:
+  l1_data_kb: 64
+  l1_instruction_kb: 64
+  l2_cache_mb: 1.0
+  l3_cache_mb: 16.0
+  l2_per_core: true
+  l3_shared: true
+
+memory:
+  max_memory_gb: 4096
+  memory_channels: 8
+  memory_type: DDR4
+  max_memory_speed_mts: 3200
+  ecc_support: true
+
+instructions:
+  avx: false
+  avx2: false
+  avx512: false
+  neon: true
+  sve: false
+
+power:
+  tdp_watts: 250
+  base_power_watts: 250
+  max_turbo_power_watts: 250
+
+platform:
+  socket: lga4926
+  pcie_lanes: 128
+  pcie_version: "4.0"
+  cxl_support: false
+
+market:
+  launch_date: "2021-09-15"
+  launch_msrp_usd: 5800.0
+  target_market: datacenter
+  product_family: Altra
+  product_line: Altra Max
+  is_available: true
+  is_discontinued: false
+
+notes: |
+  128-core ARM Neoverse N1 server processor.
+  Single-threaded cores for predictable, linear scaling.
+  8-channel DDR4-3200 (204.8 GB/s bandwidth).
+  128 lanes PCIe Gen4, up to 48 devices.
+  Designed for cloud-native and scale-out workloads.
+  Now superseded by AmpereOne for new designs.
+datasheet_url: https://amperecomputing.com/briefs/ampere-altra-family-product-brief
+last_updated: "2025-12-31"
