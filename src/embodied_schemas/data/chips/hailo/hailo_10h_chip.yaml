@@ -1,0 +1,29 @@
+# Hailo-10H AI Accelerator Chip (Generative AI)
+# Source: https://hailo.ai/products/ai-accelerators/hailo-10h-ai-accelerator/
+
+id: hailo_10h_chip
+name: Hailo-10H
+vendor: hailo
+architecture: Dataflow Gen2
+process_node_nm: 5
+
+# CPU - No CPU
+cpu_cores: 0
+cpu_architecture: null
+
+# GPU - No GPU
+gpu_cores: 0
+gpu_architecture: null
+
+# AI accelerators
+npu_tops: 40.0  # 40 TOPS INT4, 20 TOPS INT8
+dla_tops: 0
+
+# Memory - Onboard LPDDR4X
+memory_interface: LPDDR4X
+memory_channels: 1
+max_memory_gb: 8.0
+
+announcement_date: "2024-04-15"
+datasheet_url: https://hailo.ai/products/ai-accelerators/hailo-10h-ai-accelerator/
+last_updated: "2025-12-31"

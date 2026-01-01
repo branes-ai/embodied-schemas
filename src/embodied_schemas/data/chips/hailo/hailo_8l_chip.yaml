@@ -1,0 +1,29 @@
+# Hailo-8L AI Accelerator Chip (Entry-Level)
+# Source: https://hailo.ai/products/ai-accelerators/hailo-8l-ai-accelerator-for-ai-light-applications/
+
+id: hailo_8l_chip
+name: Hailo-8L
+vendor: hailo
+architecture: Dataflow
+process_node_nm: 7
+
+# CPU - No CPU
+cpu_cores: 0
+cpu_architecture: null
+
+# GPU - No GPU
+gpu_cores: 0
+gpu_architecture: null
+
+# AI accelerators
+npu_tops: 13.0  # 13 TOPS INT8
+dla_tops: 0
+
+# Memory - No onboard memory
+memory_interface: PCIe
+memory_channels: 0
+max_memory_gb: 0
+
+announcement_date: "2022-01-01"
+datasheet_url: https://hailo.ai/products/ai-accelerators/hailo-8l-ai-accelerator-for-ai-light-applications/
+last_updated: "2025-12-31"

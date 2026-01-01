@@ -1,0 +1,29 @@
+# Hailo-8 AI Accelerator Chip
+# Source: https://hailo.ai/products/ai-accelerators/hailo-8-ai-accelerator/
+
+id: hailo_8_chip
+name: Hailo-8
+vendor: hailo
+architecture: Dataflow
+process_node_nm: 7
+
+# CPU - No CPU, pure AI accelerator
+cpu_cores: 0
+cpu_architecture: null
+
+# GPU - No GPU
+gpu_cores: 0
+gpu_architecture: null
+
+# AI accelerators
+npu_tops: 26.0  # 26 TOPS INT8
+dla_tops: 0
+
+# Memory - No onboard memory
+memory_interface: PCIe
+memory_channels: 0
+max_memory_gb: 0
+
+announcement_date: "2019-09-16"
+datasheet_url: https://hailo.ai/products/ai-accelerators/hailo-8-ai-accelerator/
+last_updated: "2025-12-31"

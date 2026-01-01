@@ -1,0 +1,100 @@
+# NVIDIA Jetson Orin NX GPU (16GB variant) - Integrated Ampere GPU
+# Source: https://developer.nvidia.com/embedded/jetson-orin-nx-series
+
+id: nvidia_orin_nx_gpu_16gb_lpddr5
+name: NVIDIA Jetson Orin NX GPU (16GB)
+vendor: nvidia
+
+die:
+  gpu_name: Orin NX
+  architecture: Ampere
+  architecture_codename: Ampere
+  foundry: samsung
+  process_nm: 8
+  process_name: 8LPP
+  transistors_billion: 17.0  # Full Orin SoC
+  die_size_mm2: 455.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 2048
+  cuda_cores: 2048
+  streaming_multiprocessors: 16
+  tmus: 64
+  rops: 32
+  tensor_cores: 64
+  tensor_core_gen: 3
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 306
+  boost_clock_mhz: 918
+  memory_clock_mhz: 3200
+  memory_effective_gbps: 12.8
+
+memory:
+  memory_size_gb: 16.0
+  memory_type: lpddr5
+  memory_bus_bits: 128
+  memory_bandwidth_gbps: 102.4
+  l2_cache_mb: 2.0
+  ecc_support: false
+  unified_memory: true
+
+performance:
+  fp32_tflops: 3.76
+  fp16_tflops: 7.52
+  int8_tops: 100.0
+  tensor_tflops_fp16: 50.0
+  tensor_tflops_int8: 100.0
+  pixel_rate_gpixels: 29.4
+  texture_rate_gtexels: 58.8
+
+power:
+  tdp_watts: 25
+  max_power_watts: 25
+  min_power_watts: 10
+  idle_power_watts: 2.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+features:
+  directx: "12.1"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.5"
+  cuda_compute: "8.7"
+  nvenc: true
+  nvenc_gen: 7
+  nvdec: true
+  dlss: false
+  max_displays: 4
+  hdr_support: true
+  variable_refresh: false
+
+market:
+  launch_date: "2023-03-07"
+  launch_msrp_usd: 699.0
+  target_market: embedded
+  product_family: Jetson Orin
+  model_tier: mid
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+embedded_in_hardware_ids:
+  - nvidia_jetson_orin_nx_16gb
+notes: |
+  Integrated Ampere GPU in Jetson Orin NX 16GB.
+  2048 CUDA cores, 64 3rd-gen Tensor Cores.
+  100 TOPS INT8 AI performance (GPU + 2x NVDLA).
+  Shared LPDDR5 memory with CPU (unified memory).
+  Power modes: 10W, 15W, 25W.
+datasheet_url: https://developer.nvidia.com/downloads/jetson-orin-nx-series-data-sheet
+techpowerup_url: https://www.techpowerup.com/gpu-specs/jetson-orin-nx-16-gb.c4015
+last_updated: "2025-12-31"
