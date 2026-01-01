@@ -1,0 +1,68 @@
+# Intel RealSense D435i - Depth Camera with IMU
+# Source: https://www.intelrealsense.com/depth-camera-d435i/
+
+id: intel_realsense_d435i
+name: Intel RealSense D435i
+vendor: intel
+model: D435i
+category: depth
+
+depth_spec:
+  depth_type: active_stereo
+  depth_resolution: [1280, 720]
+  rgb_resolution: [1920, 1080]
+  depth_fps: 90
+  rgb_fps: 30
+  range_m: [0.1, 10.0]
+  accuracy_percent: 2.0
+  accuracy_reference_m: 2.0
+  baseline_mm: 50.0
+  indoor_outdoor: both
+
+imu_spec:
+  axes: 6
+  gyro_range_dps: 2000
+  accel_range_g: 4
+  gyro_noise_dps: 0.01
+  accel_noise_mg: 0.23
+  sample_rate_hz: 400
+  has_magnetometer: false
+
+interface:
+  type: usb
+  version: "3.2"
+  data_rate_gbps: 5.0
+
+power:
+  voltage_v: 5.0
+  current_ma: 700
+  power_watts: 3.5
+  standby_watts: 0.3
+
+physical:
+  weight_grams: 72
+  dimensions_mm: [90, 25, 25]
+  connector: USB-C
+  mounting: 1/4-20
+
+environmental:
+  operating_temp_c: [0, 35]
+  storage_temp_c: [-20, 60]
+  ip_rating: null
+  outdoor_capable: false
+
+compatible_interfaces:
+  - usb
+
+suitable_for:
+  - drone_obstacle_avoidance
+  - amr_navigation
+  - quadruped_navigation
+  - robotic_manipulation
+
+cost_usd: 349.0
+availability: widely_available
+
+datasheet_url: https://www.intelrealsense.com/download/20289/
+product_url: https://www.intelrealsense.com/depth-camera-d435i/
+last_updated: "2025-12-31"

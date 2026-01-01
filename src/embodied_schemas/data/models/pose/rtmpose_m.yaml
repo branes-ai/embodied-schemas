@@ -1,0 +1,81 @@
+# RTMPose Medium - Real-Time Multi-Person Pose Estimation
+# Source: https://github.com/open-mmlab/mmpose
+
+id: rtmpose_m
+name: RTMPose Medium
+version: "1.0"
+vendor: openmmlab
+
+architecture:
+  type: pose_estimation
+  family: rtmpose
+  backbone: CSPNeXt-M
+  neck: null
+  head: SimCC Head
+  params_millions: 13.6
+  flops_billions: 1.9
+  layers: 120
+
+input:
+  shape: [1, 3, 256, 192]
+  dtype: float32
+  normalization: [0, 1]
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  channel_order: rgb
+
+output:
+  format: keypoints_scores
+  num_classes: 17
+  output_names: [keypoints, scores]
+
+accuracy:
+  coco_val2017:
+    dataset: coco_val2017
+    pck: 75.3
+    methodology: official
+    notes: "AP@0.5:0.95 on COCO val2017"
+
+variants:
+  - name: fp32-pytorch
+    dtype: fp32
+    format: pytorch
+    file_size_mb: 54.5
+    accuracy_delta: 0.0
+  - name: fp16-onnx
+    dtype: fp16
+    format: onnx
+    file_size_mb: 28.0
+    accuracy_delta: -0.1
+  - name: int8-tensorrt
+    dtype: int8
+    format: tensorrt
+    file_size_mb: 15.0
+    accuracy_delta: -0.5
+    calibration_dataset: coco_val2017
+
+memory:
+  weights_mb: 54.5
+  peak_activation_mb: 120
+  workspace_mb: 50
+
+compatible_hardware:
+  - nvidia_jetson_orin_nano_8gb
+  - nvidia_jetson_orin_nx_8gb
+  - nvidia_jetson_orin_nx_16gb
+  - hailo_8_m2
+
+suitable_for:
+  - quadruped_patrol
+  - biped_navigation
+  - amr_human_detection
+
+optimization_notes:
+  tensorrt: "SimCC head is efficient. Achieves 200+ FPS on desktop GPU."
+  note: "Requires person detector. Pair with YOLO for multi-person pose."
+
+license: Apache-2.0
+source_url: https://github.com/open-mmlab/mmpose
+paper_url: https://arxiv.org/abs/2303.07399
+weights_url: https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7_420e-256x192-e48f03d0_20230504.pth
+last_updated: "2025-12-31"

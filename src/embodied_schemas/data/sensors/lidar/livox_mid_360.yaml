@@ -1,0 +1,59 @@
+# Livox Mid-360 - Solid-State LiDAR for Robotics
+# Source: https://www.livoxtech.com/mid-360
+
+id: livox_mid_360
+name: Livox Mid-360
+vendor: livox
+model: Mid-360
+category: lidar
+
+lidar_spec:
+  lidar_type: solid_state
+  channels: 4
+  points_per_second: 200000
+  range_m: [0.1, 40.0]
+  accuracy_cm: 2.0
+  horizontal_fov_deg: 360.0
+  vertical_fov_deg: 59.0
+  angular_resolution_deg: 0.05
+  scan_rate_hz: 10.0
+  wavelength_nm: 905
+  eye_safe: true
+
+interface:
+  type: ethernet
+  version: 1000BASE-T
+  data_rate_gbps: 1.0
+
+power:
+  voltage_v: 12.0
+  current_ma: 1080
+  power_watts: 13.0
+  standby_watts: 2.0
+
+physical:
+  weight_grams: 265
+  dimensions_mm: [65, 65, 60]
+  connector: "Aviation connector"
+  mounting: M3 screw holes
+
+environmental:
+  operating_temp_c: [-20, 55]
+  storage_temp_c: [-40, 85]
+  ip_rating: IP67
+  outdoor_capable: true
+
+compatible_interfaces:
+  - ethernet
+
+suitable_for:
+  - amr_warehouse
+  - quadruped_patrol
+  - vehicle_perception
+
+cost_usd: 1099.0
+availability: widely_available
+
+datasheet_url: https://www.livoxtech.com/downloads
+product_url: https://www.livoxtech.com/mid-360
+last_updated: "2025-12-31"

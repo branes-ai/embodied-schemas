@@ -1,0 +1,117 @@
+# AMR Warehouse Navigation Use Case
+# Autonomous mobile robot navigation in warehouse environments
+
+id: amr_warehouse
+name: AMR Warehouse Navigation
+category: amr
+description: |
+  Autonomous navigation and obstacle avoidance for mobile robots
+  operating in warehouse environments. Must handle dynamic obstacles
+  (people, forklifts), navigate narrow aisles, and maintain safe speeds.
+
+platform:
+  type: amr
+  size_class: medium
+  indoor_outdoor: indoor
+  autonomous_level: 4
+
+perception:
+  tasks:
+    - object_detection
+    - depth_estimation
+  target_classes:
+    - person
+    - forklift
+    - pallet
+    - obstacle
+    - rack
+  detection_range_m: [0.3, 15.0]
+  field_of_view_deg: 270
+  frame_rate_fps: 30
+
+constraints:
+  latency:
+    max_value: 80
+    unit: ms
+    tier: real_time
+    criticality: safety_critical
+    notes: "Must stop before collision"
+  power:
+    max_value: 30
+    unit: watts
+    tier: moderate_power
+    criticality: medium
+    notes: "Typically wall-powered or large battery"
+  accuracy:
+    min_value: 0.95
+    criticality: safety_critical
+    notes: "Safety-critical person detection"
+
+preferences:
+  - minimize_latency
+  - maximize_accuracy
+  - maximize_uptime
+
+implied:
+  - real_time
+  - indoor
+  - safety_critical
+
+recommended_hardware:
+  - id: nvidia_jetson_orin_nx_8gb
+    variant: 15W mode
+    notes: "Cost-effective for fleet deployment"
+    priority: 1
+  - id: nvidia_jetson_orin_nx_16gb
+    variant: 25W mode
+    notes: "Multi-camera setups"
+    priority: 2
+  - id: hailo_8_m2
+    notes: "Ultra-efficient edge inference"
+    priority: 3
+
+recommended_models:
+  - id: yolov8n
+    variant: int8-tensorrt
+    notes: "Fast person/obstacle detection"
+    priority: 1
+  - id: yolov8s
+    variant: fp16-tensorrt
+    notes: "Higher accuracy option"
+    priority: 2
+  - id: midas_small
+    variant: int8-tflite
+    notes: "Depth for close-range obstacles"
+    priority: 2
+
+recommended_sensors:
+  - id: intel_realsense_d435i
+    notes: "Front-facing depth camera"
+    priority: 1
+  - id: livox_mid_360
+    notes: "360-degree safety LiDAR"
+    priority: 1
+
+success_criteria:
+  - metric: person_detection_recall
+    target: 0.99
+    operator: gte
+    criticality: safety_critical
+  - metric: latency_ms
+    target: 80
+    operator: lte
+    criticality: safety_critical
+  - metric: false_positive_rate
+    target: 0.01
+    operator: lte
+    criticality: hard
+  - metric: localization_accuracy_m
+    target: 0.05
+    operator: lte
+    criticality: medium
+
+last_updated: "2025-12-31"
+maintainer: null
+references:
+  - https://www.locus-robotics.com/
+  - https://6river.com/

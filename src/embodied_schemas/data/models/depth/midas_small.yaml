@@ -1,0 +1,87 @@
+# MiDaS Small - Lightweight Monocular Depth Estimation
+# Source: https://github.com/isl-org/MiDaS
+
+id: midas_small
+name: MiDaS Small v2.1
+version: "2.1"
+vendor: intel-isl
+
+architecture:
+  type: depth_estimation
+  family: midas
+  backbone: EfficientNet-Lite3
+  neck: null
+  head: DPT Head
+  params_millions: 6.5
+  flops_billions: 5.0
+  layers: 150
+
+input:
+  shape: [1, 3, 256, 256]
+  dtype: float32
+  normalization: [0, 1]
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  channel_order: rgb
+  dynamic_axes:
+    height: [2]
+    width: [3]
+
+output:
+  format: depth_map
+  output_names: [depth]
+
+accuracy:
+  nyu_depth_v2:
+    dataset: nyu_depth_v2
+    abs_rel: 0.116
+    rmse: 0.459
+    methodology: official
+  kitti:
+    dataset: kitti
+    abs_rel: 0.098
+    rmse: 4.27
+    methodology: official
+
+variants:
+  - name: fp32-pytorch
+    dtype: fp32
+    format: pytorch
+    file_size_mb: 26.0
+    accuracy_delta: 0.0
+  - name: fp16-onnx
+    dtype: fp16
+    format: onnx
+    file_size_mb: 14.0
+    accuracy_delta: -0.01
+  - name: int8-tflite
+    dtype: int8
+    format: tflite
+    file_size_mb: 7.5
+    accuracy_delta: -0.02
+    calibration_dataset: nyu_depth_v2
+
+memory:
+  weights_mb: 26.0
+  peak_activation_mb: 80
+  workspace_mb: 30
+
+compatible_hardware:
+  - nvidia_jetson_orin_nano_8gb
+  - nvidia_jetson_orin_nx_8gb
+  - raspberry_pi_5_8gb
+  - hailo_8l_m2
+
+suitable_for:
+  - drone_obstacle_avoidance
+  - amr_navigation
+
+optimization_notes:
+  tflite: "Optimized for mobile/embedded. INT8 provides 4x speedup."
+  note: "Outputs relative depth - requires scaling for absolute distance."
+
+license: MIT
+source_url: https://github.com/isl-org/MiDaS
+paper_url: https://arxiv.org/abs/1907.01341
+weights_url: https://github.com/isl-org/MiDaS/releases/download/v2_1/midas_v21_small-70d6b9c8.pt
+last_updated: "2025-12-31"

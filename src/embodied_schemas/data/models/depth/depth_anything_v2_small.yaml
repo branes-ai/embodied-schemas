@@ -1,0 +1,82 @@
+# Depth Anything V2 Small - State-of-the-Art Monocular Depth
+# Source: https://depth-anything-v2.github.io/
+
+id: depth_anything_v2_small
+name: Depth Anything V2 Small
+version: "2.0"
+vendor: hku-tsinghua
+
+architecture:
+  type: depth_estimation
+  family: depth_anything
+  backbone: DINOv2-S
+  neck: DPT
+  head: DPT Head
+  params_millions: 24.8
+  flops_billions: 14.3
+  layers: 200
+
+input:
+  shape: [1, 3, 518, 518]
+  dtype: float32
+  normalization: [0, 1]
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  channel_order: rgb
+  dynamic_axes:
+    height: [2]
+    width: [3]
+
+output:
+  format: depth_map
+  output_names: [depth]
+
+accuracy:
+  nyu_depth_v2:
+    dataset: nyu_depth_v2
+    abs_rel: 0.043
+    rmse: 0.221
+    methodology: official
+    notes: "State-of-the-art on NYU Depth V2"
+  kitti:
+    dataset: kitti
+    abs_rel: 0.048
+    rmse: 2.23
+    methodology: official
+
+variants:
+  - name: fp32-pytorch
+    dtype: fp32
+    format: pytorch
+    file_size_mb: 99.0
+    accuracy_delta: 0.0
+  - name: fp16-tensorrt
+    dtype: fp16
+    format: tensorrt
+    file_size_mb: 52.0
+    accuracy_delta: -0.001
+
+memory:
+  weights_mb: 99.0
+  peak_activation_mb: 400
+  workspace_mb: 150
+
+compatible_hardware:
+  - nvidia_jetson_orin_nx_8gb
+  - nvidia_jetson_orin_nx_16gb
+  - nvidia_jetson_agx_orin_32gb
+
+suitable_for:
+  - drone_inspection
+  - quadruped_navigation
+  - vehicle_perception
+
+optimization_notes:
+  tensorrt: "Use FP16 for minimal accuracy loss with 2x speedup."
+  note: "DINOv2 backbone provides excellent generalization across domains."
+
+license: Apache-2.0
+source_url: https://github.com/DepthAnything/Depth-Anything-V2
+paper_url: https://arxiv.org/abs/2406.09414
+weights_url: https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth
+last_updated: "2025-12-31"

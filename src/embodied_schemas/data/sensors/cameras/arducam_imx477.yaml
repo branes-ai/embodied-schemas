@@ -1,0 +1,59 @@
+# Arducam IMX477 - High-Quality Camera Module
+# Source: https://www.arducam.com/product/arducam-high-quality-camera-12-3mp-imx477/
+
+id: arducam_imx477
+name: Arducam IMX477 HQ Camera
+vendor: arducam
+model: IMX477
+category: camera
+
+camera_spec:
+  sensor_type: CMOS
+  resolution: [4056, 3040]
+  pixel_size_um: 1.55
+  sensor_size_mm: [6.29, 4.71]
+  max_fps: 60
+  dynamic_range_db: 72
+  sensitivity_iso: [100, 6400]
+  shutter_type: rolling
+  hdr_support: true
+  color_filter: bayer
+
+interface:
+  type: csi
+  version: "2.0"
+  lanes: 2
+  data_rate_gbps: 6.0
+
+power:
+  voltage_v: 3.3
+  current_ma: 250
+  power_watts: 0.83
+  standby_watts: 0.1
+
+physical:
+  weight_grams: 15
+  dimensions_mm: [25, 24, 12]
+  connector: 15-pin FFC
+  mounting: M12
+
+environmental:
+  operating_temp_c: [-20, 60]
+  storage_temp_c: [-30, 70]
+  ip_rating: null
+  outdoor_capable: false
+
+compatible_interfaces:
+  - csi
+  - mipi
+
+suitable_for:
+  - drone_inspection
+  - quadruped_patrol
+
+cost_usd: 75.0
+availability: widely_available
+
+datasheet_url: https://www.arducam.com/downloads/modules/Jetson/Arducam_IMX477_Datasheet.pdf
+product_url: https://www.arducam.com/product/arducam-high-quality-camera-12-3mp-imx477/
+last_updated: "2025-12-31"

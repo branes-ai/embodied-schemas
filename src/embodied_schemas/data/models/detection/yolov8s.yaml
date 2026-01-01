@@ -1,0 +1,82 @@
+# YOLOv8 Small - Lightweight Object Detection
+# Source: https://docs.ultralytics.com/models/yolov8/
+
+id: yolov8s
+name: YOLOv8 Small
+version: "8.0"
+vendor: ultralytics
+
+architecture:
+  type: object_detection
+  family: yolov8
+  backbone: CSPDarknet-S
+  neck: PANet
+  head: Decoupled Head
+  params_millions: 11.2
+  flops_billions: 28.6
+  layers: 225
+
+input:
+  shape: [1, 3, 640, 640]
+  dtype: float32
+  normalization: [0, 1]
+  channel_order: rgb
+
+output:
+  format: boxes_scores_classes
+  num_classes: 80
+  max_detections: 300
+  output_names: [boxes, scores, classes]
+
+accuracy:
+  coco_val2017:
+    dataset: coco_val2017
+    map_50: 61.8
+    map_50_95: 44.9
+    methodology: official
+
+variants:
+  - name: fp32-pytorch
+    dtype: fp32
+    format: pytorch
+    file_size_mb: 22.5
+    accuracy_delta: 0.0
+  - name: fp16-tensorrt
+    dtype: fp16
+    format: tensorrt
+    file_size_mb: 12.0
+    accuracy_delta: -0.1
+  - name: int8-tensorrt
+    dtype: int8
+    format: tensorrt
+    file_size_mb: 6.5
+    accuracy_delta: -0.6
+    calibration_dataset: coco_val2017
+    calibration_samples: 500
+
+memory:
+  weights_mb: 22.5
+  peak_activation_mb: 180
+  workspace_mb: 80
+
+compatible_hardware:
+  - nvidia_jetson_orin_nano_8gb
+  - nvidia_jetson_orin_nx_8gb
+  - nvidia_jetson_orin_nx_16gb
+  - nvidia_jetson_agx_orin_32gb
+  - hailo_8_m2
+
+suitable_for:
+  - drone_inspection
+  - quadruped_patrol
+  - amr_navigation
+
+optimization_notes:
+  tensorrt: "Good balance of speed and accuracy. FP16 recommended."
+  jetson: "Achieves 60+ FPS on Orin NX with TensorRT FP16."
+
+license: AGPL-3.0
+source_url: https://github.com/ultralytics/ultralytics
+paper_url: https://arxiv.org/abs/2305.09972
+weights_url: https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8s.pt
+last_updated: "2025-12-31"
