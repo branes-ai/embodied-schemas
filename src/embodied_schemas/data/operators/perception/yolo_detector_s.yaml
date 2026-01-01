@@ -55,6 +55,32 @@ perf_profiles:
     memory_mb: 800
     throughput_fps: 833
     conditions: "FP16, batch_size=1, 640x640"
+  # AMD Ryzen AI NUC profiles (estimated, pending measurement)
+  # Note: YOLOv8s may exceed NPU op support, requiring GPU fallback on Ryzen 7
+  - hardware_id: amd_ryzen_7_8845hs_nuc
+    execution_target: gpu
+    latency_ms: 42.0
+    memory_mb: 850
+    power_w: 15.0
+    throughput_fps: 24
+    conditions: "FP16, batch_size=1, 640x640, ROCm/HIP"
+    measured: false
+  - hardware_id: amd_ryzen_9_8945hs_nuc
+    execution_target: npu
+    latency_ms: 18.5
+    memory_mb: 380
+    power_w: 6.5
+    throughput_fps: 54
+    conditions: "INT8, batch_size=1, 640x640, ONNX Runtime + Ryzen AI EP"
+    measured: false
+  - hardware_id: amd_ryzen_9_8945hs_nuc
+    execution_target: gpu
+    latency_ms: 35.0
+    memory_mb: 850
+    power_w: 18.0
+    throughput_fps: 28
+    conditions: "FP16, batch_size=1, 640x640, ROCm/HIP"
+    measured: false
 
 reference_hardware: Jetson-Orin-Nano
 typical_latency_ms: 38.0

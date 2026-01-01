@@ -62,15 +62,27 @@ class ConfigParam(BaseModel):
 
 
 class OperatorPerfProfile(BaseModel):
-    """Performance characteristics on a specific hardware target."""
+    """Performance characteristics on a specific hardware target.
+
+    For heterogeneous systems (CPU+GPU+NPU), the execution_target specifies
+    which accelerator was used for this measurement. This enables comparison
+    across execution strategies on the same hardware platform.
+    """
 
     hardware_id: str = Field(..., description="Reference to HardwareEntry ID")
+    execution_target: str | None = Field(
+        None,
+        description="Execution target: cpu, gpu, npu, dsp, etc. Required for heterogeneous systems.",
+    )
     latency_ms: float | None = Field(None, description="Inference latency in milliseconds")
     memory_mb: float | None = Field(None, description="Memory footprint in MB")
     power_w: float | None = Field(None, description="Power consumption in watts")
     throughput_fps: float | None = Field(None, description="Throughput in frames per second")
     conditions: str | None = Field(
         None, description="Test conditions: batch_size, precision, resolution, etc."
+    )
+    measured: bool = Field(
+        False, description="True if values are measured, False if estimated/projected"
     )
 
 
