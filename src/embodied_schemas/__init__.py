@@ -94,6 +94,14 @@ from embodied_schemas.cpu import (
     IntegratedGraphics,
     MarketInfo as CPUMarketInfo,
 )
+from embodied_schemas.operators import (
+    OperatorEntry,
+    OperatorCategory,
+    IOSpec,
+    ConfigParam,
+    OperatorPerfProfile,
+    ImplType,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -105,6 +113,7 @@ from embodied_schemas.loaders import (
     load_sensors,
     load_usecases,
     load_benchmarks,
+    load_operators,
 )
 
 __version__ = "0.1.0"
@@ -192,6 +201,13 @@ __all__ = [
     "CPUMarketInfo",
     # Registry
     "Registry",
+    # Operators
+    "OperatorEntry",
+    "OperatorCategory",
+    "IOSpec",
+    "ConfigParam",
+    "OperatorPerfProfile",
+    "ImplType",
     # Loaders
     "load_gpus",
     "load_gpu_architectures",
@@ -202,6 +218,7 @@ __all__ = [
     "load_sensors",
     "load_usecases",
     "load_benchmarks",
+    "load_operators",
     # Version
     "__version__",
 ]

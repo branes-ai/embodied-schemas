@@ -1,0 +1,78 @@
+id: depth_stereo_sgbm
+name: Stereo SGBM Depth Estimator
+category: perception
+subcategory: depth_estimation
+
+impl_type: cpp
+reference_impl: https://docs.opencv.org/4.x/d2/d85/classcv_1_1StereoSGBM.html
+
+inputs:
+  left_image:
+    dtype: uint8
+    shape: ["H", "W"]
+    description: Left grayscale image
+  right_image:
+    dtype: uint8
+    shape: ["H", "W"]
+    description: Right grayscale image
+
+outputs:
+  disparity:
+    dtype: int16
+    shape: ["H", "W"]
+    description: Disparity map (fixed-point, divide by 16 for pixels)
+  depth_map:
+    dtype: float32
+    shape: ["H", "W"]
+    description: Metric depth map in meters (requires calibration)
+    optional: true
+
+config_schema:
+  min_disparity:
+    type: number
+    default: 0
+    description: Minimum disparity value
+  num_disparities:
+    type: number
+    default: 128
+    description: Number of disparity levels (must be divisible by 16)
+  block_size:
+    type: number
+    default: 5
+    description: Block size for matching (odd number 3-11)
+  p1:
+    type: number
+    default: 100
+    description: Smoothness penalty for small disparity changes
+  p2:
+    type: number
+    default: 1000
+    description: Smoothness penalty for large disparity changes
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 45.0
+    memory_mb: 120
+    conditions: "640x480, num_disparities=128"
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 18.0
+    memory_mb: 120
+    conditions: "640x480, num_disparities=128"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 45.0
+typical_memory_mb: 120
+
+requires_gpu: false
+python_deps:
+  - opencv-python>=4.5
+
+tags:
+  - stereo-depth
+  - metric-depth
+  - classical-cv
+
+papers:
+  - "Stereo Processing by Semiglobal Matching and Mutual Information (TPAMI 2008)"
+
+last_updated: "2024-12-30"

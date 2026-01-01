@@ -1,0 +1,60 @@
+id: kalman_filter_2d_bbox
+name: 2D Bounding Box Kalman Filter
+category: state_estimation
+subcategory: filtering
+
+impl_type: python
+reference_impl: https://filterpy.readthedocs.io/
+
+inputs:
+  bbox:
+    dtype: float32
+    shape: [4]
+    description: Bounding box [x, y, w, h] for update step
+    optional: true
+
+outputs:
+  state:
+    dtype: float32
+    shape: [8]
+    description: State vector [cx, cy, s, r, vx, vy, vs, vr]
+  predicted_bbox:
+    dtype: float32
+    shape: [4]
+    description: Predicted bounding box [x, y, w, h]
+
+config_schema:
+  process_noise:
+    type: number
+    default: 1.0
+    description: Process noise covariance scale
+  measurement_noise:
+    type: number
+    default: 1.0
+    description: Measurement noise covariance scale
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 0.05
+    memory_mb: 1
+    conditions: "Single filter instance"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 0.05
+typical_memory_mb: 1
+
+requires_gpu: false
+python_deps:
+  - filterpy
+  - numpy
+
+tags:
+  - state-estimation
+  - kalman-filter
+  - bbox-tracking
+  - real-time
+
+papers:
+  - "Simple Online and Realtime Tracking (ICIP 2016)"
+
+last_updated: "2024-12-30"

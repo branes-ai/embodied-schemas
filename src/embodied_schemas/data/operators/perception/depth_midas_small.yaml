@@ -1,0 +1,59 @@
+id: depth_midas_small
+name: MiDaS v2.1 Small Monocular Depth Estimator
+category: perception
+subcategory: depth_estimation
+
+impl_type: pytorch
+reference_impl: https://github.com/isl-org/MiDaS
+
+inputs:
+  image:
+    dtype: uint8
+    shape: ["H", "W", 3]
+    description: RGB image
+
+outputs:
+  depth_map:
+    dtype: float32
+    shape: ["H", "W"]
+    description: Relative depth map (higher = farther)
+
+config_schema:
+  model_type:
+    type: string
+    enum: ["MiDaS_small", "DPT_Hybrid", "DPT_Large"]
+    default: MiDaS_small
+    description: MiDaS model variant
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 25.0
+    memory_mb: 180
+    power_w: 7.0
+    conditions: "FP16, 384x384"
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 8.0
+    memory_mb: 180
+    power_w: 18.0
+    conditions: "FP16, 384x384"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 25.0
+typical_memory_mb: 180
+compute_flops: 2.1e9
+
+requires_gpu: true
+requires_model: midas_v21_small
+python_deps:
+  - torch>=1.8
+  - timm
+
+tags:
+  - monocular-depth
+  - relative-depth
+  - lightweight
+
+papers:
+  - "Towards Robust Monocular Depth Estimation (TPAMI 2022)"
+
+last_updated: "2024-12-30"

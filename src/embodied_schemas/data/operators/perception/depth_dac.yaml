@@ -1,0 +1,64 @@
+id: depth_dac
+name: Depth Any Camera (DAC) Monocular Depth
+category: perception
+subcategory: depth_estimation
+
+impl_type: pytorch
+reference_impl: https://github.com/Aradhana90/dac-depth-any-camera
+
+inputs:
+  image:
+    dtype: uint8
+    shape: ["H", "W", 3]
+    description: RGB image from any camera type (standard, fisheye, wide-angle)
+
+outputs:
+  depth_map:
+    dtype: float32
+    shape: ["H", "W"]
+    description: Metric depth map in meters
+
+config_schema:
+  camera_model:
+    type: string
+    enum: ["pinhole", "fisheye", "equirectangular"]
+    default: pinhole
+    description: Camera model type
+  max_depth:
+    type: number
+    default: 100.0
+    description: Maximum depth value in meters
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 45.0
+    memory_mb: 350
+    power_w: 10.0
+    conditions: "FP16, 512x512"
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 15.0
+    memory_mb: 350
+    power_w: 25.0
+    conditions: "FP16, 512x512"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 45.0
+typical_memory_mb: 350
+compute_flops: 15.2e9
+
+requires_gpu: true
+requires_model: dac_depth
+python_deps:
+  - torch>=1.10
+  - einops
+
+tags:
+  - monocular-depth
+  - metric-depth
+  - fisheye-support
+  - wide-angle
+
+papers:
+  - "Depth Any Camera: Zero-Shot Metric Depth Estimation (2024)"
+
+last_updated: "2024-12-30"

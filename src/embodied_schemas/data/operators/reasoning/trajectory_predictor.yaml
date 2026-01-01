@@ -1,0 +1,58 @@
+id: trajectory_predictor
+name: Trajectory Predictor
+category: reasoning
+subcategory: prediction
+
+impl_type: python
+
+inputs:
+  tracked_object:
+    dtype: object
+    shape: [1]
+    description: TrackedObject with position, velocity, and trajectory history
+
+outputs:
+  prediction:
+    dtype: object
+    shape: [1]
+    description: PredictedTrajectory with future positions and times
+
+config_schema:
+  prediction_horizon:
+    type: number
+    default: 3.0
+    description: Prediction horizon in seconds
+  dt:
+    type: number
+    default: 0.2
+    description: Time step for predictions
+  method:
+    type: string
+    enum: ["constant_velocity", "constant_acceleration", "physics"]
+    default: constant_velocity
+    description: Prediction method
+  min_history_length:
+    type: number
+    default: 3
+    description: Minimum trajectory history for acceleration-based methods
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 0.5
+    memory_mb: 10
+    conditions: "Single object, 3s horizon"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 0.5
+typical_memory_mb: 10
+
+requires_gpu: false
+python_deps:
+  - numpy
+
+tags:
+  - trajectory-prediction
+  - motion-forecasting
+  - real-time
+
+last_updated: "2024-12-30"

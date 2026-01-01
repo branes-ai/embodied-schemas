@@ -1,0 +1,79 @@
+id: yolo_detector_s
+name: YOLOv8s Object Detector (Small)
+category: perception
+subcategory: detection
+
+impl_type: pytorch
+reference_impl: https://github.com/ultralytics/ultralytics
+
+inputs:
+  image:
+    dtype: uint8
+    shape: ["H", "W", 3]
+    description: RGB image (640x640 recommended)
+
+outputs:
+  detections:
+    dtype: object
+    shape: ["N"]
+    description: List of Detection objects (bbox, class_id, class_name, confidence)
+
+config_schema:
+  conf_threshold:
+    type: number
+    default: 0.25
+    min: 0.0
+    max: 1.0
+    description: Confidence threshold for detections
+  iou_threshold:
+    type: number
+    default: 0.45
+    min: 0.0
+    max: 1.0
+    description: IOU threshold for NMS
+  device:
+    type: string
+    enum: ["cpu", "cuda"]
+    default: cuda
+    description: Inference device
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 38.0
+    memory_mb: 850
+    power_w: 12.0
+    throughput_fps: 26
+    conditions: "INT8, batch_size=1, 640x640"
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 12.5
+    memory_mb: 850
+    power_w: 28.0
+    throughput_fps: 80
+    conditions: "INT8, batch_size=1, 640x640"
+  - hardware_id: H100-SXM5-80GB
+    latency_ms: 1.2
+    memory_mb: 800
+    throughput_fps: 833
+    conditions: "FP16, batch_size=1, 640x640"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 38.0
+typical_memory_mb: 850
+compute_flops: 28.6e9
+
+requires_gpu: true
+requires_model: yolov8s
+python_deps:
+  - ultralytics>=8.0
+  - torch>=2.0
+
+tags:
+  - real-time
+  - object-detection
+  - coco-80
+  - balanced
+
+papers:
+  - "YOLOv8 (Ultralytics, 2023)"
+
+last_updated: "2024-12-30"

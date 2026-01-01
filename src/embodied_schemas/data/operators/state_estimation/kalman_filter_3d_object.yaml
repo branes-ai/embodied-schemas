@@ -1,0 +1,76 @@
+id: kalman_filter_3d_object
+name: 3D Object State Kalman Filter
+category: state_estimation
+subcategory: filtering
+
+impl_type: python
+reference_impl: https://filterpy.readthedocs.io/
+
+inputs:
+  position_3d:
+    dtype: float32
+    shape: [3]
+    description: 3D position measurement [x, y, z] in meters
+    optional: true
+
+outputs:
+  state:
+    dtype: float32
+    shape: [9]
+    description: State vector [x, y, z, vx, vy, vz, ax, ay, az]
+  position:
+    dtype: float32
+    shape: [3]
+    description: Filtered position [x, y, z]
+  velocity:
+    dtype: float32
+    shape: [3]
+    description: Estimated velocity [vx, vy, vz]
+  acceleration:
+    dtype: float32
+    shape: [3]
+    description: Estimated acceleration [ax, ay, az]
+
+config_schema:
+  dt:
+    type: number
+    default: 0.033
+    description: Time step in seconds (default 30 FPS)
+  process_noise_pos:
+    type: number
+    default: 0.1
+    description: Process noise for position
+  process_noise_vel:
+    type: number
+    default: 1.0
+    description: Process noise for velocity
+  measurement_noise:
+    type: number
+    default: 0.5
+    description: Measurement noise covariance
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 0.08
+    memory_mb: 2
+    conditions: "Single filter instance"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 0.08
+typical_memory_mb: 2
+
+requires_gpu: false
+python_deps:
+  - filterpy
+  - numpy
+
+tags:
+  - state-estimation
+  - kalman-filter
+  - 3d-tracking
+  - constant-acceleration
+
+papers:
+  - "An Introduction to the Kalman Filter (UNC-Chapel Hill, 2006)"
+
+last_updated: "2024-12-30"

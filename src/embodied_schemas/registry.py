@@ -15,6 +15,7 @@ from embodied_schemas.usecases import UseCaseEntry
 from embodied_schemas.benchmarks import BenchmarkResult
 from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
 from embodied_schemas.cpu import CPUEntry
+from embodied_schemas.operators import OperatorEntry
 from embodied_schemas.loaders import (
     get_data_dir,
     load_hardware,
@@ -26,6 +27,7 @@ from embodied_schemas.loaders import (
     load_gpus,
     load_gpu_architectures,
     load_cpus,
+    load_operators,
 )
 
 
@@ -163,6 +165,7 @@ class Registry:
     gpus: CatalogView = field(default_factory=CatalogView)
     gpu_architectures: CatalogView = field(default_factory=CatalogView)
     cpus: CatalogView = field(default_factory=CatalogView)
+    operators: CatalogView = field(default_factory=CatalogView)
 
     _data_dir: Path | None = None
 
@@ -188,6 +191,7 @@ class Registry:
         registry.gpus = CatalogView(_entries=load_gpus(data_dir))
         registry.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
         registry.cpus = CatalogView(_entries=load_cpus(data_dir))
+        registry.operators = CatalogView(_entries=load_operators(data_dir))
 
         return registry
 
@@ -203,6 +207,7 @@ class Registry:
         self.gpus = CatalogView(_entries=load_gpus(data_dir))
         self.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
         self.cpus = CatalogView(_entries=load_cpus(data_dir))
+        self.operators = CatalogView(_entries=load_operators(data_dir))
 
     def get_compatible_hardware(self, model_id: str) -> list[HardwareEntry]:
         """Get hardware compatible with a given model.
@@ -357,6 +362,7 @@ class Registry:
             "gpus": len(self.gpus),
             "gpu_architectures": len(self.gpu_architectures),
             "cpus": len(self.cpus),
+            "operators": len(self.operators),
         }
 
     def get_gpus_by_vendor(self, vendor: str) -> list[GPUEntry]:
