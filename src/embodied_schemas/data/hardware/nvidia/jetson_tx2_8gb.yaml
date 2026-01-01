@@ -1,0 +1,125 @@
+# NVIDIA Jetson TX2 8GB Module (Historical/Legacy)
+# Source: https://developer.nvidia.com/embedded/jetson-tx2
+
+id: nvidia_jetson_tx2_8gb
+name: NVIDIA Jetson TX2 8GB
+vendor: nvidia
+model: Jetson TX2
+hardware_type: gpu
+
+compute_paradigm: simd
+optimized_for:
+  - matrix_multiply
+  - convolution
+  - fp16
+  - fp32
+
+capabilities:
+  peak_tops_int8: 1.3  # Estimated from 1.33 TFLOPS FP16
+  peak_tflops_fp16: 1.33
+  peak_tflops_fp32: 0.67
+  memory_gb: 8.0
+  memory_type: LPDDR4
+  memory_bandwidth_gbps: 59.7
+  compute_units: 256  # CUDA cores
+  tensor_cores: 0  # Pascal architecture, no tensor cores
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+    - TensorRT
+  quantization_support:
+    - fp32
+    - fp16
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+
+physical:
+  weight_grams: 85.0
+  dimensions_mm: [87.0, 50.0, 16.0]
+  form_factor: som
+  mounting: carrier_board
+
+environmental:
+  operating_temp_c: [-25, 80]
+  storage_temp_c: [-40, 85]
+
+power:
+  input_voltage_v: [5.5, 19.6]
+  power_modes:
+    - name: "7.5W"
+      power_watts: 7.5
+      gpu_freq_mhz: 420
+      cpu_freq_mhz: 1200
+      description: Low power mode (Denver cores disabled)
+    - name: "15W"
+      power_watts: 15.0
+      gpu_freq_mhz: 854
+      cpu_freq_mhz: 2000
+      description: Maximum performance mode
+  tdp_watts: 15.0
+  typical_power_watts: 10.0
+  battery_compatible: true
+
+interfaces:
+  camera_csi: 6
+  camera_usb: 1
+  usb3: 1
+  usb2: 1
+  usb_c: 0
+  pcie_lanes: 5
+  pcie_gen: 2
+  gpio: 28
+  ethernet: 1gbps
+  wifi: wifi5
+  bluetooth: "4.1"
+  can_bus: 2
+  i2c: 4
+  spi: 2
+  uart: 4
+  hdmi: 1
+  displayport: 2
+
+software:
+  os:
+    - Ubuntu 18.04 (JetPack 4.x)
+  sdk: JetPack
+  sdk_version: "4.6.4"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+  container_support: true
+
+suitable_for:
+  - edge
+  - robotics
+  - drone
+  - embedded
+
+target_applications:
+  - vision
+  - object_detection
+  - segmentation
+
+cost_usd: 399.0
+availability: limited
+lifecycle_status: legacy
+
+notes: |
+  Legacy Jetson platform with Pascal GPU architecture.
+  Dual Denver 2 + Quad Cortex-A57 CPU (HMP architecture).
+  256 CUDA cores (2 Pascal SMs with 128 cores each).
+  Onboard 802.11ac WiFi and Bluetooth 4.1.
+  32GB eMMC 5.1 onboard storage.
+  Succeeded by Jetson Xavier and Orin series.
+  Still supported but not recommended for new designs.
+datasheet_url: https://developer.nvidia.com/embedded/jetson-tx2
+product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-tx2/
+last_updated: "2025-12-31"
+chip_id: nvidia_tegra_x2_soc
+gpu_id: nvidia_tx2_gpu_8gb_lpddr4

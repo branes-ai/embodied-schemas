@@ -1,0 +1,122 @@
+# Raspberry Pi 4 Model B 8GB
+# Source: https://www.raspberrypi.com/products/raspberry-pi-4-model-b/
+
+id: raspberry_pi_4_8gb
+name: Raspberry Pi 4 Model B 8GB
+vendor: raspberry_pi
+model: Raspberry Pi 4 Model B
+hardware_type: cpu
+
+compute_paradigm: von_neumann
+optimized_for:
+  - general_purpose
+
+capabilities:
+  peak_tops_int8: 0.0
+  peak_tflops_fp16: 0.0
+  peak_tflops_fp32: 0.02  # Estimated from CPU
+  memory_gb: 8.0
+  memory_type: LPDDR4
+  memory_bandwidth_gbps: 25.6  # LPDDR4-3200
+  compute_units: 4  # CPU cores
+  tensor_cores: 0
+  frameworks:
+    - PyTorch
+    - TensorFlow Lite
+    - ONNX Runtime
+  quantization_support:
+    - fp32
+    - int8
+  inference_runtimes:
+    - TensorFlow Lite
+    - ONNX Runtime
+    - NCNN
+
+physical:
+  weight_grams: 46.0
+  dimensions_mm: [85.0, 56.0, 17.0]
+  form_factor: standalone
+  mounting: direct
+
+environmental:
+  operating_temp_c: [0, 50]
+  storage_temp_c: [-20, 70]
+
+power:
+  input_voltage_v: [5.0, 5.0]
+  power_modes:
+    - name: "Idle"
+      power_watts: 2.0
+      cpu_freq_mhz: 600
+      description: Idle power consumption
+    - name: "Active"
+      power_watts: 6.0
+      cpu_freq_mhz: 1500
+      description: Full CPU load
+  tdp_watts: 7.5
+  typical_power_watts: 4.0
+  battery_compatible: true
+
+interfaces:
+  camera_csi: 1
+  camera_usb: 2
+  usb3: 2
+  usb2: 2
+  usb_c: 1
+  pcie_lanes: 0
+  pcie_gen: null
+  gpio: 40
+  ethernet: 1gbps
+  wifi: wifi5
+  bluetooth: "5.0"
+  can_bus: 0
+  i2c: 2
+  spi: 2
+  uart: 6
+  hdmi: 2
+  displayport: 0
+
+software:
+  os:
+    - Raspberry Pi OS (Debian 11/12)
+    - Ubuntu 22.04
+    - Ubuntu 20.04
+  sdk: null
+  sdk_version: null
+  frameworks:
+    - PyTorch
+    - TensorFlow Lite
+    - ONNX Runtime
+  inference_runtimes:
+    - TensorFlow Lite
+    - ONNX Runtime
+  container_support: true
+
+suitable_for:
+  - edge
+  - embedded
+  - robotics
+  - education
+  - prototyping
+
+target_applications:
+  - vision
+  - object_detection
+  - iot
+  - automation
+
+cost_usd: 75.0
+availability: widely_available
+lifecycle_status: mature
+
+notes: |
+  Raspberry Pi 4 with Broadcom BCM2711 SoC.
+  Quad-core Arm Cortex-A72 @ 1.5 GHz (1.8 GHz with cooling).
+  VideoCore VI GPU @ 500 MHz (OpenGL ES 3.1, Vulkan 1.0).
+  Dual 4Kp30 or single 4Kp60 HDMI output.
+  No PCIe interface - USB-based AI accelerators only.
+  Requires heatsink for sustained loads.
+datasheet_url: https://datasheets.raspberrypi.com/rpi4/raspberry-pi-4-datasheet.pdf
+product_url: https://www.raspberrypi.com/products/raspberry-pi-4-model-b/
+last_updated: "2025-12-31"
+chip_id: broadcom_bcm2711

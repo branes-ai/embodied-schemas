@@ -1,0 +1,133 @@
+# NVIDIA Jetson Orin NX 8GB Module
+# Source: https://developer.nvidia.com/embedded/jetson-orin-nx-series
+
+id: nvidia_jetson_orin_nx_8gb
+name: NVIDIA Jetson Orin NX 8GB
+vendor: nvidia
+model: Jetson Orin NX 8GB
+hardware_type: gpu
+
+compute_paradigm: simd
+optimized_for:
+  - matrix_multiply
+  - convolution
+  - int_quantized
+  - fp16
+
+capabilities:
+  peak_tops_int8: 70.0
+  peak_tflops_fp16: 35.0
+  peak_tflops_fp32: 17.5
+  memory_gb: 8.0
+  memory_type: LPDDR5
+  memory_bandwidth_gbps: 102.4
+  compute_units: 1024  # CUDA cores
+  tensor_cores: 32
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+    - TensorRT
+  quantization_support:
+    - fp32
+    - fp16
+    - int8
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton
+
+physical:
+  weight_grams: 90.0
+  dimensions_mm: [69.6, 45.0, 8.0]
+  form_factor: som
+  mounting: carrier_board
+
+environmental:
+  operating_temp_c: [-25, 80]
+  storage_temp_c: [-40, 85]
+
+power:
+  input_voltage_v: [5.0, 20.0]
+  power_modes:
+    - name: "10W"
+      power_watts: 10.0
+      gpu_freq_mhz: 306
+      cpu_freq_mhz: 729
+      description: Low power mode
+    - name: "15W"
+      power_watts: 15.0
+      gpu_freq_mhz: 510
+      cpu_freq_mhz: 1020
+      description: Balanced mode
+    - name: "20W"
+      power_watts: 20.0
+      gpu_freq_mhz: 625
+      cpu_freq_mhz: 1510
+      description: High performance mode
+  tdp_watts: 20.0
+  typical_power_watts: 15.0
+  battery_compatible: true
+
+interfaces:
+  camera_csi: 4
+  camera_usb: 2
+  usb3: 3
+  usb2: 0
+  usb_c: 0
+  pcie_lanes: 7
+  pcie_gen: 4
+  gpio: 44
+  ethernet: 10gbps
+  wifi: null
+  bluetooth: null
+  can_bus: 3
+  i2c: 4
+  spi: 3
+  uart: 3
+  hdmi: 0
+  displayport: 2
+
+software:
+  os:
+    - Ubuntu 22.04 (JetPack 6.x)
+    - Ubuntu 20.04 (JetPack 5.x)
+  sdk: JetPack
+  sdk_version: "6.1"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton Inference Server
+  container_support: true
+
+suitable_for:
+  - edge
+  - robotics
+  - drone
+  - amr
+  - embedded
+
+target_applications:
+  - vision
+  - object_detection
+  - segmentation
+  - pose_estimation
+
+cost_usd: 499.0
+availability: widely_available
+lifecycle_status: new
+
+notes: |
+  Mid-range Jetson Orin with 70 TOPS AI performance.
+  6-core Arm Cortex-A78AE CPU (up to 2.0 GHz).
+  1024 CUDA cores, 32 Tensor Cores (Ampere architecture).
+  Pin-compatible with Jetson Xavier NX.
+datasheet_url: https://developer.nvidia.com/downloads/jetson-orin-nx-series-data-sheet
+product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+last_updated: "2025-12-31"
+chip_id: nvidia_orin_nx_soc
+gpu_id: nvidia_orin_nx_gpu_8gb_lpddr5

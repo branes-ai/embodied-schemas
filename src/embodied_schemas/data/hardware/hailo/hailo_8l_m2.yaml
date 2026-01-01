@@ -1,0 +1,118 @@
+# Hailo-8L M.2 AI Accelerator Module (Entry-Level)
+# Source: https://hailo.ai/products/ai-accelerators/hailo-8l-ai-accelerator-for-ai-light-applications/
+
+id: hailo_8l_m2
+name: Hailo-8L M.2 AI Accelerator
+vendor: hailo
+model: Hailo-8L
+hardware_type: npu
+
+compute_paradigm: dataflow
+optimized_for:
+  - convolution
+  - matrix_multiply
+  - int_quantized
+
+capabilities:
+  peak_tops_int8: 13.0
+  peak_tflops_fp16: 0.0
+  peak_tflops_fp32: 0.0
+  memory_gb: 0.0
+  memory_type: null
+  memory_bandwidth_gbps: 0.0
+  compute_units: 0
+  tensor_cores: 0
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - TensorFlow Lite
+    - ONNX
+    - Keras
+  quantization_support:
+    - int8
+    - int4
+  inference_runtimes:
+    - Hailo Runtime
+
+physical:
+  weight_grams: 6.0
+  dimensions_mm: [22.0, 30.0, 3.5]
+  form_factor: m2
+  mounting: direct
+
+environmental:
+  operating_temp_c: [-40, 85]
+  storage_temp_c: [-40, 85]
+
+power:
+  input_voltage_v: [3.3, 3.3]
+  power_modes:
+    - name: "Typical"
+      power_watts: 1.5
+      description: Typical inference power
+    - name: "Peak"
+      power_watts: 3.0
+      description: Peak power consumption
+  tdp_watts: 3.0
+  typical_power_watts: 1.5
+  battery_compatible: true
+
+interfaces:
+  camera_csi: 0
+  camera_usb: 0
+  usb3: 0
+  usb2: 0
+  usb_c: 0
+  pcie_lanes: 1
+  pcie_gen: 3
+  gpio: 0
+  ethernet: null
+  wifi: null
+  bluetooth: null
+  can_bus: 0
+  i2c: 0
+  spi: 0
+  uart: 0
+  hdmi: 0
+  displayport: 0
+
+software:
+  os:
+    - Linux (Ubuntu, Raspberry Pi OS)
+    - Windows
+  sdk: Hailo Dataflow Compiler
+  sdk_version: "4.18"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+  inference_runtimes:
+    - Hailo Runtime
+    - HailoRT
+  container_support: true
+
+suitable_for:
+  - edge
+  - embedded
+  - iot
+  - smart_home
+
+target_applications:
+  - vision
+  - object_detection
+
+cost_usd: 49.0
+availability: widely_available
+lifecycle_status: mature
+
+notes: |
+  Entry-level AI accelerator with 13 TOPS performance.
+  Lower cost alternative to Hailo-8 for simpler workloads.
+  M.2 Key B+M form factor.
+  PCIe Gen 3.0 x1 interface.
+  8.7 TOPS/W power efficiency.
+  Ideal for single-stream inference applications.
+datasheet_url: https://hailo.ai/products/ai-accelerators/hailo-8l-ai-accelerator-for-ai-light-applications/
+product_url: https://hailo.ai/products/ai-accelerators/hailo-8l-m-2-ai-acceleration-module-for-ai-light-applications/
+last_updated: "2025-12-31"
+chip_id: hailo_8l_chip

@@ -1,0 +1,138 @@
+# NVIDIA Jetson AGX Orin 32GB Module
+# Source: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+
+id: nvidia_jetson_agx_orin_32gb
+name: NVIDIA Jetson AGX Orin 32GB
+vendor: nvidia
+model: Jetson AGX Orin 32GB
+hardware_type: gpu
+
+compute_paradigm: simd
+optimized_for:
+  - matrix_multiply
+  - convolution
+  - int_quantized
+  - fp16
+
+capabilities:
+  peak_tops_int8: 200.0
+  peak_tflops_fp16: 100.0
+  peak_tflops_fp32: 50.0
+  memory_gb: 32.0
+  memory_type: LPDDR5
+  memory_bandwidth_gbps: 204.8
+  compute_units: 1792  # CUDA cores
+  tensor_cores: 56
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+    - TensorRT
+  quantization_support:
+    - fp32
+    - fp16
+    - bf16
+    - int8
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton
+    - Isaac ROS
+
+physical:
+  weight_grams: 200.0
+  dimensions_mm: [100.0, 87.0, 16.0]
+  form_factor: som
+  mounting: carrier_board
+
+environmental:
+  operating_temp_c: [-25, 80]
+  storage_temp_c: [-40, 85]
+
+power:
+  input_voltage_v: [9.0, 20.0]
+  power_modes:
+    - name: "15W"
+      power_watts: 15.0
+      gpu_freq_mhz: 306
+      cpu_freq_mhz: 729
+      description: Ultra low power mode
+    - name: "30W"
+      power_watts: 30.0
+      gpu_freq_mhz: 612
+      cpu_freq_mhz: 1190
+      description: Low power mode
+    - name: "40W"
+      power_watts: 40.0
+      gpu_freq_mhz: 850
+      cpu_freq_mhz: 1500
+      description: High performance mode
+  tdp_watts: 40.0
+  typical_power_watts: 30.0
+  battery_compatible: false
+
+interfaces:
+  camera_csi: 16
+  camera_usb: 4
+  usb3: 4
+  usb2: 4
+  usb_c: 1
+  pcie_lanes: 16
+  pcie_gen: 4
+  gpio: 44
+  ethernet: 10gbps
+  wifi: null
+  bluetooth: null
+  can_bus: 3
+  i2c: 4
+  spi: 4
+  uart: 4
+  hdmi: 1
+  displayport: 3
+
+software:
+  os:
+    - Ubuntu 22.04 (JetPack 6.x)
+    - Ubuntu 20.04 (JetPack 5.x)
+  sdk: JetPack
+  sdk_version: "6.1"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton Inference Server
+    - Isaac ROS
+  container_support: true
+
+suitable_for:
+  - edge
+  - robotics
+  - autonomous_vehicles
+  - amr
+  - industrial
+
+target_applications:
+  - vision
+  - object_detection
+  - segmentation
+  - pose_estimation
+  - nlp
+
+cost_usd: 1399.0
+availability: widely_available
+lifecycle_status: mature
+
+notes: |
+  High-performance Jetson Orin with 200 TOPS AI performance.
+  8-core Arm Cortex-A78AE CPU (up to 2.0 GHz).
+  1792 CUDA cores, 56 Tensor Cores (Ampere architecture).
+  2x NVDLA v2.0 deep learning accelerators.
+  32GB eMMC 5.1 onboard storage.
+datasheet_url: https://developer.nvidia.com/embedded/jetson-agx-orin
+product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+last_updated: "2025-12-31"
+chip_id: nvidia_orin_soc
+gpu_id: nvidia_orin_gpu_32gb_lpddr5
