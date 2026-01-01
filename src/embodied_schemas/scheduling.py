@@ -250,3 +250,114 @@ class ArchitectureAnalysisResult(BaseModel):
     )
 
     model_config = {"extra": "forbid"}
+
+
+class OperatorBenchmarkResult(BaseModel):
+    """Measured benchmark result for a single operator."""
+
+    operator_instance_id: str = Field(..., description="Instance ID in architecture")
+    operator_id: str = Field(..., description="Reference to OperatorEntry ID")
+    execution_target: str = Field(..., description="Where this ran: cpu, gpu, npu, etc.")
+
+    # Measured timing (actual measurements)
+    iterations: int = Field(..., description="Number of benchmark iterations")
+    mean_latency_ms: float = Field(..., description="Mean measured latency in ms")
+    std_latency_ms: float = Field(..., description="Standard deviation in ms")
+    min_latency_ms: float = Field(..., description="Minimum latency in ms")
+    max_latency_ms: float = Field(..., description="Maximum latency in ms")
+    p50_latency_ms: float | None = Field(None, description="50th percentile (median)")
+    p95_latency_ms: float | None = Field(None, description="95th percentile")
+    p99_latency_ms: float | None = Field(None, description="99th percentile")
+
+    # Memory
+    peak_memory_mb: float | None = Field(None, description="Peak memory usage in MB")
+
+    # Comparison with estimate
+    estimated_latency_ms: float | None = Field(
+        None, description="Previously estimated latency"
+    )
+    estimate_error_pct: float | None = Field(
+        None, description="Error in estimate: (measured-estimated)/estimated * 100"
+    )
+
+    # Status
+    success: bool = Field(True, description="Whether benchmark completed successfully")
+    error_message: str | None = Field(None, description="Error if benchmark failed")
+
+
+class ArchitectureBenchmarkResult(BaseModel):
+    """Measured benchmark result for a complete architecture pipeline.
+
+    Captures actual timing measurements from running the architecture,
+    with per-operator breakdown and comparison to estimates.
+    """
+
+    # === Verdict ===
+    verdict: Verdict = Field(..., description="Overall benchmark verdict")
+    confidence: Confidence = Field(..., description="Confidence in measurements")
+    summary: str = Field(..., description="One-sentence summary of benchmark results")
+
+    # === Metadata ===
+    architecture_id: str = Field(..., description="Architecture identifier")
+    architecture_name: str = Field(..., description="Human-readable architecture name")
+    hardware_id: str = Field(..., description="Hardware platform identifier")
+    hardware_name: str | None = Field(None, description="Human-readable hardware name")
+    variant_id: str | None = Field(None, description="Architecture variant if used")
+    timestamp: datetime = Field(
+        default_factory=datetime.now, description="Benchmark timestamp"
+    )
+
+    # === Benchmark Configuration ===
+    iterations: int = Field(..., description="Number of pipeline iterations")
+    warmup_iterations: int = Field(..., description="Warmup iterations (not counted)")
+    input_source: str = Field(..., description="Input data source: synthetic, file, camera")
+
+    # === Measured Metrics (End-to-End) ===
+    measured_latency_ms: float = Field(..., description="Measured end-to-end latency")
+    measured_latency_std_ms: float = Field(..., description="Standard deviation")
+    measured_throughput_fps: float = Field(..., description="Measured throughput in FPS")
+    measured_memory_mb: float | None = Field(None, description="Peak memory usage")
+    measured_power_w: float | None = Field(None, description="Measured power consumption")
+
+    # === Per-Operator Results ===
+    operator_results: list[OperatorBenchmarkResult] = Field(
+        default_factory=list, description="Per-operator benchmark results"
+    )
+
+    # === Comparison with Estimates ===
+    estimated_latency_ms: float | None = Field(
+        None, description="Previously estimated end-to-end latency"
+    )
+    latency_estimate_error_pct: float | None = Field(
+        None, description="Error in latency estimate"
+    )
+
+    # === Constraint Checking ===
+    latency_target_ms: float | None = Field(
+        None, description="Target latency from architecture spec"
+    )
+    meets_latency_target: bool | None = Field(
+        None, description="Whether measured latency meets target"
+    )
+    latency_margin_pct: float | None = Field(
+        None, description="Margin from target: positive=headroom"
+    )
+
+    # === Bottleneck Analysis (from measurements) ===
+    measured_bottleneck_operator: str | None = Field(
+        None, description="Operator with highest measured latency"
+    )
+    measured_bottleneck_latency_ms: float | None = Field(
+        None, description="Latency of bottleneck operator"
+    )
+    measured_bottleneck_contribution_pct: float | None = Field(
+        None, description="Percentage of total latency from bottleneck"
+    )
+
+    # === Warnings and Notes ===
+    warnings: list[str] = Field(
+        default_factory=list, description="Warnings about the benchmark"
+    )
+    notes: str | None = Field(None, description="Additional notes")
+
+    model_config = {"extra": "forbid"}
