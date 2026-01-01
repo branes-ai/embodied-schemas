@@ -16,6 +16,7 @@ from embodied_schemas.benchmarks import BenchmarkResult
 from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
 from embodied_schemas.cpu import CPUEntry
 from embodied_schemas.operators import OperatorEntry
+from embodied_schemas.architectures import SoftwareArchitecture
 from embodied_schemas.loaders import (
     get_data_dir,
     load_hardware,
@@ -28,6 +29,7 @@ from embodied_schemas.loaders import (
     load_gpu_architectures,
     load_cpus,
     load_operators,
+    load_architectures,
 )
 
 
@@ -166,6 +168,7 @@ class Registry:
     gpu_architectures: CatalogView = field(default_factory=CatalogView)
     cpus: CatalogView = field(default_factory=CatalogView)
     operators: CatalogView = field(default_factory=CatalogView)
+    architectures: CatalogView = field(default_factory=CatalogView)
 
     _data_dir: Path | None = None
 
@@ -192,6 +195,7 @@ class Registry:
         registry.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
         registry.cpus = CatalogView(_entries=load_cpus(data_dir))
         registry.operators = CatalogView(_entries=load_operators(data_dir))
+        registry.architectures = CatalogView(_entries=load_architectures(data_dir))
 
         return registry
 
@@ -208,6 +212,7 @@ class Registry:
         self.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
         self.cpus = CatalogView(_entries=load_cpus(data_dir))
         self.operators = CatalogView(_entries=load_operators(data_dir))
+        self.architectures = CatalogView(_entries=load_architectures(data_dir))
 
     def get_compatible_hardware(self, model_id: str) -> list[HardwareEntry]:
         """Get hardware compatible with a given model.
@@ -363,6 +368,7 @@ class Registry:
             "gpu_architectures": len(self.gpu_architectures),
             "cpus": len(self.cpus),
             "operators": len(self.operators),
+            "architectures": len(self.architectures),
         }
 
     def get_gpus_by_vendor(self, vendor: str) -> list[GPUEntry]:
@@ -485,3 +491,52 @@ class Registry:
         """
         return [cpu for cpu in self.cpus
                 if cpu.platform and cpu.platform.socket.value == socket]
+
+    def get_architecture_operators(self, arch_id: str) -> list[OperatorEntry]:
+        """Get all operator entries referenced by an architecture.
+
+        Args:
+            arch_id: ID of the architecture
+
+        Returns:
+            List of OperatorEntry instances used in the architecture
+        """
+        arch = self.architectures.get(arch_id)
+        if not arch:
+            return []
+
+        operators = []
+        for op_instance in arch.operators:
+            op_entry = self.operators.get(op_instance.operator_id)
+            if op_entry:
+                operators.append(op_entry)
+        return operators
+
+    def get_architectures_using_operator(self, operator_id: str) -> list[SoftwareArchitecture]:
+        """Find all architectures that use a specific operator.
+
+        Args:
+            operator_id: ID of the operator
+
+        Returns:
+            List of SoftwareArchitecture instances that include this operator
+        """
+        results = []
+        for arch in self.architectures:
+            for op_instance in arch.operators:
+                if op_instance.operator_id == operator_id:
+                    results.append(arch)
+                    break  # Only add each architecture once
+        return results
+
+    def get_architectures_by_platform(self, platform_type: str) -> list[SoftwareArchitecture]:
+        """Get all architectures for a specific platform type.
+
+        Args:
+            platform_type: Platform type (drone, vehicle, manipulator, etc.)
+
+        Returns:
+            List of SoftwareArchitecture instances for that platform
+        """
+        return [arch for arch in self.architectures
+                if arch.platform_type == platform_type]

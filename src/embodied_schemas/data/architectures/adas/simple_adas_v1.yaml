@@ -1,0 +1,91 @@
+id: simple_adas_v1
+name: Simple ADAS Forward Collision Warning
+description: Basic ADAS system with object detection, tracking, and forward collision warning
+platform_type: vehicle
+
+sensors:
+  - front_camera
+
+operators:
+  - id: preprocess
+    operator_id: image_preprocessor
+    rate_hz: 30.0
+    execution_target: gpu
+    config:
+      output_size: [640, 640]
+      normalize: true
+
+  - id: detector
+    operator_id: yolo_detector_m
+    rate_hz: 30.0
+    execution_target: gpu
+    config:
+      conf_threshold: 0.3
+      iou_threshold: 0.45
+
+  - id: tracker
+    operator_id: bytetrack
+    rate_hz: 30.0
+    execution_target: cpu
+    config:
+      track_thresh: 0.6
+      track_buffer: 60
+      match_thresh: 0.8
+
+  - id: collision
+    operator_id: collision_detector
+    rate_hz: 30.0
+    execution_target: cpu
+    config:
+      critical_distance: 5.0
+      warning_distance: 15.0
+      ttc_threshold: 3.0
+
+dataflow:
+  - source_op: preprocess
+    source_port: processed
+    target_op: detector
+    target_port: image
+
+  - source_op: detector
+    source_port: detections
+    target_op: tracker
+    target_port: detections
+
+  - source_op: tracker
+    source_port: tracks
+    target_op: collision
+    target_port: trajectories
+
+end_to_end_latency_ms: 50.0
+min_throughput_fps: 20.0
+
+variants:
+  - id: simple_adas_v1_edge
+    name: Edge-optimized (YOLOv8n)
+    description: Optimized for embedded automotive ECU
+    operator_overrides:
+      detector: yolo_detector_n
+    target_hardware:
+      - Jetson-Orin-Nano
+    expected_latency_ms: 35.0
+
+  - id: simple_adas_v1_highway
+    name: Highway Mode (YOLOv8l)
+    description: Higher accuracy for highway driving with longer detection ranges
+    operator_overrides:
+      detector: yolo_detector_l
+    config_overrides:
+      collision:
+        warning_distance: 30.0
+        critical_distance: 10.0
+    target_hardware:
+      - Jetson-Orin-AGX
+    expected_latency_ms: 60.0
+
+tags:
+  - adas
+  - collision-warning
+  - automotive
+  - safety
+last_updated: "2024-12-31"

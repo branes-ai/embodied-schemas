@@ -102,6 +102,13 @@ from embodied_schemas.operators import (
     OperatorPerfProfile,
     ImplType,
 )
+from embodied_schemas.architectures import (
+    SoftwareArchitecture,
+    OperatorInstance,
+    DataflowEdge,
+    ArchitectureVariant,
+    architecture_to_mermaid,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -114,6 +121,7 @@ from embodied_schemas.loaders import (
     load_usecases,
     load_benchmarks,
     load_operators,
+    load_architectures,
 )
 
 __version__ = "0.1.0"
@@ -208,6 +216,12 @@ __all__ = [
     "ConfigParam",
     "OperatorPerfProfile",
     "ImplType",
+    # Architectures
+    "SoftwareArchitecture",
+    "OperatorInstance",
+    "DataflowEdge",
+    "ArchitectureVariant",
+    "architecture_to_mermaid",
     # Loaders
     "load_gpus",
     "load_gpu_architectures",
@@ -219,6 +233,7 @@ __all__ = [
     "load_usecases",
     "load_benchmarks",
     "load_operators",
+    "load_architectures",
     # Version
     "__version__",
 ]

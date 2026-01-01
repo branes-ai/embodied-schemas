@@ -1,0 +1,87 @@
+id: pick_and_place_v1
+name: Pick and Place Manipulation
+description: Basic pick and place system with object detection, path planning, and PID control
+platform_type: manipulator
+
+sensors:
+  - wrist_camera
+
+actuators:
+  - arm_joints
+
+operators:
+  - id: detector
+    operator_id: yolo_detector_s
+    rate_hz: 10.0
+    execution_target: gpu
+    config:
+      conf_threshold: 0.5
+      iou_threshold: 0.5
+
+  - id: planner
+    operator_id: path_planner_astar
+    rate_hz: 10.0
+    execution_target: cpu
+    config:
+      grid_resolution: 0.05
+      heuristic: euclidean
+      diagonal_movement: true
+
+  - id: controller
+    operator_id: pid_controller
+    rate_hz: 100.0
+    execution_target: cpu
+    priority: 10
+    config:
+      kp: 1.0
+      ki: 0.1
+      kd: 0.05
+
+dataflow:
+  - source_op: detector
+    source_port: detections
+    target_op: planner
+    target_port: goal
+
+  - source_op: planner
+    source_port: path
+    target_op: controller
+    target_port: setpoint
+
+end_to_end_latency_ms: 100.0
+
+variants:
+  - id: pick_and_place_v1_fast
+    name: Fast Detection (YOLOv8n)
+    description: Faster detection for high-speed pick operations
+    operator_overrides:
+      detector: yolo_detector_n
+    config_overrides:
+      planner:
+        grid_resolution: 0.1
+    target_hardware:
+      - Jetson-Orin-Nano
+    expected_latency_ms: 80.0
+
+  - id: pick_and_place_v1_precision
+    name: Precision Mode (YOLOv8m)
+    description: Higher accuracy detection for precise manipulation
+    operator_overrides:
+      detector: yolo_detector_m
+    config_overrides:
+      controller:
+        kp: 0.8
+        ki: 0.05
+        kd: 0.1
+      planner:
+        grid_resolution: 0.02
+    target_hardware:
+      - Jetson-Orin-AGX
+    expected_latency_ms: 120.0
+
+tags:
+  - manipulation
+  - pick-and-place
+  - robot-arm
+  - industrial
+last_updated: "2024-12-31"
