@@ -116,6 +116,8 @@ from embodied_schemas.architectures import (
     OperatorInstance,
     DataflowEdge,
     ArchitectureVariant,
+    ExecutionTarget,
+    EXECUTION_TARGET_INFO,
     architecture_to_mermaid,
 )
 from embodied_schemas.registry import Registry
@@ -238,6 +240,8 @@ __all__ = [
     "OperatorInstance",
     "DataflowEdge",
     "ArchitectureVariant",
+    "ExecutionTarget",
+    "EXECUTION_TARGET_INFO",
     "architecture_to_mermaid",
     # Loaders
     "load_gpus",
