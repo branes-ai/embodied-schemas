@@ -1,0 +1,99 @@
+# NVIDIA Jetson TX2 GPU - Integrated Pascal GPU (Legacy)
+# Source: https://developer.nvidia.com/embedded/jetson-tx2
+
+id: nvidia_tx2_gpu_8gb_lpddr4
+name: NVIDIA Jetson TX2 GPU
+vendor: nvidia
+
+die:
+  gpu_name: Tegra X2
+  architecture: Pascal
+  architecture_codename: Pascal
+  foundry: tsmc
+  process_nm: 16
+  process_name: 16FF+
+  transistors_billion: 7.2  # Tegra X2 SoC
+  die_size_mm2: 350.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 256
+  cuda_cores: 256
+  streaming_multiprocessors: 2
+  tmus: 16
+  rops: 8
+  tensor_cores: 0  # Pascal has no tensor cores
+  tensor_core_gen: 0
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 420
+  boost_clock_mhz: 854
+  memory_clock_mhz: 1866
+  memory_effective_gbps: 14.9
+
+memory:
+  memory_size_gb: 8.0
+  memory_type: lpddr4
+  memory_bus_bits: 128
+  memory_bandwidth_gbps: 59.7
+  l2_cache_mb: 0.5
+  ecc_support: false
+  unified_memory: true
+
+performance:
+  fp32_tflops: 0.75
+  fp16_tflops: 1.5
+  int8_tops: 1.5  # Estimated, no tensor cores
+  pixel_rate_gpixels: 6.8
+  texture_rate_gtexels: 13.7
+
+power:
+  tdp_watts: 15
+  max_power_watts: 15
+  min_power_watts: 8
+  idle_power_watts: 1.5
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+features:
+  directx: "12.1"
+  opengl: "4.5"
+  vulkan: "1.1"
+  opencl: "1.2"
+  shader_model: "5.1"
+  cuda_compute: "6.2"
+  nvenc: true
+  nvenc_gen: 5
+  nvdec: true
+  dlss: false
+  max_displays: 3
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2017-03-07"
+  launch_msrp_usd: 599.0
+  target_market: embedded
+  product_family: Jetson TX
+  model_tier: mid
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+embedded_in_hardware_ids:
+  - nvidia_jetson_tx2_8gb
+notes: |
+  Integrated Pascal GPU in Jetson TX2 (Legacy).
+  256 CUDA cores (2 Pascal SMs).
+  No tensor cores - pure CUDA compute.
+  Dual Denver 2 + Quad Cortex-A57 CPU.
+  Power modes: 7.5W and 15W.
+  Succeeded by Jetson Xavier and Orin series.
+datasheet_url: https://developer.nvidia.com/embedded/jetson-tx2
+techpowerup_url: https://www.techpowerup.com/gpu-specs/jetson-tx2-gpu.c3308
+last_updated: "2025-12-31"

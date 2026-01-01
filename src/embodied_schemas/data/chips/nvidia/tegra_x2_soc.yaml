@@ -1,0 +1,29 @@
+# NVIDIA Tegra X2 SoC (Jetson TX2)
+# Source: https://developer.nvidia.com/embedded/jetson-tx2
+
+id: nvidia_tegra_x2_soc
+name: NVIDIA Tegra X2 SoC
+vendor: nvidia
+architecture: Pascal
+process_node_nm: 16
+
+# CPU - Heterogeneous (HMP)
+cpu_cores: 6  # 2x Denver 2 + 4x Cortex-A57
+cpu_architecture: Denver2+Cortex-A57
+
+# GPU
+gpu_cores: 256  # Pascal CUDA cores
+gpu_architecture: Pascal
+
+# AI accelerators
+npu_tops: 0
+dla_tops: 0  # No DLA on TX2
+
+# Memory
+memory_interface: LPDDR4
+memory_channels: 2
+max_memory_gb: 8.0
+
+announcement_date: "2016-09-13"
+datasheet_url: https://developer.nvidia.com/embedded/jetson-tx2
+last_updated: "2025-12-31"

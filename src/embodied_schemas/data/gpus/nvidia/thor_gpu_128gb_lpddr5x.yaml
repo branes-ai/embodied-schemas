@@ -1,0 +1,102 @@
+# NVIDIA Jetson AGX Thor GPU - Integrated Blackwell GPU
+# Source: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
+
+id: nvidia_thor_gpu_128gb_lpddr5x
+name: NVIDIA Jetson AGX Thor GPU
+vendor: nvidia
+
+die:
+  gpu_name: Thor
+  architecture: Blackwell
+  architecture_codename: Blackwell
+  foundry: tsmc
+  process_nm: 4
+  process_name: N4
+  transistors_billion: 50.0  # Estimated for Thor SoC
+  die_size_mm2: 600.0  # Estimated
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 17408
+  cuda_cores: 17408
+  streaming_multiprocessors: 136
+  tmus: 544
+  rops: 136
+  tensor_cores: 544
+  tensor_core_gen: 5  # Blackwell tensor cores
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 420
+  boost_clock_mhz: 1100
+  memory_clock_mhz: 4266
+  memory_effective_gbps: 34.1
+
+memory:
+  memory_size_gb: 128.0
+  memory_type: lpddr5x
+  memory_bus_bits: 512
+  memory_bandwidth_gbps: 273.0
+  l2_cache_mb: 16.0
+  ecc_support: true
+  unified_memory: true
+
+performance:
+  fp32_tflops: 38.3
+  fp16_tflops: 76.6
+  int8_tops: 1040.0
+  tensor_tflops_fp16: 520.0
+  tensor_tflops_int8: 1040.0
+  tensor_tflops_fp4: 2080.0
+  pixel_rate_gpixels: 149.6
+  texture_rate_gtexels: 598.4
+
+power:
+  tdp_watts: 130
+  max_power_watts: 130
+  min_power_watts: 40
+  idle_power_watts: 10.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+features:
+  directx: "12.2"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.7"
+  cuda_compute: "10.0"  # Blackwell compute capability
+  nvenc: true
+  nvenc_gen: 9
+  nvdec: true
+  dlss: true
+  max_displays: 4
+  hdr_support: true
+  variable_refresh: true
+
+market:
+  launch_date: "2025-08-25"
+  launch_msrp_usd: 2999.0
+  target_market: embedded
+  product_family: Jetson Thor
+  model_tier: flagship
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+embedded_in_hardware_ids:
+  - nvidia_jetson_agx_thor_128gb
+notes: |
+  Integrated Blackwell GPU in Jetson AGX Thor.
+  First Jetson with Transformer Engine for efficient LLM/VLM.
+  2070 FP4 TFLOPS performance for generative AI.
+  Multi-Instance GPU (MIG) support for workload isolation.
+  7.5x AI performance vs AGX Orin, 3.5x efficiency.
+  Supports Llama, DeepSeek, Qwen, Isaac GR00T models.
+  Designed for general-purpose humanoid robotics.
+datasheet_url: https://developer.nvidia.com/embedded/jetson-thor
+last_updated: "2025-12-31"

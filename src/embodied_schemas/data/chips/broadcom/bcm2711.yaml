@@ -1,0 +1,29 @@
+# Broadcom BCM2711 SoC (Raspberry Pi 4)
+# Source: https://www.raspberrypi.com/products/raspberry-pi-4-model-b/
+
+id: broadcom_bcm2711
+name: Broadcom BCM2711
+vendor: broadcom
+architecture: Cortex-A72
+process_node_nm: 28
+
+# CPU
+cpu_cores: 4
+cpu_architecture: Cortex-A72
+
+# GPU
+gpu_cores: 1  # VideoCore VI
+gpu_architecture: VideoCore VI
+
+# AI accelerators
+npu_tops: 0
+dla_tops: 0
+
+# Memory
+memory_interface: LPDDR4
+memory_channels: 1
+max_memory_gb: 8.0
+
+announcement_date: "2019-06-24"
+datasheet_url: https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf
+last_updated: "2025-12-31"

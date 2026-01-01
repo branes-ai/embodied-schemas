@@ -1,0 +1,29 @@
+# Broadcom BCM2712 SoC (Raspberry Pi 5)
+# Source: https://www.raspberrypi.com/products/raspberry-pi-5/
+
+id: broadcom_bcm2712
+name: Broadcom BCM2712
+vendor: broadcom
+architecture: Cortex-A76
+process_node_nm: 16
+
+# CPU
+cpu_cores: 4
+cpu_architecture: Cortex-A76
+
+# GPU
+gpu_cores: 4  # VideoCore VII shader cores
+gpu_architecture: VideoCore VII
+
+# AI accelerators
+npu_tops: 0
+dla_tops: 0
+
+# Memory
+memory_interface: LPDDR4X
+memory_channels: 1
+max_memory_gb: 16.0
+
+announcement_date: "2023-09-28"
+datasheet_url: https://datasheets.raspberrypi.com/bcm2712/bcm2712-peripherals.pdf
+last_updated: "2025-12-31"

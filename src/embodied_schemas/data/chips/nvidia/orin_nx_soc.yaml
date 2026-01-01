@@ -1,0 +1,29 @@
+# NVIDIA Orin NX SoC
+# Source: https://developer.nvidia.com/embedded/jetson-orin-nx-series
+
+id: nvidia_orin_nx_soc
+name: NVIDIA Orin NX SoC
+vendor: nvidia
+architecture: Ampere
+process_node_nm: 8
+
+# CPU
+cpu_cores: 8
+cpu_architecture: Cortex-A78AE
+
+# GPU
+gpu_cores: 2048  # Max CUDA cores (16GB variant)
+gpu_architecture: Ampere
+
+# AI accelerators
+npu_tops: 0
+dla_tops: 25.0  # 2x NVDLA engines
+
+# Memory
+memory_interface: LPDDR5
+memory_channels: 2
+max_memory_gb: 16.0
+
+announcement_date: "2022-09-20"
+datasheet_url: https://developer.nvidia.com/downloads/jetson-orin-nx-series-data-sheet
+last_updated: "2025-12-31"

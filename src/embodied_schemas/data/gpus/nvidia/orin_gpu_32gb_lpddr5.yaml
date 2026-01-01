@@ -1,0 +1,99 @@
+# NVIDIA Jetson AGX Orin GPU (32GB variant) - Integrated Ampere GPU
+# Source: https://developer.nvidia.com/embedded/jetson-agx-orin
+
+id: nvidia_orin_gpu_32gb_lpddr5
+name: NVIDIA Jetson AGX Orin GPU (32GB)
+vendor: nvidia
+
+die:
+  gpu_name: Orin
+  architecture: Ampere
+  architecture_codename: Ampere
+  foundry: samsung
+  process_nm: 8
+  process_name: 8LPP
+  transistors_billion: 17.0
+  die_size_mm2: 455.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  shaders: 1792
+  cuda_cores: 1792
+  streaming_multiprocessors: 14
+  tmus: 56
+  rops: 28
+  tensor_cores: 56
+  tensor_core_gen: 3
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 306
+  boost_clock_mhz: 1000
+  memory_clock_mhz: 3200
+  memory_effective_gbps: 25.6
+
+memory:
+  memory_size_gb: 32.0
+  memory_type: lpddr5
+  memory_bus_bits: 256
+  memory_bandwidth_gbps: 204.8
+  l2_cache_mb: 4.0
+  ecc_support: true
+  unified_memory: true
+
+performance:
+  fp32_tflops: 3.58
+  fp16_tflops: 7.16
+  int8_tops: 200.0
+  tensor_tflops_fp16: 100.0
+  tensor_tflops_int8: 200.0
+  pixel_rate_gpixels: 28.0
+  texture_rate_gtexels: 56.0
+
+power:
+  tdp_watts: 40
+  max_power_watts: 40
+  min_power_watts: 15
+  idle_power_watts: 5.0
+  power_connectors: []
+  slot_power_watts: 0
+  recommended_psu_watts: 0
+
+features:
+  directx: "12.1"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.5"
+  cuda_compute: "8.7"
+  nvenc: true
+  nvenc_gen: 7
+  nvdec: true
+  dlss: false
+  max_displays: 4
+  hdr_support: true
+  variable_refresh: false
+
+market:
+  launch_date: "2022-03-22"
+  launch_msrp_usd: 1399.0
+  target_market: embedded
+  product_family: Jetson Orin
+  model_tier: high
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+embedded_in_hardware_ids:
+  - nvidia_jetson_agx_orin_32gb
+notes: |
+  Integrated Ampere GPU in Jetson AGX Orin 32GB.
+  1792 CUDA cores, 56 3rd-gen Tensor Cores.
+  200 TOPS INT8 AI performance (GPU + 2x NVDLA v2.0).
+  Shared LPDDR5 memory with 8-core CPU (unified memory).
+  Power modes: 15W, 30W, 40W.
+datasheet_url: https://developer.nvidia.com/embedded/jetson-agx-orin
+last_updated: "2025-12-31"
