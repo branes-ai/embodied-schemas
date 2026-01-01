@@ -1,0 +1,75 @@
+id: nms_postprocessor
+name: Non-Maximum Suppression Postprocessor
+category: infrastructure
+subcategory: postprocessing
+
+impl_type: python
+
+inputs:
+  boxes:
+    dtype: float32
+    shape: ["N", 4]
+    description: Bounding boxes [x1, y1, x2, y2]
+  scores:
+    dtype: float32
+    shape: ["N"]
+    description: Confidence scores
+  class_ids:
+    dtype: int64
+    shape: ["N"]
+    description: Class IDs for each box
+    optional: true
+
+outputs:
+  selected_indices:
+    dtype: int64
+    shape: ["M"]
+    description: Indices of selected boxes after NMS
+  selected_boxes:
+    dtype: float32
+    shape: ["M", 4]
+    description: Selected bounding boxes
+  selected_scores:
+    dtype: float32
+    shape: ["M"]
+    description: Selected confidence scores
+
+config_schema:
+  iou_threshold:
+    type: number
+    default: 0.45
+    description: IOU threshold for suppression
+  score_threshold:
+    type: number
+    default: 0.25
+    description: Minimum score threshold
+  max_detections:
+    type: number
+    default: 300
+    description: Maximum number of detections to keep
+  class_agnostic:
+    type: boolean
+    default: false
+    description: Apply NMS across all classes
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 0.5
+    memory_mb: 5
+    conditions: "1000 input boxes"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 0.5
+typical_memory_mb: 5
+
+requires_gpu: false
+python_deps:
+  - numpy
+  - torch
+
+tags:
+  - postprocessing
+  - nms
+  - detection
+
+last_updated: "2024-12-30"

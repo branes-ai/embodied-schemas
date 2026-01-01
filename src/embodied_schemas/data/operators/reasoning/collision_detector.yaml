@@ -1,0 +1,68 @@
+id: collision_detector
+name: Collision Risk Detector
+category: reasoning
+subcategory: safety
+
+impl_type: python
+
+inputs:
+  trajectories:
+    dtype: object
+    shape: ["N"]
+    description: List of PredictedTrajectory objects
+  drone_position:
+    dtype: float32
+    shape: [3]
+    description: Current drone/ego position [x, y, z]
+    optional: true
+
+outputs:
+  collision_risks:
+    dtype: object
+    shape: ["M"]
+    description: List of CollisionRisk with risk level, time-to-collision, etc.
+  avoidance_vector:
+    dtype: float32
+    shape: [3]
+    description: Suggested avoidance direction vector
+    optional: true
+
+config_schema:
+  safety_margin:
+    type: number
+    default: 2.0
+    description: Additional clearance in meters
+  time_horizon:
+    type: number
+    default: 3.0
+    description: Lookahead time in seconds
+  critical_distance:
+    type: number
+    default: 1.0
+    description: Distance threshold for CRITICAL risk
+  warning_distance:
+    type: number
+    default: 3.0
+    description: Distance threshold for HIGH risk
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 1.0
+    memory_mb: 15
+    conditions: "10 objects, pairwise checks"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 1.0
+typical_memory_mb: 15
+
+requires_gpu: false
+python_deps:
+  - numpy
+
+tags:
+  - collision-detection
+  - safety-critical
+  - real-time
+  - avoidance
+
+last_updated: "2024-12-30"

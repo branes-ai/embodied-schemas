@@ -1,0 +1,77 @@
+id: pid_controller
+name: PID Feedback Controller
+category: control
+subcategory: feedback_control
+
+impl_type: python
+
+inputs:
+  setpoint:
+    dtype: float32
+    shape: [1]
+    description: Desired target value
+  measurement:
+    dtype: float32
+    shape: [1]
+    description: Current measured value
+
+outputs:
+  control_output:
+    dtype: float32
+    shape: [1]
+    description: Control signal output
+  error:
+    dtype: float32
+    shape: [1]
+    description: Current error (setpoint - measurement)
+
+config_schema:
+  kp:
+    type: number
+    default: 1.0
+    description: Proportional gain
+  ki:
+    type: number
+    default: 0.0
+    description: Integral gain
+  kd:
+    type: number
+    default: 0.0
+    description: Derivative gain
+  output_min:
+    type: number
+    default: -1.0
+    description: Minimum output value (anti-windup)
+  output_max:
+    type: number
+    default: 1.0
+    description: Maximum output value (anti-windup)
+  dt:
+    type: number
+    default: 0.01
+    description: Sample time in seconds
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 0.01
+    memory_mb: 1
+    conditions: "Single controller instance"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 0.01
+typical_memory_mb: 1
+
+requires_gpu: false
+python_deps:
+  - numpy
+
+tags:
+  - feedback-control
+  - pid
+  - real-time
+  - anti-windup
+
+papers:
+  - "PID Controllers: Theory, Design, and Tuning (ISA, 1995)"
+
+last_updated: "2024-12-30"

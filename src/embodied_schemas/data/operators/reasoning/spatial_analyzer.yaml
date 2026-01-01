@@ -1,0 +1,57 @@
+id: spatial_analyzer
+name: Spatial Relationship Analyzer
+category: reasoning
+subcategory: scene_understanding
+
+impl_type: python
+
+inputs:
+  objects:
+    dtype: object
+    shape: ["N"]
+    description: List of TrackedObject with 3D positions
+
+outputs:
+  relations:
+    dtype: object
+    shape: ["M"]
+    description: List of SpatialRelation between object pairs
+
+config_schema:
+  near_threshold:
+    type: number
+    default: 3.0
+    description: Distance threshold for "near" relation in meters
+  far_threshold:
+    type: number
+    default: 10.0
+    description: Distance threshold for "far" relation in meters
+  height_threshold:
+    type: number
+    default: 0.5
+    description: Height difference threshold for above/below
+  reference_frame:
+    type: string
+    enum: ["world", "camera"]
+    default: world
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 2.0
+    memory_mb: 20
+    conditions: "20 objects, O(N^2) pairs"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 2.0
+typical_memory_mb: 20
+
+requires_gpu: false
+python_deps:
+  - numpy
+
+tags:
+  - spatial-reasoning
+  - scene-understanding
+  - relationship-detection
+
+last_updated: "2024-12-30"

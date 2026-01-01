@@ -16,6 +16,7 @@ from embodied_schemas.usecases import UseCaseEntry
 from embodied_schemas.benchmarks import BenchmarkResult
 from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
 from embodied_schemas.cpu import CPUEntry
+from embodied_schemas.operators import OperatorEntry
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -204,6 +205,19 @@ def load_cpus(data_dir: Path | None = None) -> dict[str, CPUEntry]:
     return load_all_from_directory(data_dir / "cpus", CPUEntry)
 
 
+def load_operators(data_dir: Path | None = None) -> dict[str, OperatorEntry]:
+    """Load all operator entries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping operator IDs to OperatorEntry instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "operators", OperatorEntry)
+
+
 def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
     """Validate all data files and return a list of errors.
 
@@ -226,6 +240,7 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("gpus", GPUEntry),
         ("gpu_architectures", GPUArchitectureSummary),
         ("cpus", CPUEntry),
+        ("operators", OperatorEntry),
     ]
 
     for subdir, model_class in validations:

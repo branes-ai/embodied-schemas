@@ -1,0 +1,83 @@
+id: path_planner_astar
+name: A* Path Planner
+category: control
+subcategory: planning
+
+impl_type: python
+
+inputs:
+  start:
+    dtype: float32
+    shape: [2]
+    description: Start position [x, y]
+  goal:
+    dtype: float32
+    shape: [2]
+    description: Goal position [x, y]
+  occupancy_grid:
+    dtype: uint8
+    shape: ["H", "W"]
+    description: Occupancy grid (0=free, 255=obstacle)
+
+outputs:
+  path:
+    dtype: float32
+    shape: ["N", 2]
+    description: Sequence of waypoints [x, y]
+  path_length:
+    dtype: float32
+    shape: [1]
+    description: Total path length
+  success:
+    dtype: boolean
+    shape: [1]
+    description: Whether a valid path was found
+
+config_schema:
+  grid_resolution:
+    type: number
+    default: 0.1
+    description: Grid cell size in meters
+  heuristic:
+    type: string
+    enum: ["euclidean", "manhattan", "diagonal"]
+    default: euclidean
+    description: Heuristic function for A*
+  diagonal_movement:
+    type: boolean
+    default: true
+    description: Allow diagonal movement
+  max_iterations:
+    type: number
+    default: 10000
+    description: Maximum search iterations
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 5.0
+    memory_mb: 50
+    conditions: "100x100 grid, typical path"
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 2.0
+    memory_mb: 50
+    conditions: "100x100 grid, typical path"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 5.0
+typical_memory_mb: 50
+
+requires_gpu: false
+python_deps:
+  - numpy
+  - heapq
+
+tags:
+  - path-planning
+  - navigation
+  - graph-search
+  - grid-based
+
+papers:
+  - "A Formal Basis for the Heuristic Determination of Minimum Cost Paths (IEEE, 1968)"
+
+last_updated: "2024-12-30"

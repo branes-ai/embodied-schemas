@@ -1,0 +1,62 @@
+id: behavior_classifier
+name: Object Behavior Classifier
+category: reasoning
+subcategory: behavior_analysis
+
+impl_type: python
+
+inputs:
+  tracked_object:
+    dtype: object
+    shape: [1]
+    description: TrackedObject with trajectory history
+  reference_position:
+    dtype: float32
+    shape: [3]
+    description: Reference position for approaching/receding detection
+    optional: true
+
+outputs:
+  behavior:
+    dtype: object
+    shape: [1]
+    description: ObjectBehavior with type, confidence, and description
+
+config_schema:
+  stationary_threshold:
+    type: number
+    default: 0.1
+    description: Speed threshold for stationary classification (m/s)
+  straight_threshold:
+    type: number
+    default: 5.0
+    description: Angular velocity threshold for straight motion (deg/s)
+  acceleration_threshold:
+    type: number
+    default: 1.0
+    description: Acceleration threshold for accel/decel detection (m/s^2)
+  min_history_length:
+    type: number
+    default: 5
+    description: Minimum trajectory length for classification
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 0.3
+    memory_mb: 5
+    conditions: "Single object"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 0.3
+typical_memory_mb: 5
+
+requires_gpu: false
+python_deps:
+  - numpy
+
+tags:
+  - behavior-analysis
+  - threat-detection
+  - motion-classification
+
+last_updated: "2024-12-30"

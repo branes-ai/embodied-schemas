@@ -1,0 +1,64 @@
+id: scene_graph_manager
+name: 3D Scene Graph Manager
+category: state_estimation
+subcategory: scene_reconstruction
+
+impl_type: python
+
+inputs:
+  tracks:
+    dtype: object
+    shape: ["N"]
+    description: List of 2D Track objects from tracker
+  frame:
+    dtype: object
+    shape: [1]
+    description: Frame with image, optional depth, and camera params
+
+outputs:
+  objects:
+    dtype: object
+    shape: ["M"]
+    description: Dict of TrackedObject by track_id with 3D positions
+
+config_schema:
+  ttl_seconds:
+    type: number
+    default: 5.0
+    description: Time-to-live for objects without updates
+  depth_mode:
+    type: string
+    enum: ["heuristic", "depth_map"]
+    default: heuristic
+    description: Depth estimation mode (heuristic uses bbox height)
+  max_history:
+    type: number
+    default: 100
+    description: Maximum trajectory history length
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 3.0
+    memory_mb: 80
+    conditions: "50 tracked objects"
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 1.5
+    memory_mb: 80
+    conditions: "50 tracked objects"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 3.0
+typical_memory_mb: 80
+
+requires_gpu: false
+python_deps:
+  - numpy
+  - filterpy
+
+tags:
+  - scene-understanding
+  - 3d-reconstruction
+  - object-persistence
+  - world-model
+
+last_updated: "2024-12-30"

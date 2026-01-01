@@ -1,0 +1,68 @@
+id: bytetrack
+name: ByteTrack Multi-Object Tracker
+category: perception
+subcategory: tracking
+
+impl_type: python
+reference_impl: https://github.com/ifzhang/ByteTrack
+
+inputs:
+  detections:
+    dtype: object
+    shape: ["N"]
+    description: List of Detection objects from detector
+
+outputs:
+  tracks:
+    dtype: object
+    shape: ["M"]
+    description: List of Track objects with IDs and states
+
+config_schema:
+  high_thresh:
+    type: number
+    default: 0.5
+    description: High confidence threshold for first association
+  low_thresh:
+    type: number
+    default: 0.1
+    description: Low confidence threshold for second association
+  match_thresh:
+    type: number
+    default: 0.8
+    description: IOU threshold for matching
+  max_time_lost:
+    type: number
+    default: 30
+    description: Frames to keep lost tracks
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-Nano
+    latency_ms: 2.5
+    memory_mb: 50
+    conditions: "100 detections, CPU"
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 1.2
+    memory_mb: 50
+    conditions: "100 detections, CPU"
+
+reference_hardware: Jetson-Orin-Nano
+typical_latency_ms: 2.5
+typical_memory_mb: 50
+
+requires_gpu: false
+python_deps:
+  - numpy
+  - filterpy
+  - scipy
+
+tags:
+  - real-time
+  - multi-object-tracking
+  - occlusion-robust
+  - kalman-filter
+
+papers:
+  - "ByteTrack: Multi-Object Tracking by Associating Every Detection Box (ECCV 2022)"
+
+last_updated: "2024-12-30"

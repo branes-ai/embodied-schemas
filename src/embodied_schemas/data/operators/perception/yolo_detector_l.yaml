@@ -1,0 +1,66 @@
+id: yolo_detector_l
+name: YOLOv8l Object Detector (Large)
+category: perception
+subcategory: detection
+
+impl_type: pytorch
+reference_impl: https://github.com/ultralytics/ultralytics
+
+inputs:
+  image:
+    dtype: uint8
+    shape: ["H", "W", 3]
+    description: RGB image (640x640 recommended)
+
+outputs:
+  detections:
+    dtype: object
+    shape: ["N"]
+    description: List of Detection objects (bbox, class_id, class_name, confidence)
+
+config_schema:
+  conf_threshold:
+    type: number
+    default: 0.25
+  iou_threshold:
+    type: number
+    default: 0.45
+  device:
+    type: string
+    enum: ["cpu", "cuda"]
+    default: cuda
+
+perf_profiles:
+  - hardware_id: Jetson-Orin-AGX
+    latency_ms: 35.0
+    memory_mb: 2200
+    power_w: 45.0
+    throughput_fps: 28
+    conditions: "INT8, batch_size=1, 640x640"
+  - hardware_id: H100-SXM5-80GB
+    latency_ms: 2.5
+    memory_mb: 2100
+    throughput_fps: 400
+    conditions: "FP16, batch_size=1, 640x640"
+
+reference_hardware: Jetson-Orin-AGX
+typical_latency_ms: 35.0
+typical_memory_mb: 2200
+compute_flops: 165.2e9
+
+requires_gpu: true
+requires_model: yolov8l
+python_deps:
+  - ultralytics>=8.0
+  - torch>=2.0
+
+tags:
+  - object-detection
+  - coco-80
+  - high-accuracy
+  - datacenter
+
+papers:
+  - "YOLOv8 (Ultralytics, 2023)"
+
+last_updated: "2024-12-30"
