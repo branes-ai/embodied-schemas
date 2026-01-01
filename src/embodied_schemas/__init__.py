@@ -65,6 +65,8 @@ from embodied_schemas.scheduling import (
     RateFeasibility,
     SchedulingAnalysisResult,
     ArchitectureAnalysisResult,
+    OperatorBenchmarkResult,
+    ArchitectureBenchmarkResult,
 )
 from embodied_schemas.gpu import (
     GPUEntry,
@@ -191,6 +193,9 @@ __all__ = [
     "RateFeasibility",
     "SchedulingAnalysisResult",
     "ArchitectureAnalysisResult",
+    # Benchmarking (Architecture)
+    "OperatorBenchmarkResult",
+    "ArchitectureBenchmarkResult",
     # GPU
     "GPUEntry",
     "GPUVendor",
