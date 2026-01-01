@@ -1,0 +1,108 @@
+# Drone Inspection Use Case
+# Visual inspection of infrastructure, buildings, and industrial assets
+
+id: drone_inspection
+name: Drone Visual Inspection
+category: drone
+description: |
+  Automated visual inspection of infrastructure using high-resolution imaging
+  and AI-based defect detection. Used for power lines, bridges, wind turbines,
+  solar panels, and building facades. Prioritizes accuracy over speed.
+
+platform:
+  type: drone
+  size_class: medium
+  indoor_outdoor: outdoor
+  autonomous_level: 3
+
+perception:
+  tasks:
+    - object_detection
+    - instance_segmentation
+    - classification
+  target_classes:
+    - crack
+    - corrosion
+    - damage
+    - anomaly
+    - vegetation
+  detection_range_m: [1.0, 50.0]
+  field_of_view_deg: 90
+  frame_rate_fps: 15
+
+constraints:
+  latency:
+    max_value: 200
+    unit: ms
+    tier: near_real_time
+    criticality: medium
+    notes: "Can tolerate higher latency for inspection"
+  power:
+    max_value: 25
+    unit: watts
+    tier: moderate_power
+    criticality: medium
+  accuracy:
+    min_value: 0.90
+    tier: high_accuracy
+    criticality: hard
+    notes: "Must reliably detect defects"
+  resolution:
+    min_value: 12
+    unit: megapixels
+    criticality: hard
+    notes: "High resolution for detailed inspection"
+
+preferences:
+  - maximize_accuracy
+  - maximize_resolution
+  - minimize_false_negatives
+
+implied:
+  - outdoor_rated
+  - battery_powered
+  - high_accuracy
+
+recommended_hardware:
+  - id: nvidia_jetson_orin_nx_16gb
+    variant: 25W mode
+    notes: "Higher compute for detailed analysis"
+    priority: 1
+  - id: nvidia_jetson_agx_orin_32gb
+    variant: 30W mode
+    notes: "For complex segmentation models"
+    priority: 2
+
+recommended_models:
+  - id: yolov8m
+    variant: fp16-tensorrt
+    notes: "Better accuracy for defect detection"
+    priority: 1
+  - id: yolov8n_seg
+    variant: fp16-tensorrt
+    notes: "Segmentation for defect outlining"
+    priority: 2
+
+recommended_sensors:
+  - id: arducam_imx477
+    notes: "12MP high-quality imaging"
+    priority: 1
+
+success_criteria:
+  - metric: detection_precision
+    target: 0.90
+    operator: gte
+    criticality: hard
+  - metric: detection_recall
+    target: 0.95
+    operator: gte
+    criticality: hard
+  - metric: latency_ms
+    target: 200
+    operator: lte
+    criticality: medium
+
+last_updated: "2025-12-31"
+maintainer: null
+references:
+  - https://www.flyability.com/inspection-drone

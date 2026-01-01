@@ -1,0 +1,79 @@
+# YOLOv8 Large - High Accuracy Object Detection
+# Source: https://docs.ultralytics.com/models/yolov8/
+
+id: yolov8l
+name: YOLOv8 Large
+version: "8.0"
+vendor: ultralytics
+
+architecture:
+  type: object_detection
+  family: yolov8
+  backbone: CSPDarknet-L
+  neck: PANet
+  head: Decoupled Head
+  params_millions: 43.7
+  flops_billions: 165.2
+  layers: 365
+
+input:
+  shape: [1, 3, 640, 640]
+  dtype: float32
+  normalization: [0, 1]
+  channel_order: rgb
+
+output:
+  format: boxes_scores_classes
+  num_classes: 80
+  max_detections: 300
+  output_names: [boxes, scores, classes]
+
+accuracy:
+  coco_val2017:
+    dataset: coco_val2017
+    map_50: 69.8
+    map_50_95: 52.9
+    methodology: official
+
+variants:
+  - name: fp32-pytorch
+    dtype: fp32
+    format: pytorch
+    file_size_mb: 87.7
+    accuracy_delta: 0.0
+  - name: fp16-tensorrt
+    dtype: fp16
+    format: tensorrt
+    file_size_mb: 45.0
+    accuracy_delta: -0.1
+  - name: int8-tensorrt
+    dtype: int8
+    format: tensorrt
+    file_size_mb: 23.0
+    accuracy_delta: -0.4
+    calibration_dataset: coco_val2017
+    calibration_samples: 500
+
+memory:
+  weights_mb: 87.7
+  peak_activation_mb: 600
+  workspace_mb: 250
+
+compatible_hardware:
+  - nvidia_jetson_agx_orin_32gb
+  - nvidia_jetson_agx_orin_64gb
+  - nvidia_jetson_agx_thor_128gb
+
+suitable_for:
+  - drone_inspection
+  - vehicle_perception
+
+optimization_notes:
+  tensorrt: "Best for accuracy-critical applications. FP16 recommended for real-time."
+  jetson: "Achieves 25+ FPS on AGX Orin 64GB with TensorRT FP16."
+
+license: AGPL-3.0
+source_url: https://github.com/ultralytics/ultralytics
+paper_url: https://arxiv.org/abs/2305.09972
+weights_url: https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8l.pt
+last_updated: "2025-12-31"

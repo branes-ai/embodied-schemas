@@ -1,0 +1,109 @@
+# Drone Obstacle Avoidance Use Case
+# Real-time obstacle detection and avoidance for autonomous flight
+
+id: drone_obstacle_avoidance
+name: Drone Obstacle Avoidance
+category: drone
+description: |
+  Real-time detection and avoidance of obstacles during autonomous flight.
+  Requires low-latency perception for safe navigation in cluttered environments.
+  Must operate on battery power with strict weight and power constraints.
+
+platform:
+  type: drone
+  size_class: small
+  indoor_outdoor: both
+  autonomous_level: 4
+
+perception:
+  tasks:
+    - object_detection
+    - depth_estimation
+  target_classes:
+    - person
+    - vehicle
+    - obstacle
+    - building
+  detection_range_m: [0.5, 30.0]
+  field_of_view_deg: 120
+  frame_rate_fps: 30
+
+constraints:
+  latency:
+    max_value: 50
+    unit: ms
+    tier: real_time
+    criticality: safety_critical
+    notes: "Must detect obstacles in time to maneuver"
+  power:
+    max_value: 15
+    unit: watts
+    tier: low_power
+    criticality: hard
+    notes: "Battery-powered, affects flight time"
+  weight:
+    max_value: 100
+    unit: grams
+    criticality: hard
+    notes: "Compute module weight budget"
+  memory:
+    max_value: 4
+    unit: gb
+    criticality: medium
+
+preferences:
+  - minimize_power
+  - minimize_latency
+  - maximize_range
+
+implied:
+  - real_time
+  - battery_powered
+  - weight_constrained
+  - outdoor_rated
+
+recommended_hardware:
+  - id: nvidia_jetson_orin_nano_8gb
+    variant: 15W mode
+    notes: "Best power/performance for drone use"
+    priority: 1
+  - id: hailo_8l_m2
+    notes: "Ultra-low power alternative"
+    priority: 2
+
+recommended_models:
+  - id: yolov8n
+    variant: int8-tensorrt
+    notes: "Fastest inference for obstacle detection"
+    priority: 1
+  - id: midas_small
+    variant: int8-tflite
+    notes: "Lightweight depth estimation"
+    priority: 1
+
+recommended_sensors:
+  - id: intel_realsense_d435i
+    notes: "Depth + RGB in compact form factor"
+    priority: 1
+  - id: luxonis_oak_d_pro
+    notes: "On-device NN acceleration"
+    priority: 2
+
+success_criteria:
+  - metric: latency_ms
+    target: 50
+    operator: lte
+    criticality: safety_critical
+  - metric: detection_recall
+    target: 0.95
+    operator: gte
+    criticality: hard
+  - metric: power_watts
+    target: 15
+    operator: lte
+    criticality: hard
+
+last_updated: "2025-12-31"
+maintainer: null
+references:
+  - https://developer.nvidia.com/embedded/community/jetson-projects#drones

@@ -1,0 +1,59 @@
+# Luxonis OAK-D Pro - Spatial AI Camera with On-device Neural Inference
+# Source: https://shop.luxonis.com/products/oak-d-pro
+
+id: luxonis_oak_d_pro
+name: Luxonis OAK-D Pro
+vendor: luxonis
+model: OAK-D Pro
+category: depth
+
+depth_spec:
+  depth_type: active_stereo
+  depth_resolution: [1280, 800]
+  rgb_resolution: [4056, 3040]
+  depth_fps: 120
+  rgb_fps: 60
+  range_m: [0.2, 35.0]
+  accuracy_percent: 1.0
+  accuracy_reference_m: 4.0
+  baseline_mm: 75.0
+  indoor_outdoor: both
+
+interface:
+  type: usb
+  version: "3.2"
+  data_rate_gbps: 5.0
+
+power:
+  voltage_v: 5.0
+  current_ma: 1500
+  power_watts: 7.5
+  standby_watts: 0.5
+
+physical:
+  weight_grams: 91
+  dimensions_mm: [108, 30, 25]
+  connector: USB-C
+  mounting: 1/4-20
+
+environmental:
+  operating_temp_c: [-20, 50]
+  storage_temp_c: [-40, 85]
+  ip_rating: IP67
+  outdoor_capable: true
+
+compatible_interfaces:
+  - usb
+
+suitable_for:
+  - drone_inspection
+  - amr_navigation
+  - quadruped_navigation
+  - robotic_manipulation
+
+cost_usd: 299.0
+availability: widely_available
+
+datasheet_url: https://docs.luxonis.com/projects/hardware/en/latest/pages/DM9098pro.html
+product_url: https://shop.luxonis.com/products/oak-d-pro
+last_updated: "2025-12-31"

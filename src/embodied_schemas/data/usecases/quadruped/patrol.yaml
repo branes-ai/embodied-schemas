@@ -1,0 +1,114 @@
+# Quadruped Patrol Use Case
+# Autonomous patrol and monitoring with legged robot
+
+id: quadruped_patrol
+name: Quadruped Security Patrol
+category: quadruped
+description: |
+  Autonomous patrol and monitoring using a quadruped robot.
+  Requires person detection, intruder recognition, and environment mapping.
+  Must navigate varied terrain and operate for extended periods.
+
+platform:
+  type: quadruped
+  size_class: medium
+  indoor_outdoor: both
+  autonomous_level: 4
+
+perception:
+  tasks:
+    - object_detection
+    - pose_estimation
+    - depth_estimation
+  target_classes:
+    - person
+    - vehicle
+    - animal
+    - obstacle
+  detection_range_m: [1.0, 50.0]
+  field_of_view_deg: 180
+  frame_rate_fps: 30
+
+constraints:
+  latency:
+    max_value: 100
+    unit: ms
+    tier: real_time
+    criticality: hard
+    notes: "Fast detection for security response"
+  power:
+    max_value: 50
+    unit: watts
+    tier: moderate_power
+    criticality: medium
+    notes: "Shared power budget with locomotion"
+  memory:
+    max_value: 8
+    unit: gb
+    criticality: medium
+  accuracy:
+    min_value: 0.85
+    criticality: hard
+    notes: "Reliable person detection required"
+
+preferences:
+  - minimize_latency
+  - maximize_detection_range
+  - maximize_accuracy
+
+implied:
+  - real_time
+  - battery_powered
+  - outdoor_rated
+  - all_terrain
+
+recommended_hardware:
+  - id: nvidia_jetson_orin_nx_16gb
+    variant: 25W mode
+    notes: "Good balance for quadruped compute"
+    priority: 1
+  - id: nvidia_jetson_agx_orin_32gb
+    variant: 40W mode
+    notes: "Higher compute for multi-camera setup"
+    priority: 2
+
+recommended_models:
+  - id: yolov8s
+    variant: fp16-tensorrt
+    notes: "Fast person/vehicle detection"
+    priority: 1
+  - id: rtmpose_m
+    variant: fp16-tensorrt
+    notes: "Pose estimation for behavior analysis"
+    priority: 2
+  - id: depth_anything_v2_small
+    variant: fp16-tensorrt
+    notes: "Terrain awareness"
+    priority: 2
+
+recommended_sensors:
+  - id: intel_realsense_d435i
+    notes: "Forward-facing depth camera"
+    priority: 1
+  - id: livox_mid_360
+    notes: "360-degree environment mapping"
+    priority: 2
+
+success_criteria:
+  - metric: person_detection_recall
+    target: 0.95
+    operator: gte
+    criticality: hard
+  - metric: latency_ms
+    target: 100
+    operator: lte
+    criticality: hard
+  - metric: false_positive_rate
+    target: 0.05
+    operator: lte
+    criticality: medium
+
+last_updated: "2025-12-31"
+maintainer: null
+references:
+  - https://www.bostondynamics.com/products/spot
