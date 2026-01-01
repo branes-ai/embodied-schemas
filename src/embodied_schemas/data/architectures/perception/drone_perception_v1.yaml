@@ -1,0 +1,122 @@
+id: drone_perception_v1
+name: Drone Obstacle Avoidance Pipeline
+description: Real-time perception pipeline for drone obstacle detection and tracking with collision prediction
+platform_type: drone
+
+sensors:
+  - monocular_camera
+
+operators:
+  - id: preprocess
+    operator_id: image_preprocessor
+    rate_hz: 30.0
+    execution_target: gpu
+    config:
+      output_size: [640, 640]
+
+  - id: detector
+    operator_id: yolo_detector_n
+    rate_hz: 30.0
+    execution_target: gpu
+    config:
+      conf_threshold: 0.25
+      iou_threshold: 0.45
+
+  - id: tracker
+    operator_id: bytetrack
+    rate_hz: 30.0
+    execution_target: cpu
+    config:
+      track_thresh: 0.5
+      track_buffer: 30
+
+  - id: scene_graph
+    operator_id: scene_graph_manager
+    rate_hz: 30.0
+    execution_target: cpu
+
+  - id: predictor
+    operator_id: trajectory_predictor
+    rate_hz: 30.0
+    execution_target: cpu
+    config:
+      prediction_horizon: 2.0
+      method: linear
+
+  - id: collision
+    operator_id: collision_detector
+    rate_hz: 30.0
+    execution_target: cpu
+    config:
+      critical_distance: 3.0
+      warning_distance: 8.0
+
+dataflow:
+  - source_op: preprocess
+    source_port: processed
+    target_op: detector
+    target_port: image
+
+  - source_op: detector
+    source_port: detections
+    target_op: tracker
+    target_port: detections
+
+  - source_op: tracker
+    source_port: tracks
+    target_op: scene_graph
+    target_port: tracks
+
+  - source_op: scene_graph
+    source_port: objects
+    target_op: predictor
+    target_port: tracked_objects
+
+  - source_op: predictor
+    source_port: predictions
+    target_op: collision
+    target_port: trajectories
+
+end_to_end_latency_ms: 33.3
+min_throughput_fps: 30.0
+power_budget_w: 15.0
+
+variants:
+  - id: drone_perception_v1_edge
+    name: Edge-optimized (YOLOv8n)
+    description: Optimized for Jetson Orin Nano with minimal latency
+    operator_overrides: {}
+    target_hardware:
+      - Jetson-Orin-Nano
+    expected_latency_ms: 28.0
+    expected_power_w: 12.0
+
+  - id: drone_perception_v1_accuracy
+    name: High-accuracy (YOLOv8s)
+    description: Better detection accuracy for larger drones with more compute headroom
+    operator_overrides:
+      detector: yolo_detector_s
+    target_hardware:
+      - Jetson-Orin-AGX
+    expected_latency_ms: 42.0
+    expected_power_w: 25.0
+
+  - id: drone_perception_v1_stereo
+    name: Stereo Depth (SGBM)
+    description: Adds stereo depth estimation for metric 3D perception
+    operator_overrides: {}
+    config_overrides:
+      scene_graph:
+        enable_depth: true
+    target_hardware:
+      - Jetson-Orin-AGX
+    expected_latency_ms: 45.0
+
+reference_impl: prototypes/drone_perception/
+tags:
+  - drone
+  - obstacle-avoidance
+  - real-time
+  - perception
+  - edge
+last_updated: "2024-12-31"

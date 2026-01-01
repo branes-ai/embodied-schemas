@@ -17,6 +17,7 @@ from embodied_schemas.benchmarks import BenchmarkResult
 from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
 from embodied_schemas.cpu import CPUEntry
 from embodied_schemas.operators import OperatorEntry
+from embodied_schemas.architectures import SoftwareArchitecture
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -218,6 +219,19 @@ def load_operators(data_dir: Path | None = None) -> dict[str, OperatorEntry]:
     return load_all_from_directory(data_dir / "operators", OperatorEntry)
 
 
+def load_architectures(data_dir: Path | None = None) -> dict[str, SoftwareArchitecture]:
+    """Load all software architecture entries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping architecture IDs to SoftwareArchitecture instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "architectures", SoftwareArchitecture)
+
+
 def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
     """Validate all data files and return a list of errors.
 
@@ -241,6 +255,7 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("gpu_architectures", GPUArchitectureSummary),
         ("cpus", CPUEntry),
         ("operators", OperatorEntry),
+        ("architectures", SoftwareArchitecture),
     ]
 
     for subdir, model_class in validations:
