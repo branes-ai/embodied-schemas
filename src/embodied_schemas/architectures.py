@@ -6,7 +6,206 @@ the composition, timing requirements, and variant configurations for
 specific platform deployments.
 """
 
+from enum import Enum
 from pydantic import BaseModel, Field
+
+
+class ExecutionTarget(str, Enum):
+    """Standard execution target types for heterogeneous systems.
+
+    Covers the range of accelerators found in embodied AI systems,
+    from general-purpose CPUs to specialized AI accelerators.
+
+    Accelerator Taxonomy
+    --------------------
+
+    **General-Purpose Processors (CPU)**
+        Standard processors that handle OS, control logic, and orchestration.
+        Can run any workload but not optimized for parallel AI compute.
+
+    **Graphics Processing Units (GPU)**
+        Massively parallel processors originally for graphics, now widely used
+        for DNN training and inference. High throughput, high power.
+
+    **Neural Processing Units (NPU)**
+        Generic term for dedicated AI inference accelerators integrated into
+        mobile/edge SoCs. NPUs are characterized by:
+
+        - **Fixed-function matrix engines**: Hardwired MAC arrays optimized for
+          convolutions, matrix multiplies, and common DNN operations
+        - **Quantization support**: Native INT8/INT4 compute for efficiency
+        - **On-chip memory hierarchy**: Large SRAM buffers to minimize DRAM access
+        - **Power efficiency focus**: Designed for always-on, battery-powered use
+        - **Limited flexibility**: Cannot run arbitrary compute like GPUs
+
+        Examples: Qualcomm Hexagon NPU, Apple Neural Engine, Samsung NPU,
+        MediaTek APU, Google Edge TPU, Intel NPU (Meteor Lake)
+
+        NPU vs other accelerators:
+        - NPU vs GPU: NPUs are more power-efficient but less flexible
+        - NPU vs TPU: TPUs are Google's specific NPU architecture
+        - NPU vs CVU: CVUs are vision-specific; NPUs handle broader DNN workloads
+
+    **Tensor Processing Units (TPU)**
+        Google's custom ASIC for neural network acceleration. Systolic array
+        architecture optimized for matrix operations. Available as cloud TPUs
+        and Edge TPU for embedded deployment.
+
+    **Knowledge Processing Units (KPU)**
+        Stillwater Supercomputing's architecture for high-precision inference
+        and scientific computing. Supports posit arithmetic and extended precision.
+
+    **Vision Processing Units (VPU)**
+        Specialized for computer vision pipelines including depth estimation,
+        stereo matching, and optical flow. Examples: Intel Movidius Myriad.
+
+    **Computer Vision Units (CVU)**
+        Dedicated CNN accelerators optimized for object detection and image
+        classification. Examples: Hailo-8, Mobileye EyeQ, Ambarella CV series.
+
+    **Digital Signal Processors (DSP)**
+        Optimized for signal processing, sensor fusion, and audio. Often used
+        alongside NPUs for pre/post-processing. Examples: Qualcomm Hexagon DSP.
+
+    **Field-Programmable Gate Arrays (FPGA)**
+        Reconfigurable hardware for custom dataflow architectures. Offers
+        flexibility between ASICs and GPUs. Low latency, moderate power.
+
+    **Research Architectures**
+        Academic and experimental accelerators like MIT Eyeriss (systolic array)
+        and dataflow architectures (SambaNova, Cerebras, Graphcore).
+    """
+
+    # General-purpose processors
+    CPU = "cpu"  # Host CPU (ARM, x86, RISC-V)
+
+    # Graphics and general-purpose GPU compute
+    GPU = "gpu"  # NVIDIA CUDA, AMD ROCm, Intel oneAPI
+
+    # Neural/AI accelerators - vendor-specific architectures
+    NPU = "npu"  # Generic neural processing unit (see docstring for details)
+    TPU = "tpu"  # Google Tensor Processing Unit
+    KPU = "kpu"  # Stillwater Knowledge Processing Unit
+
+    # Vision-specific accelerators
+    VPU = "vpu"  # Intel Movidius, OAK-D Myriad
+    CVU = "cvu"  # Computer Vision Unit (Hailo, Mobileye EyeQ)
+
+    # Signal processing
+    DSP = "dsp"  # Digital Signal Processor (Qualcomm Hexagon, TI C66x)
+
+    # Reconfigurable
+    FPGA = "fpga"  # Field-programmable gate array
+
+    # Research architectures
+    SYSTOLIC = "systolic"  # Systolic arrays (Eyeriss, etc.)
+    DATAFLOW = "dataflow"  # Dataflow architectures (Wave, SambaNova)
+
+    # Catch-all for custom accelerators
+    CUSTOM = "custom"
+
+
+# Mapping of execution targets to their characteristics
+EXECUTION_TARGET_INFO = {
+    ExecutionTarget.CPU: {
+        "name": "CPU",
+        "description": "General-purpose host processor",
+        "typical_workloads": ["control", "scheduling", "sequential algorithms"],
+        "vendors": ["Intel", "AMD", "ARM", "RISC-V"],
+    },
+    ExecutionTarget.GPU: {
+        "name": "GPU",
+        "description": "Graphics processing unit for parallel compute",
+        "typical_workloads": ["DNN inference", "parallel compute", "image processing"],
+        "vendors": ["NVIDIA", "AMD", "Intel", "Qualcomm"],
+    },
+    ExecutionTarget.NPU: {
+        "name": "NPU",
+        "description": (
+            "Neural Processing Unit - dedicated AI inference accelerator integrated into "
+            "mobile/edge SoCs. Features fixed-function matrix engines (MAC arrays), native "
+            "INT8/INT4 quantization support, large on-chip SRAM buffers, and power-efficient "
+            "design for always-on battery-powered applications. Less flexible than GPUs but "
+            "significantly more power-efficient for supported operations."
+        ),
+        "typical_workloads": [
+            "DNN inference",
+            "quantized models (INT8/INT4)",
+            "CNN classification",
+            "transformer inference",
+            "on-device AI",
+        ],
+        "vendors": [
+            "Qualcomm (Hexagon NPU)",
+            "Apple (Neural Engine)",
+            "Samsung (NPU)",
+            "MediaTek (APU)",
+            "Google (Edge TPU)",
+            "Intel (NPU in Meteor Lake)",
+            "AMD (XDNA/Ryzen AI)",
+        ],
+        "characteristics": {
+            "power_efficiency": "high",
+            "flexibility": "low",
+            "precision": ["INT8", "INT4", "FP16"],
+            "typical_tops": "10-40 TOPS",
+        },
+    },
+    ExecutionTarget.TPU: {
+        "name": "TPU",
+        "description": "Google Tensor Processing Unit",
+        "typical_workloads": ["DNN inference", "matrix operations"],
+        "vendors": ["Google"],
+    },
+    ExecutionTarget.KPU: {
+        "name": "KPU",
+        "description": "Stillwater Knowledge Processing Unit",
+        "typical_workloads": ["high-precision inference", "scientific computing"],
+        "vendors": ["Stillwater Supercomputing"],
+    },
+    ExecutionTarget.VPU: {
+        "name": "VPU",
+        "description": "Vision processing unit",
+        "typical_workloads": ["computer vision", "depth processing"],
+        "vendors": ["Intel Movidius", "Luxonis"],
+    },
+    ExecutionTarget.CVU: {
+        "name": "CVU",
+        "description": "Computer vision accelerator",
+        "typical_workloads": ["object detection", "CNN inference"],
+        "vendors": ["Hailo", "Mobileye", "Ambarella"],
+    },
+    ExecutionTarget.DSP: {
+        "name": "DSP",
+        "description": "Digital signal processor",
+        "typical_workloads": ["audio", "sensor fusion", "signal processing"],
+        "vendors": ["Qualcomm Hexagon", "TI", "Cadence"],
+    },
+    ExecutionTarget.FPGA: {
+        "name": "FPGA",
+        "description": "Field-programmable gate array",
+        "typical_workloads": ["custom dataflow", "low-latency inference"],
+        "vendors": ["AMD/Xilinx", "Intel/Altera", "Lattice"],
+    },
+    ExecutionTarget.SYSTOLIC: {
+        "name": "Systolic Array",
+        "description": "Systolic array architecture",
+        "typical_workloads": ["matrix operations", "CNN inference"],
+        "vendors": ["MIT Eyeriss", "Google TPU"],
+    },
+    ExecutionTarget.DATAFLOW: {
+        "name": "Dataflow",
+        "description": "Dataflow architecture",
+        "typical_workloads": ["large models", "reconfigurable compute"],
+        "vendors": ["SambaNova", "Cerebras", "Graphcore"],
+    },
+    ExecutionTarget.CUSTOM: {
+        "name": "Custom",
+        "description": "Custom or unspecified accelerator",
+        "typical_workloads": [],
+        "vendors": [],
+    },
+}
 
 
 class DataflowEdge(BaseModel):
