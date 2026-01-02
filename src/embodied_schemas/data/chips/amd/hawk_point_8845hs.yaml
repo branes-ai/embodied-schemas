@@ -1,0 +1,22 @@
+# AMD Hawk Point 8845HS - Mobile APU with Zen 4 + RDNA 3
+# Source: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-7-8845hs.html
+
+id: amd_hawk_point_8845hs
+name: AMD Ryzen 7 8845HS (Hawk Point)
+vendor: amd
+architecture: Zen 4 + RDNA 3
+process_node_nm: 4
+
+cpu_cores: 8
+cpu_architecture: Zen 4
+gpu_cores: 12
+gpu_architecture: RDNA 3
+npu_tops: 16.0
+
+memory_interface: LPDDR5X
+memory_channels: 2
+max_memory_gb: 64
+
+announcement_date: "2024-01-08"
+datasheet_url: https://www.amd.com/en/products/processors/laptop/ryzen/8000-series/amd-ryzen-7-8845hs.html
+last_updated: "2025-12-31"
