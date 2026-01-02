@@ -95,6 +95,24 @@ New schema for modeling computational operators:
 - GPU-Hardware cross-reference: All embedded GPUs now link to their hardware platforms
 - Standardized hardware entry structure with complete cross-references
 
+#### Seed Data: Models, Sensors, Use Cases
+
+**Models (10)**:
+- Detection: YOLOv8n, YOLOv8s, YOLOv8m, YOLOv8l, RT-DETR-L
+- Depth: MiDaS Small v2.1, Depth Anything V2 Small
+- Segmentation: YOLOv8n-seg, SAM ViT-B
+- Pose: RTMPose-M
+
+**Sensors (4)**:
+- Cameras: Arducam IMX477 (12MP)
+- Depth: Intel RealSense D435i, Luxonis OAK-D Pro
+- LiDAR: Livox Mid-360
+
+**Use Cases (4)**:
+- Drone: obstacle avoidance, visual inspection
+- Quadruped: security patrol
+- AMR: warehouse navigation
+
 ### Fixed
 
 - STM32 power values rounded to integers (schema constraint)
