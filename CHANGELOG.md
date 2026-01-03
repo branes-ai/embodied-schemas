@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-01-02
+
+### Added
+
+#### AMD Hawk Point Chip Entries (2 chips)
+- `amd_hawk_point_8845hs` - Ryzen 7 8845HS (Zen 4 + RDNA 3, 8 cores, 12 GPU CUs, 16 TOPS NPU)
+- `amd_hawk_point_8945hs` - Ryzen 9 8945HS (Zen 4 + RDNA 3, 8 cores, 12 GPU CUs, 16 TOPS NPU)
+
+These chip entries complete the cross-references from CPU entries `amd_hawk_point_8845hs` and `amd_hawk_point_8945hs`.
+
+### Fixed
+
+- Fixed cross-reference validation by adding missing AMD Hawk Point chip entries
+- Verified graphs integration: all analysis schemas, adapters, and loaders compatible
+
+### Validated
+
+- **Graphs Integration**: All tests pass
+  - Analysis schemas: `RooflineResult`, `EnergyResult`, `MemoryResult`, `GraphAnalysisResult`
+  - Adapters: `convert_to_pydantic`, `convert_roofline_to_pydantic`, etc.
+  - Data loaders: 14 hardware, 22 GPUs, 36 CPUs, 10 models, 4 sensors, 4 use cases
+  - Cross-references: Hardware → GPU links verified
+
 ## [0.4.0] - 2025-12-31
 
 ### Added
