@@ -1,0 +1,53 @@
+# Intel Arrow Lake CPU Architecture
+# 15th Gen Core Desktop processors (Core Ultra 200 series)
+
+id: intel_arrow_lake
+name: Arrow Lake
+vendor: intel
+codename: Arrow Lake
+
+process_node: intel_20a
+process_nm: 3
+
+launch_year: 2024
+predecessor: intel_raptor_lake
+successor: null
+
+target_markets:
+  - desktop_enthusiast
+  - desktop_mainstream
+
+key_features:
+  - "Disaggregated tile architecture (compute + I/O + SoC tiles)"
+  - "Lion Cove P-cores (new high-perf microarchitecture)"
+  - "Skymont E-cores (major efficiency upgrade)"
+  - "NPU for on-device AI inference"
+  - "DDR5-6400 support"
+  - "PCIe 5.0 x16 + Thunderbolt 4"
+
+is_hybrid: true
+max_cores: 24
+max_threads: 24  # No hyperthreading on P-cores
+
+l1_data_kb: 48
+l1_inst_kb: 64
+l2_per_core_mb: 3.0  # P-core
+l3_per_core_mb: 1.5  # ~36MB total
+
+new_instructions:
+  - "AVX-VNNI-INT16"
+  - "SHA-512"
+  - "SM4"
+
+ipc_improvement_pct: 10
+single_thread_improvement_pct: 8
+
+memory_types:
+  - DDR5
+
+max_memory_channels: 2
+
+socket_types:
+  - lga1851
+
+pcie_version: "5.0"

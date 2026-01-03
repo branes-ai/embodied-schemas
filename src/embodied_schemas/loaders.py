@@ -15,7 +15,8 @@ from embodied_schemas.sensors import SensorEntry
 from embodied_schemas.usecases import UseCaseEntry
 from embodied_schemas.benchmarks import BenchmarkResult
 from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
-from embodied_schemas.cpu import CPUEntry
+from embodied_schemas.cpu import CPUEntry, CPUArchitectureSummary
+from embodied_schemas.npu import NPUEntry
 from embodied_schemas.operators import OperatorEntry
 from embodied_schemas.architectures import SoftwareArchitecture
 
@@ -204,6 +205,32 @@ def load_cpus(data_dir: Path | None = None) -> dict[str, CPUEntry]:
     """
     data_dir = data_dir or get_data_dir()
     return load_all_from_directory(data_dir / "cpus", CPUEntry)
+
+
+def load_cpu_architectures(data_dir: Path | None = None) -> dict[str, CPUArchitectureSummary]:
+    """Load all CPU architecture summaries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping architecture IDs to CPUArchitectureSummary instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "cpu_architectures", CPUArchitectureSummary)
+
+
+def load_npus(data_dir: Path | None = None) -> dict[str, NPUEntry]:
+    """Load all NPU/AI accelerator entries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping NPU IDs to NPUEntry instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "npus", NPUEntry)
 
 
 def load_operators(data_dir: Path | None = None) -> dict[str, OperatorEntry]:

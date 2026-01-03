@@ -1,0 +1,57 @@
+# AMD Zen 4 CPU Architecture
+# Ryzen 7000 Desktop, EPYC Genoa Server, Ryzen 8000 Mobile
+
+id: amd_zen4
+name: Zen 4
+vendor: amd
+codename: Zen 4
+
+process_node: tsmc_n5
+process_nm: 5
+
+launch_year: 2022
+predecessor: amd_zen3
+successor: amd_zen5
+
+target_markets:
+  - datacenter
+  - desktop_enthusiast
+  - desktop_mainstream
+  - mobile_performance
+
+key_features:
+  - "Up to 96 cores (EPYC Genoa)"
+  - "First AMD with AVX-512 support"
+  - "DDR5 memory support"
+  - "13% IPC improvement over Zen 3"
+  - "5nm TSMC process"
+  - "Integrated RDNA 2 graphics (desktop)"
+  - "AMD 3D V-Cache variants (7000X3D)"
+
+is_hybrid: false
+max_cores: 96  # EPYC 9654
+max_threads: 192
+
+l1_data_kb: 32
+l1_inst_kb: 32
+l2_per_core_mb: 1.0
+l3_per_core_mb: 4.0  # ~384MB max with V-Cache
+
+new_instructions:
+  - "AVX-512"
+  - "VNNI"
+  - "BF16"
+
+ipc_improvement_pct: 13
+single_thread_improvement_pct: 29
+
+memory_types:
+  - DDR5
+
+max_memory_channels: 12  # EPYC
+
+socket_types:
+  - am5
+  - sp5
+
+pcie_version: "5.0"

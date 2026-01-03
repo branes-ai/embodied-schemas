@@ -1,0 +1,57 @@
+# ARM Neoverse V2 CPU Architecture
+# AWS Graviton4, NVIDIA Grace, Microsoft Cobalt 100
+
+id: arm_neoverse_v2
+name: Neoverse V2
+vendor: arm
+codename: Demeter
+
+process_node: tsmc_n5
+process_nm: 5
+
+launch_year: 2023
+predecessor: arm_neoverse_v1
+successor: null
+
+target_markets:
+  - datacenter
+
+key_features:
+  - "ARMv9.0-A architecture"
+  - "SVE2 with 128-bit vectors"
+  - "Up to 96 cores per socket (Graviton4)"
+  - "Up to 72 cores (NVIDIA Grace)"
+  - "High memory bandwidth designs"
+  - "Excellent performance per watt"
+  - "SME (Scalable Matrix Extension) capable"
+  - "BF16/INT8 AI acceleration"
+
+is_hybrid: false
+max_cores: 96  # Graviton4
+max_threads: 96  # No SMT
+
+l1_data_kb: 64
+l1_inst_kb: 64
+l2_per_core_mb: 1.0
+l3_per_core_mb: 1.2  # ~117MB (Grace) / 96 cores
+
+new_instructions:
+  - "SVE2"
+  - "SME"
+  - "BF16"
+  - "INT8 dot product"
+
+ipc_improvement_pct: 25
+single_thread_improvement_pct: 25
+
+memory_types:
+  - DDR5
+  - LPDDR5X
+
+max_memory_channels: 12  # Grace has 8 channels LPDDR5X
+
+socket_types:
+  - sxm
+  - oam
+
+pcie_version: "5.0"

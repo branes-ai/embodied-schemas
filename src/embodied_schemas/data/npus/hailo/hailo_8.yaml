@@ -1,0 +1,71 @@
+# Hailo-8 AI Accelerator
+# High-performance edge AI processor for real-time inference
+
+id: hailo_8
+name: Hailo-8
+vendor: hailo
+npu_type: discrete
+generation: "1"
+
+compute:
+  peak_tops_int8: 26.0
+  peak_tops_int4: 52.0
+  compute_units: 1  # Single NPU core
+  supported_dtypes:
+    - int8
+    - int4
+    - int16
+  sparse_support: false
+
+memory:
+  sram_mb: 2.0
+  uses_host_memory: true
+
+power:
+  tdp_watts: 2.5
+  typical_power_watts: 2.0
+  tops_per_watt: 10.4
+
+software:
+  sdk_name: Hailo Dataflow Compiler
+  compiler_name: hailo_dataflow_compiler
+  supported_frameworks:
+    - TensorFlow
+    - TensorFlow Lite
+    - Keras
+    - PyTorch
+    - ONNX
+  native_format: ".hef"
+  supported_formats:
+    - ".onnx"
+    - ".tflite"
+    - ".pb"
+  supported_ops:
+    - Conv2D
+    - DepthwiseConv2D
+    - Dense
+    - BatchNorm
+    - ReLU
+    - MaxPool
+    - GlobalAvgPool
+    - Softmax
+    - Sigmoid
+
+physical:
+  form_factor: M.2
+  dimensions_mm: [80.0, 22.0, 3.5]
+  interface: m2
+  pcie_lanes: 4
+  pcie_gen: "3.0"
+
+target_applications:
+  - object_detection
+  - image_classification
+  - pose_estimation
+  - semantic_segmentation
+  - face_recognition
+
+launch_date: "2020-06-01"
+msrp_usd: 299.0
+datasheet_url: https://hailo.ai/products/hailo-8/
+last_updated: "2026-01-02"

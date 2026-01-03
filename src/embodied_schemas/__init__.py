@@ -104,6 +104,19 @@ from embodied_schemas.cpu import (
     PlatformSpec,
     IntegratedGraphics,
     MarketInfo as CPUMarketInfo,
+    CPUArchitectureSummary,
+)
+from embodied_schemas.npu import (
+    NPUEntry,
+    NPUVendor,
+    NPUType,
+    NPUInterface,
+    ComputeSpec as NPUComputeSpec,
+    MemorySpec as NPUMemorySpec,
+    PowerSpec as NPUPowerSpec,
+    SoftwareSpec as NPUSoftwareSpec,
+    PhysicalSpec as NPUPhysicalSpec,
+    DataType as NPUDataType,
 )
 from embodied_schemas.operators import (
     OperatorEntry,
@@ -127,6 +140,8 @@ from embodied_schemas.loaders import (
     load_gpus,
     load_gpu_architectures,
     load_cpus,
+    load_cpu_architectures,
+    load_npus,
     load_hardware,
     load_chips,
     load_models,
@@ -231,6 +246,18 @@ __all__ = [
     "PlatformSpec",
     "IntegratedGraphics",
     "CPUMarketInfo",
+    "CPUArchitectureSummary",
+    # NPU
+    "NPUEntry",
+    "NPUVendor",
+    "NPUType",
+    "NPUInterface",
+    "NPUComputeSpec",
+    "NPUMemorySpec",
+    "NPUPowerSpec",
+    "NPUSoftwareSpec",
+    "NPUPhysicalSpec",
+    "NPUDataType",
     # Registry
     "Registry",
     # Operators
@@ -252,6 +279,8 @@ __all__ = [
     "load_gpus",
     "load_gpu_architectures",
     "load_cpus",
+    "load_cpu_architectures",
+    "load_npus",
     "load_hardware",
     "load_chips",
     "load_models",

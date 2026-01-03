@@ -448,3 +448,82 @@ class CPUEntry(BaseModel):
         if self.power.tdp_watts > 0:
             return self.cores.total_threads / self.power.tdp_watts
         return None
+
+
+# =============================================================================
+# CPU Architecture Summary
+# =============================================================================
+
+
+class CPUArchitectureSummary(BaseModel):
+    """Summary of a CPU microarchitecture for quick reference.
+
+    Similar to GPUArchitectureSummary, this provides high-level architectural
+    info for performance modeling and comparison across CPU generations.
+    """
+
+    id: str = Field(
+        ...,
+        description="Architecture identifier, e.g., 'intel_raptor_lake', 'amd_zen4'",
+    )
+    name: str = Field(..., description="Architecture name")
+    vendor: CPUVendor = Field(..., description="CPU vendor")
+    codename: str | None = Field(None, description="Internal codename")
+
+    # Fabrication
+    process_node: ProcessNode = Field(..., description="Manufacturing process node")
+    process_nm: int | None = Field(None, description="Process size in nm (approximate)")
+
+    # Generation info
+    launch_year: int = Field(..., description="Year of first product launch")
+    predecessor: str | None = Field(None, description="Previous architecture ID")
+    successor: str | None = Field(None, description="Next architecture ID")
+
+    # Target markets
+    target_markets: list[TargetMarket] = Field(
+        default_factory=list, description="Target market segments"
+    )
+
+    # Key architectural features
+    key_features: list[str] = Field(
+        default_factory=list, description="Key architectural improvements"
+    )
+
+    # Core architecture
+    is_hybrid: bool = Field(False, description="Uses hybrid P+E core design")
+    max_cores: int | None = Field(None, description="Maximum cores in family")
+    max_threads: int | None = Field(None, description="Maximum threads in family")
+
+    # Cache architecture (typical per-core values)
+    l1_data_kb: int | None = Field(None, description="L1 data cache per core in KB")
+    l1_inst_kb: int | None = Field(None, description="L1 instruction cache per core in KB")
+    l2_per_core_mb: float | None = Field(None, description="L2 cache per core in MB")
+    l3_per_core_mb: float | None = Field(None, description="L3 cache per core in MB (typical)")
+
+    # Instruction extensions introduced
+    new_instructions: list[str] = Field(
+        default_factory=list,
+        description="New instruction extensions introduced in this architecture",
+    )
+
+    # Performance characteristics
+    ipc_improvement_pct: float | None = Field(
+        None, description="IPC improvement vs predecessor (percentage)"
+    )
+    single_thread_improvement_pct: float | None = Field(
+        None, description="Single-thread performance improvement vs predecessor"
+    )
+
+    # Memory support
+    memory_types: list[str] = Field(
+        default_factory=list, description="Supported memory types: DDR5, DDR4, LPDDR5X"
+    )
+    max_memory_channels: int | None = Field(None, description="Maximum memory channels")
+
+    # Platform
+    socket_types: list[SocketType] = Field(
+        default_factory=list, description="Compatible socket types"
+    )
+    pcie_version: str | None = Field(None, description="PCIe version support")
+
+    model_config = {"extra": "forbid"}
