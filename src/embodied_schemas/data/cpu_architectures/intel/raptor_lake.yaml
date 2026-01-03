@@ -1,0 +1,54 @@
+# Intel Raptor Lake CPU Architecture
+# 13th/14th Gen Core Desktop and Mobile processors
+
+id: intel_raptor_lake
+name: Raptor Lake
+vendor: intel
+codename: Raptor Lake / Raptor Lake Refresh
+
+process_node: intel_7
+process_nm: 10
+
+launch_year: 2022
+predecessor: intel_alder_lake
+successor: intel_arrow_lake
+
+target_markets:
+  - desktop_enthusiast
+  - desktop_mainstream
+  - mobile_performance
+  - mobile_gaming
+
+key_features:
+  - "Hybrid P+E core architecture (2nd gen)"
+  - "Up to 8 P-cores + 16 E-cores (24 cores total)"
+  - "Thread Director 2.0 for intelligent scheduling"
+  - "DDR5-5600 and DDR4-3200 support"
+  - "PCIe 5.0 x16 + PCIe 4.0 lanes"
+  - "Improved E-core cluster (4 E-cores per tile)"
+
+is_hybrid: true
+max_cores: 24
+max_threads: 32
+
+l1_data_kb: 48  # P-core
+l1_inst_kb: 32  # P-core
+l2_per_core_mb: 2.0  # P-core (1.25MB per E-core cluster)
+l3_per_core_mb: 1.5  # ~36MB total / 24 cores
+
+new_instructions:
+  - "AVX-VNNI (INT8 acceleration)"
+
+ipc_improvement_pct: 15
+single_thread_improvement_pct: 15
+
+memory_types:
+  - DDR5
+  - DDR4
+
+max_memory_channels: 2
+
+socket_types:
+  - lga1700
+
+pcie_version: "5.0"

@@ -1,0 +1,58 @@
+# AMD Zen 5 CPU Architecture
+# Ryzen 9000 Desktop, EPYC Turin Server
+
+id: amd_zen5
+name: Zen 5
+vendor: amd
+codename: Zen 5
+
+process_node: tsmc_n4
+process_nm: 4
+
+launch_year: 2024
+predecessor: amd_zen4
+successor: null
+
+target_markets:
+  - datacenter
+  - desktop_enthusiast
+  - desktop_mainstream
+  - mobile_performance
+
+key_features:
+  - "Up to 192 cores (EPYC Turin)"
+  - "16% average IPC improvement over Zen 4"
+  - "Wider frontend and execution engine"
+  - "Improved branch prediction"
+  - "DDR5-6000 support"
+  - "12-channel memory (EPYC)"
+  - "PCIe 5.0 x128 lanes (EPYC)"
+  - "CXL 2.0 support"
+
+is_hybrid: false
+max_cores: 192  # EPYC Turin
+max_threads: 384
+
+l1_data_kb: 48
+l1_inst_kb: 32
+l2_per_core_mb: 1.0
+l3_per_core_mb: 2.67  # ~512MB / 192 cores
+
+new_instructions:
+  - "AVX-512 enhancements"
+  - "Improved VNNI"
+
+ipc_improvement_pct: 16
+single_thread_improvement_pct: 20
+
+memory_types:
+  - DDR5
+
+max_memory_channels: 12
+
+socket_types:
+  - am5
+  - sp5
+  - str5
+
+pcie_version: "5.0"

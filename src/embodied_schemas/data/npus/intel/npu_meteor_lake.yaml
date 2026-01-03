@@ -1,0 +1,66 @@
+# Intel NPU (Meteor Lake integrated)
+# Integrated neural processing unit in Core Ultra processors
+
+id: intel_npu_meteor_lake
+name: Intel NPU (Meteor Lake)
+vendor: intel
+npu_type: integrated
+generation: "1"
+
+compute:
+  peak_tops_int8: 10.0
+  peak_tflops_fp16: 5.0
+  compute_units: 2  # 2 NPU compute tiles
+  mac_units: 4096
+  supported_dtypes:
+    - int8
+    - fp16
+  sparse_support: false
+
+memory:
+  uses_host_memory: true
+
+power:
+  tdp_watts: 6.0
+  typical_power_watts: 3.0
+
+software:
+  sdk_name: OpenVINO
+  compiler_name: Intel Neural Compiler
+  supported_frameworks:
+    - TensorFlow
+    - PyTorch
+    - ONNX
+    - OpenVINO IR
+    - PaddlePaddle
+  native_format: ".xml"
+  supported_formats:
+    - ".onnx"
+    - ".pb"
+    - ".pt"
+    - ".pdmodel"
+  supported_ops:
+    - Convolution
+    - MatMul
+    - Pooling
+    - Softmax
+    - Attention
+    - LayerNorm
+    - GELU
+    - Reshape
+
+physical:
+  form_factor: chip
+  interface: internal
+
+target_applications:
+  - image_classification
+  - object_detection
+  - background_blur
+  - noise_suppression
+  - llm_inference
+  - stable_diffusion
+
+launch_date: "2023-12-14"
+datasheet_url: https://www.intel.com/content/www/us/en/products/docs/processors/core-ultra/ai-pc.html
+last_updated: "2026-01-02"

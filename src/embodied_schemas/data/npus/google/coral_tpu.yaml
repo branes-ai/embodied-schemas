@@ -1,0 +1,63 @@
+# Google Coral Edge TPU
+# Ultra-efficient edge inference accelerator
+
+id: google_coral_tpu
+name: Google Coral Edge TPU
+vendor: google
+npu_type: discrete
+generation: "1"
+
+compute:
+  peak_tops_int8: 4.0
+  compute_units: 1
+  supported_dtypes:
+    - int8
+  sparse_support: false
+
+memory:
+  sram_mb: 8.0
+  uses_host_memory: true
+
+power:
+  tdp_watts: 2.0
+  typical_power_watts: 0.5
+  tops_per_watt: 2.0
+
+software:
+  sdk_name: Coral SDK
+  compiler_name: Edge TPU Compiler
+  supported_frameworks:
+    - TensorFlow Lite
+  native_format: ".tflite"
+  supported_formats:
+    - ".tflite"
+  supported_ops:
+    - Conv2D
+    - DepthwiseConv2D
+    - FullyConnected
+    - AveragePool2D
+    - MaxPool2D
+    - Softmax
+    - Logistic
+    - Add
+    - Mul
+    - Quantize
+    - Dequantize
+
+physical:
+  form_factor: M.2
+  dimensions_mm: [80.0, 22.0, 2.0]
+  interface: m2
+  pcie_lanes: 1
+  pcie_gen: "2.0"
+
+target_applications:
+  - object_detection
+  - image_classification
+  - keyword_spotting
+  - pose_estimation
+
+launch_date: "2019-01-01"
+msrp_usd: 59.99
+datasheet_url: https://coral.ai/products/accelerator-module/
+last_updated: "2026-01-02"

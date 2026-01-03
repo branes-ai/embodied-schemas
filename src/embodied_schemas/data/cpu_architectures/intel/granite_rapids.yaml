@@ -1,0 +1,53 @@
+# Intel Granite Rapids CPU Architecture
+# Xeon 6 P-core server processors (6900P series)
+
+id: intel_granite_rapids
+name: Granite Rapids
+vendor: intel
+codename: Granite Rapids
+
+process_node: intel_3
+process_nm: 5
+
+launch_year: 2024
+predecessor: intel_emerald_rapids
+successor: null
+
+target_markets:
+  - datacenter
+
+key_features:
+  - "Up to 128 P-cores per socket"
+  - "8-channel DDR5-6400 memory"
+  - "Up to 504MB L3 cache"
+  - "CXL 2.0 support"
+  - "PCIe 5.0 x80 lanes"
+  - "Intel AMX with BF16/INT8/FP16"
+  - "Performance-optimized for AI/HPC workloads"
+
+is_hybrid: false
+max_cores: 128
+max_threads: 256
+
+l1_data_kb: 48
+l1_inst_kb: 32
+l2_per_core_mb: 2.0
+l3_per_core_mb: 3.9  # ~504MB / 128 cores
+
+new_instructions:
+  - "AMX-FP16"
+  - "AVX-512 FP16"
+  - "CXL 2.0"
+
+ipc_improvement_pct: 20
+single_thread_improvement_pct: 10
+
+memory_types:
+  - DDR5
+
+max_memory_channels: 8
+
+socket_types:
+  - lga4710
+
+pcie_version: "5.0"

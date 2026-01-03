@@ -1,0 +1,70 @@
+# Qualcomm Hexagon NPU (Snapdragon 8 Gen 3)
+# High-performance mobile AI accelerator
+
+id: qualcomm_hexagon_gen3
+name: Qualcomm Hexagon NPU (Gen 3)
+vendor: qualcomm
+npu_type: integrated
+generation: "3"
+
+compute:
+  peak_tops_int8: 45.0
+  peak_tops_int4: 73.0
+  peak_tflops_fp16: 22.5
+  supported_dtypes:
+    - int4
+    - int8
+    - fp16
+  sparse_support: true
+  sparse_speedup: 2.0
+
+memory:
+  sram_mb: 12.0
+  uses_host_memory: true
+
+power:
+  tdp_watts: 8.0
+  typical_power_watts: 4.0
+  tops_per_watt: 5.6
+
+software:
+  sdk_name: Qualcomm AI Engine Direct
+  compiler_name: QNN
+  supported_frameworks:
+    - TensorFlow
+    - TensorFlow Lite
+    - PyTorch
+    - ONNX
+    - Keras
+  native_format: ".dlc"
+  supported_formats:
+    - ".onnx"
+    - ".tflite"
+    - ".pt"
+  supported_ops:
+    - Conv2D
+    - DepthwiseConv2D
+    - TransformerBlock
+    - MultiHeadAttention
+    - LayerNorm
+    - GELU
+    - Softmax
+    - MatMul
+    - BatchNorm
+
+physical:
+  form_factor: chip
+  interface: internal
+
+target_applications:
+  - generative_ai
+  - llm_inference
+  - image_generation
+  - object_detection
+  - face_recognition
+  - speech_recognition
+  - natural_language_processing
+
+launch_date: "2023-10-24"
+datasheet_url: https://www.qualcomm.com/products/mobile/snapdragon/smartphones/snapdragon-8-series-mobile-platforms/snapdragon-8-gen-3-mobile-platform
+last_updated: "2026-01-02"
