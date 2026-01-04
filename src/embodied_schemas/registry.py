@@ -14,7 +14,8 @@ from embodied_schemas.sensors import SensorEntry
 from embodied_schemas.usecases import UseCaseEntry
 from embodied_schemas.benchmarks import BenchmarkResult
 from embodied_schemas.gpu import GPUEntry, GPUArchitectureSummary
-from embodied_schemas.cpu import CPUEntry
+from embodied_schemas.cpu import CPUEntry, CPUArchitectureSummary
+from embodied_schemas.npu import NPUEntry
 from embodied_schemas.operators import OperatorEntry
 from embodied_schemas.architectures import SoftwareArchitecture
 from embodied_schemas.loaders import (
@@ -28,6 +29,8 @@ from embodied_schemas.loaders import (
     load_gpus,
     load_gpu_architectures,
     load_cpus,
+    load_cpu_architectures,
+    load_npus,
     load_operators,
     load_architectures,
 )
@@ -167,6 +170,8 @@ class Registry:
     gpus: CatalogView = field(default_factory=CatalogView)
     gpu_architectures: CatalogView = field(default_factory=CatalogView)
     cpus: CatalogView = field(default_factory=CatalogView)
+    cpu_architectures: CatalogView = field(default_factory=CatalogView)
+    npus: CatalogView = field(default_factory=CatalogView)
     operators: CatalogView = field(default_factory=CatalogView)
     architectures: CatalogView = field(default_factory=CatalogView)
 
@@ -194,6 +199,8 @@ class Registry:
         registry.gpus = CatalogView(_entries=load_gpus(data_dir))
         registry.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
         registry.cpus = CatalogView(_entries=load_cpus(data_dir))
+        registry.cpu_architectures = CatalogView(_entries=load_cpu_architectures(data_dir))
+        registry.npus = CatalogView(_entries=load_npus(data_dir))
         registry.operators = CatalogView(_entries=load_operators(data_dir))
         registry.architectures = CatalogView(_entries=load_architectures(data_dir))
 
@@ -211,6 +218,8 @@ class Registry:
         self.gpus = CatalogView(_entries=load_gpus(data_dir))
         self.gpu_architectures = CatalogView(_entries=load_gpu_architectures(data_dir))
         self.cpus = CatalogView(_entries=load_cpus(data_dir))
+        self.cpu_architectures = CatalogView(_entries=load_cpu_architectures(data_dir))
+        self.npus = CatalogView(_entries=load_npus(data_dir))
         self.operators = CatalogView(_entries=load_operators(data_dir))
         self.architectures = CatalogView(_entries=load_architectures(data_dir))
 
@@ -367,6 +376,8 @@ class Registry:
             "gpus": len(self.gpus),
             "gpu_architectures": len(self.gpu_architectures),
             "cpus": len(self.cpus),
+            "cpu_architectures": len(self.cpu_architectures),
+            "npus": len(self.npus),
             "operators": len(self.operators),
             "architectures": len(self.architectures),
         }
@@ -540,3 +551,117 @@ class Registry:
         """
         return [arch for arch in self.architectures
                 if arch.platform_type == platform_type]
+
+    # =========================================================================
+    # NPU Query Methods
+    # =========================================================================
+
+    def get_npus_by_vendor(self, vendor: str) -> list[NPUEntry]:
+        """Get all NPUs from a specific vendor.
+
+        Args:
+            vendor: Vendor name (hailo, google, intel, qualcomm, etc.)
+
+        Returns:
+            List of NPUEntry instances from that vendor
+        """
+        return self.npus.find(vendor=vendor)
+
+    def get_npus_by_type(self, npu_type: str) -> list[NPUEntry]:
+        """Get all NPUs of a specific type.
+
+        Args:
+            npu_type: NPU type (discrete, integrated, datacenter, embedded)
+
+        Returns:
+            List of NPUEntry instances of that type
+        """
+        return [npu for npu in self.npus if npu.npu_type.value == npu_type]
+
+    def get_npus_by_tops_range(
+        self, min_tops: float = 0, max_tops: float = float("inf")
+    ) -> list[NPUEntry]:
+        """Get all NPUs within a TOPS performance range.
+
+        Args:
+            min_tops: Minimum INT8 TOPS (inclusive)
+            max_tops: Maximum INT8 TOPS (inclusive)
+
+        Returns:
+            List of NPUEntry instances within the range
+        """
+        return [
+            npu for npu in self.npus
+            if min_tops <= npu.compute.peak_tops_int8 <= max_tops
+        ]
+
+    def get_npus_by_efficiency(self, min_tops_per_watt: float) -> list[NPUEntry]:
+        """Get all NPUs meeting a minimum efficiency threshold.
+
+        Args:
+            min_tops_per_watt: Minimum TOPS/watt efficiency
+
+        Returns:
+            List of NPUEntry instances meeting the threshold
+        """
+        return [
+            npu for npu in self.npus
+            if npu.efficiency_tops_per_watt is not None
+            and npu.efficiency_tops_per_watt >= min_tops_per_watt
+        ]
+
+    # =========================================================================
+    # CPU Architecture Query Methods
+    # =========================================================================
+
+    def get_cpu_architectures_by_vendor(self, vendor: str) -> list[CPUArchitectureSummary]:
+        """Get all CPU architectures from a specific vendor.
+
+        Args:
+            vendor: Vendor name (intel, amd, arm, etc.)
+
+        Returns:
+            List of CPUArchitectureSummary instances from that vendor
+        """
+        return self.cpu_architectures.find(vendor=vendor)
+
+    def get_cpu_architecture_for_cpu(self, cpu_id: str) -> CPUArchitectureSummary | None:
+        """Get the architecture summary for a CPU.
+
+        Args:
+            cpu_id: ID of the CPU entry
+
+        Returns:
+            CPUArchitectureSummary if found, None otherwise
+        """
+        cpu = self.cpus.get(cpu_id)
+        if not cpu:
+            return None
+
+        # Match by architecture enum value
+        arch_value = cpu.architecture.value
+        for arch in self.cpu_architectures:
+            if arch_value in arch.id:
+                return arch
+        return None
+
+    def get_cpus_for_architecture(self, arch_id: str) -> list[CPUEntry]:
+        """Get all CPUs using a specific architecture.
+
+        Args:
+            arch_id: ID of the CPU architecture summary
+
+        Returns:
+            List of CPUEntry instances using that architecture
+        """
+        arch = self.cpu_architectures.get(arch_id)
+        if not arch:
+            return []
+
+        # Extract architecture key from ID (e.g., 'intel_raptor_lake' -> 'raptor_lake')
+        arch_key = arch_id.split("_", 1)[-1] if "_" in arch_id else arch_id
+
+        return [
+            cpu for cpu in self.cpus
+            if cpu.architecture.value == arch_key
+        ]

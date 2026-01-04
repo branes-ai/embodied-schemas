@@ -8,32 +8,32 @@ Hardware data is intentionally split across two repositories with complementary 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         Hardware Data Architecture                       │
+│                        Hardware Data Architecture                       │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │   embodied-schemas                    graphs/hardware_registry          │
 │   (Datasheet Facts)                   (Analysis Parameters)             │
 │                                                                         │
-│   ┌─────────────────────┐            ┌─────────────────────┐           │
-│   │ • Vendor specs      │            │ • ops_per_clock     │           │
-│   │ • Physical specs    │            │ • Calibration data  │           │
-│   │ • Market info       │            │ • Measured perf     │           │
-│   │ • Pydantic schemas  │            │ • Roofline params   │           │
-│   └──────────┬──────────┘            └──────────┬──────────┘           │
+│   ┌─────────────────────┐            ┌─────────────────────┐            │
+│   │ • Vendor specs      │            │ • ops_per_clock     │            │
+│   │ • Physical specs    │            │ • Calibration data  │            │
+│   │ • Market info       │            │ • Measured perf     │            │
+│   │ • Pydantic schemas  │            │ • Roofline params   │            │
+│   └──────────┬──────────┘            └──────────┬──────────┘            │
 │              │                                  │                       │
 │              │    ┌─────────────────────────────┘                       │
 │              │    │                                                     │
 │              ▼    ▼                                                     │
-│         ┌─────────────────────┐                                        │
-│         │  graphs/adapters/   │                                        │
-│         │ convert_to_pydantic │                                        │
-│         └──────────┬──────────┘                                        │
+│         ┌─────────────────────┐                                         │
+│         │  graphs/adapters/   │                                         │
+│         │ convert_to_pydantic │                                         │
+│         └──────────┬──────────┘                                         │
 │                    │                                                    │
 │                    ▼                                                    │
-│         ┌─────────────────────┐                                        │
-│         │ embodied-ai-architect│                                        │
-│         │ (LLM tools, verdicts)│                                        │
-│         └─────────────────────┘                                        │
+│         ┌───────────────────────┐                                       │
+│         │ embodied-ai-architect │                                       │
+│         │ (LLM tools, verdicts) │                                       │
+│         └───────────────────────┘                                       │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
