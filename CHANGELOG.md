@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-03
+
+### Added
+
+#### CPU Architecture Summaries (`CPUArchitectureSummary`)
+
+New schema for modeling CPU microarchitecture families, similar to `GPUArchitectureSummary`:
+- Fields: process node, launch year, predecessor/successor, key features, IPC improvements
+- Cache architecture, instruction extensions, memory support, socket compatibility
+
+**Data (6 architectures)**:
+- Intel: Raptor Lake (2022), Arrow Lake (2024), Granite Rapids (2024)
+- AMD: Zen 4 (2022), Zen 5 (2024)
+- ARM: Neoverse V2 (2023)
+
+#### NPU/AI Accelerator Schema (`npu.py`)
+
+New module for dedicated neural processing units and AI accelerators:
+- `NPUEntry` - Complete accelerator specification
+- `ComputeSpec` - TOPS, MAC units, supported data types, sparsity
+- `MemorySpec` - SRAM, external memory, host memory usage
+- `PowerSpec` - TDP, efficiency (TOPS/watt)
+- `SoftwareSpec` - SDK, frameworks, supported operators
+- `PhysicalSpec` - Form factor, interface (M.2, PCIe, USB, integrated)
+- Enums: `NPUVendor`, `NPUType`, `NPUInterface`, `DataType`
+
+**Data (4 NPUs)**:
+| NPU | Vendor | TOPS | Efficiency |
+|-----|--------|------|------------|
+| Hailo-8 | Hailo | 26 | 10.4 TOPS/W |
+| Hexagon Gen 3 | Qualcomm | 45 | 5.6 TOPS/W |
+| Coral Edge TPU | Google | 4 | 2.0 TOPS/W |
+| Intel NPU (Meteor Lake) | Intel | 10 | 1.7 TOPS/W |
+
+#### Registry Query Methods
+
+**NPU queries**:
+- `get_npus_by_vendor()` - Filter by vendor
+- `get_npus_by_type()` - Filter by type (discrete, integrated, datacenter)
+- `get_npus_by_tops_range()` - Filter by performance range
+- `get_npus_by_efficiency()` - Filter by minimum TOPS/watt
+
+**CPU architecture queries**:
+- `get_cpu_architectures_by_vendor()` - Filter by vendor
+- `get_cpu_architecture_for_cpu()` - Get architecture for a CPU
+- `get_cpus_for_architecture()` - Get CPUs using an architecture
+
+### Changed
+
+- Registry now includes `cpu_architectures` and `npus` CatalogViews
+- `summary()` includes counts for new catalogs
+- Updated loaders with `load_cpu_architectures()` and `load_npus()`
+- Updated `__init__.py` exports with all new types
+
 ## [0.4.1] - 2026-01-02
 
 ### Added
