@@ -135,6 +135,20 @@ from embodied_schemas.architectures import (
     EXECUTION_TARGET_INFO,
     architecture_to_mermaid,
 )
+from embodied_schemas.mission import (
+    CapabilityTierEntry,
+    CapabilityTierName,
+    MissionProfileEntry,
+    BatteryEntry,
+    BatteryChemistry,
+    SubsystemType,
+    CoolingType,
+    ThermalConstraints,
+    FormFactorConstraints,
+    PowerAllocation,
+    DutyCycle,
+    OperatingTemperatureRange,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -150,9 +164,12 @@ from embodied_schemas.loaders import (
     load_benchmarks,
     load_operators,
     load_architectures,
+    load_capability_tiers,
+    load_mission_profiles,
+    load_batteries,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.6.0"
 
 __all__ = [
     # Hardware
@@ -275,6 +292,19 @@ __all__ = [
     "ExecutionTarget",
     "EXECUTION_TARGET_INFO",
     "architecture_to_mermaid",
+    # Mission / Capability Tiers
+    "CapabilityTierEntry",
+    "CapabilityTierName",
+    "MissionProfileEntry",
+    "BatteryEntry",
+    "BatteryChemistry",
+    "SubsystemType",
+    "CoolingType",
+    "ThermalConstraints",
+    "FormFactorConstraints",
+    "PowerAllocation",
+    "DutyCycle",
+    "OperatingTemperatureRange",
     # Loaders
     "load_gpus",
     "load_gpu_architectures",
@@ -289,6 +319,9 @@ __all__ = [
     "load_benchmarks",
     "load_operators",
     "load_architectures",
+    "load_capability_tiers",
+    "load_mission_profiles",
+    "load_batteries",
     # Version
     "__version__",
 ]

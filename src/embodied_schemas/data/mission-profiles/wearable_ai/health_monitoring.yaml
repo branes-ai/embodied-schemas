@@ -1,0 +1,31 @@
+id: health_monitoring
+name: health-monitoring
+display_name: Health Monitoring
+tier: wearable_ai
+description: >
+  Continuous health monitoring with periodic inference.
+  Optimized for all-day battery life with minimal active inference.
+typical_duration_hours: 16.0
+
+perception_duty:
+  active_ratio: 0.1
+  peak_ratio: 0.05
+  description: Periodic sensor sampling
+
+control_duty:
+  active_ratio: 0.05
+  peak_ratio: 0.1
+  description: Alert processing
+
+movement_duty:
+  active_ratio: 0.02
+  peak_ratio: 0.5
+  description: Haptic feedback
+
+environment: body-worn
+constraints:
+  - skin-safe temperature
+  - all-day battery
+  - water resistant
+
+last_updated: "2026-01-18"

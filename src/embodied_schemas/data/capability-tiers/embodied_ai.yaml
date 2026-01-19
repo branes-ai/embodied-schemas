@@ -1,0 +1,49 @@
+id: embodied_ai
+name: embodied_ai
+display_name: Embodied AI
+power_min_w: 30.0
+power_max_w: 100.0
+description: >
+  High-capability embodied AI systems including legged robots and humanoids.
+  Requires sophisticated perception, world modeling, and real-time control
+  with significant compute for dynamic movement and environmental interaction.
+
+typical_applications:
+  - Quadruped robots (Boston Dynamics Spot-class)
+  - Humanoid robots
+  - Advanced manipulation platforms
+  - Search and rescue robots
+  - Complex world-model simulation
+
+example_platforms:
+  - Jetson Orin AGX (64GB)
+  - Jetson Thor
+  - Multiple Jetson Orin NX in cluster
+  - AMD Ryzen Embedded + Radeon
+  - Intel Core Ultra + Arc
+
+thermal:
+  max_ambient_temp_c: 40.0
+  max_junction_temp_c: 100.0
+  typical_cooling: active_fan
+  sustained_power_derating: 0.80
+
+form_factor:
+  max_compute_weight_kg: 2.0
+  max_compute_volume_cm3: 2000.0
+  max_total_system_weight_kg: 100.0
+  typical_form_factors:
+    - quadruped
+    - humanoid
+    - manipulation-platform
+
+typical_mission_hours: [1.0, 8.0]
+typical_battery_wh_per_kg: 160.0
+
+typical_allocation:
+  perception: 0.30
+  control: 0.25
+  movement: 0.35
+  overhead: 0.10
+
+last_updated: "2026-01-18"

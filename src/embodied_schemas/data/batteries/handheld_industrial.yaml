@@ -1,0 +1,19 @@
+id: handheld_industrial
+name: handheld-industrial
+chemistry: li_ion
+capacity_wh: 40.0
+voltage_nominal: 10.8  # 3S Li-ion
+weight_kg: 0.30
+volume_cm3: 120.0
+max_discharge_rate_c: 2.0
+peak_discharge_rate_c: 5.0
+cycle_life: 500
+
+operating_temp:
+  min_c: -20.0
+  max_c: 60.0
+
+typical_tier: micro_autonomy
+description: Industrial handheld battery pack
+
+last_updated: "2026-01-18"

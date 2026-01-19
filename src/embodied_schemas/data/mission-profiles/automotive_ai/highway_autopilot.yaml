@@ -1,0 +1,31 @@
+id: highway_autopilot
+name: highway-autopilot
+display_name: Highway Autopilot (L3)
+tier: automotive_ai
+description: >
+  Highway driving with driver supervision.
+  Continuous 360-degree perception with functional safety requirements.
+typical_duration_hours: 4.0
+
+perception_duty:
+  active_ratio: 1.0
+  peak_ratio: 0.3
+  description: Continuous 360-degree perception
+
+control_duty:
+  active_ratio: 1.0
+  peak_ratio: 0.2
+  description: Path planning + vehicle control
+
+movement_duty:
+  active_ratio: 0.1
+  peak_ratio: 0.5
+  description: Steering/braking assist
+
+environment: highway
+constraints:
+  - functional safety
+  - weather conditions
+  - driver handoff
+
+last_updated: "2026-01-18"

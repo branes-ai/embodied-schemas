@@ -1,0 +1,19 @@
+id: wearable_small
+name: wearable-small
+chemistry: lipo
+capacity_wh: 1.5
+voltage_nominal: 3.7
+weight_kg: 0.010
+volume_cm3: 3.0
+max_discharge_rate_c: 1.0
+peak_discharge_rate_c: 2.0
+cycle_life: 500
+
+operating_temp:
+  min_c: 0.0
+  max_c: 45.0
+
+typical_tier: wearable_ai
+description: Smartwatch class battery (400mAh)
+
+last_updated: "2026-01-18"

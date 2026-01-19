@@ -1,0 +1,34 @@
+id: warehouse_amr
+name: warehouse-amr
+display_name: Warehouse AMR
+tier: industrial_edge
+description: >
+  Autonomous mobile robot for warehouse goods transport.
+  Continuous SLAM and obstacle detection with shift-based operation.
+typical_duration_hours: 8.0
+
+perception_duty:
+  active_ratio: 0.8
+  peak_ratio: 0.2
+  description: Continuous SLAM + obstacle detection
+
+control_duty:
+  active_ratio: 0.7
+  peak_ratio: 0.3
+  description: Path planning + fleet coordination
+
+movement_duty:
+  active_ratio: 0.6
+  peak_ratio: 0.2
+  description: Transit with loading stops
+
+peak_movement_power_w: 40.0
+cruise_movement_power_w: 20.0
+
+environment: indoor-warehouse
+constraints:
+  - 24/7 operation
+  - fleet management
+  - charging infrastructure
+
+last_updated: "2026-01-18"

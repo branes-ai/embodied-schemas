@@ -1,0 +1,19 @@
+id: amr_large
+name: amr-large
+chemistry: lifepo4
+capacity_wh: 1200.0
+voltage_nominal: 51.2  # 16S LiFePO4
+weight_kg: 12.0
+volume_cm3: 6000.0
+max_discharge_rate_c: 1.0
+peak_discharge_rate_c: 2.0
+cycle_life: 3000
+
+operating_temp:
+  min_c: -20.0
+  max_c: 55.0
+
+typical_tier: industrial_edge
+description: Large AMR battery (24Ah LiFePO4)
+
+last_updated: "2026-01-18"

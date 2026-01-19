@@ -1,0 +1,37 @@
+id: drone_inspection
+name: drone-inspection
+display_name: Drone Inspection
+tier: micro_autonomy
+description: >
+  Aerial inspection with high-resolution imaging and defect detection.
+  Requires continuous perception during flight with frequent inference
+  for defect detection.
+typical_duration_hours: 0.5
+
+perception_duty:
+  active_ratio: 0.9
+  peak_ratio: 0.4
+  description: Continuous high-res capture + inference
+
+control_duty:
+  active_ratio: 0.8
+  peak_ratio: 0.3
+  description: Flight control + path planning
+
+movement_duty:
+  active_ratio: 0.7
+  peak_ratio: 0.3
+  description: Flight with hover periods
+
+peak_perception_power_w: 6.0
+cruise_perception_power_w: 4.0
+peak_movement_power_w: 15.0
+cruise_movement_power_w: 8.0
+
+environment: outdoor
+constraints:
+  - wind resistance
+  - GPS availability
+  - return-to-home reserve
+
+last_updated: "2026-01-18"

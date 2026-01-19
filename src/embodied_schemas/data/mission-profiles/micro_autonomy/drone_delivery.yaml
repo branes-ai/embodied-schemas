@@ -1,0 +1,34 @@
+id: drone_delivery
+name: drone-delivery
+display_name: Drone Delivery
+tier: micro_autonomy
+description: >
+  Point-to-point delivery with obstacle avoidance.
+  Optimized for range with navigation-focused perception.
+typical_duration_hours: 0.75
+
+perception_duty:
+  active_ratio: 0.7
+  peak_ratio: 0.2
+  description: Navigation + obstacle detection
+
+control_duty:
+  active_ratio: 0.6
+  peak_ratio: 0.2
+  description: Path planning
+
+movement_duty:
+  active_ratio: 0.85
+  peak_ratio: 0.4
+  description: Transit flight + landing
+
+peak_movement_power_w: 20.0
+cruise_movement_power_w: 12.0
+
+environment: outdoor-urban
+constraints:
+  - payload capacity
+  - range requirement
+  - landing precision
+
+last_updated: "2026-01-18"
