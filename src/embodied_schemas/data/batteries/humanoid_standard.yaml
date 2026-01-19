@@ -1,0 +1,19 @@
+id: humanoid_standard
+name: humanoid-standard
+chemistry: li_ion
+capacity_wh: 2000.0
+voltage_nominal: 48.0
+weight_kg: 14.0
+volume_cm3: 9000.0
+max_discharge_rate_c: 2.0
+peak_discharge_rate_c: 4.0
+cycle_life: 500
+
+operating_temp:
+  min_c: -10.0
+  max_c: 45.0
+
+typical_tier: embodied_ai
+description: Humanoid robot battery system
+
+last_updated: "2026-01-18"

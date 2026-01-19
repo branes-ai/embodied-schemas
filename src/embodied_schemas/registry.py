@@ -18,6 +18,12 @@ from embodied_schemas.cpu import CPUEntry, CPUArchitectureSummary
 from embodied_schemas.npu import NPUEntry
 from embodied_schemas.operators import OperatorEntry
 from embodied_schemas.architectures import SoftwareArchitecture
+from embodied_schemas.mission import (
+    CapabilityTierEntry,
+    MissionProfileEntry,
+    BatteryEntry,
+    CapabilityTierName,
+)
 from embodied_schemas.loaders import (
     get_data_dir,
     load_hardware,
@@ -33,6 +39,9 @@ from embodied_schemas.loaders import (
     load_npus,
     load_operators,
     load_architectures,
+    load_capability_tiers,
+    load_mission_profiles,
+    load_batteries,
 )
 
 
@@ -174,6 +183,9 @@ class Registry:
     npus: CatalogView = field(default_factory=CatalogView)
     operators: CatalogView = field(default_factory=CatalogView)
     architectures: CatalogView = field(default_factory=CatalogView)
+    capability_tiers: CatalogView = field(default_factory=CatalogView)
+    mission_profiles: CatalogView = field(default_factory=CatalogView)
+    batteries: CatalogView = field(default_factory=CatalogView)
 
     _data_dir: Path | None = None
 
@@ -203,6 +215,9 @@ class Registry:
         registry.npus = CatalogView(_entries=load_npus(data_dir))
         registry.operators = CatalogView(_entries=load_operators(data_dir))
         registry.architectures = CatalogView(_entries=load_architectures(data_dir))
+        registry.capability_tiers = CatalogView(_entries=load_capability_tiers(data_dir))
+        registry.mission_profiles = CatalogView(_entries=load_mission_profiles(data_dir))
+        registry.batteries = CatalogView(_entries=load_batteries(data_dir))
 
         return registry
 
@@ -222,6 +237,9 @@ class Registry:
         self.npus = CatalogView(_entries=load_npus(data_dir))
         self.operators = CatalogView(_entries=load_operators(data_dir))
         self.architectures = CatalogView(_entries=load_architectures(data_dir))
+        self.capability_tiers = CatalogView(_entries=load_capability_tiers(data_dir))
+        self.mission_profiles = CatalogView(_entries=load_mission_profiles(data_dir))
+        self.batteries = CatalogView(_entries=load_batteries(data_dir))
 
     def get_compatible_hardware(self, model_id: str) -> list[HardwareEntry]:
         """Get hardware compatible with a given model.
@@ -380,6 +398,9 @@ class Registry:
             "npus": len(self.npus),
             "operators": len(self.operators),
             "architectures": len(self.architectures),
+            "capability_tiers": len(self.capability_tiers),
+            "mission_profiles": len(self.mission_profiles),
+            "batteries": len(self.batteries),
         }
 
     def get_gpus_by_vendor(self, vendor: str) -> list[GPUEntry]:
@@ -665,3 +686,119 @@ class Registry:
             cpu for cpu in self.cpus
             if cpu.architecture.value == arch_key
         ]
+
+    # =========================================================================
+    # Capability Tier Query Methods
+    # =========================================================================
+
+    def get_tier_for_power(self, power_w: float) -> CapabilityTierEntry | None:
+        """Find the capability tier that contains a given power level.
+
+        Args:
+            power_w: Power in watts
+
+        Returns:
+            CapabilityTierEntry that contains this power level, or None
+        """
+        # Sort by power_min_w to iterate in order
+        sorted_tiers = sorted(self.capability_tiers.values(), key=lambda t: t.power_min_w)
+        for tier in sorted_tiers:
+            if tier.contains_power(power_w):
+                return tier
+        return None
+
+    def get_profiles_for_tier(self, tier_name: str | CapabilityTierName) -> list[MissionProfileEntry]:
+        """Get all mission profiles for a capability tier.
+
+        Args:
+            tier_name: Tier name (string or enum)
+
+        Returns:
+            List of MissionProfileEntry instances for that tier
+        """
+        if isinstance(tier_name, str):
+            try:
+                tier_name = CapabilityTierName(tier_name)
+            except ValueError:
+                return []
+
+        return [
+            profile for profile in self.mission_profiles
+            if profile.tier == tier_name
+        ]
+
+    def get_batteries_for_tier(self, tier_name: str | CapabilityTierName) -> list[BatteryEntry]:
+        """Get all batteries suitable for a capability tier.
+
+        Args:
+            tier_name: Tier name (string or enum)
+
+        Returns:
+            List of BatteryEntry instances for that tier
+        """
+        if isinstance(tier_name, str):
+            try:
+                tier_name = CapabilityTierName(tier_name)
+            except ValueError:
+                return []
+
+        return [
+            battery for battery in self.batteries
+            if battery.typical_tier == tier_name
+        ]
+
+    def find_batteries_for_mission(
+        self,
+        mission_hours: float,
+        average_power_w: float,
+        tier: CapabilityTierName | str | None = None,
+        max_weight_kg: float | None = None,
+        safety_margin: float = 0.9,
+    ) -> list[BatteryEntry]:
+        """Find batteries that can support a mission.
+
+        Args:
+            mission_hours: Required mission duration in hours
+            average_power_w: Average power consumption in watts
+            tier: Optional capability tier filter
+            max_weight_kg: Optional maximum weight constraint
+            safety_margin: Usable capacity fraction (default 0.9)
+
+        Returns:
+            List of suitable battery configurations, sorted by weight
+        """
+        required_wh = (mission_hours * average_power_w) / safety_margin
+
+        # Convert tier to enum if needed
+        tier_enum: CapabilityTierName | None = None
+        if tier is not None:
+            if isinstance(tier, str):
+                try:
+                    tier_enum = CapabilityTierName(tier)
+                except ValueError:
+                    return []
+            else:
+                tier_enum = tier
+
+        candidates = []
+        for battery in self.batteries:
+            # Check capacity
+            if battery.capacity_wh < required_wh:
+                continue
+
+            # Check tier if specified
+            if tier_enum is not None and battery.typical_tier != tier_enum:
+                continue
+
+            # Check weight if specified
+            if max_weight_kg is not None and battery.weight_kg > max_weight_kg:
+                continue
+
+            # Check power capability
+            if not battery.can_support_power(average_power_w, continuous=True):
+                continue
+
+            candidates.append(battery)
+
+        # Sort by weight (lighter first)
+        return sorted(candidates, key=lambda b: b.weight_kg)

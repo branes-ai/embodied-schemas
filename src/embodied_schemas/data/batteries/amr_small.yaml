@@ -1,0 +1,19 @@
+id: amr_small
+name: amr-small
+chemistry: lifepo4
+capacity_wh: 500.0
+voltage_nominal: 25.6  # 8S LiFePO4
+weight_kg: 4.5
+volume_cm3: 2500.0
+max_discharge_rate_c: 1.0
+peak_discharge_rate_c: 3.0
+cycle_life: 2000
+
+operating_temp:
+  min_c: -20.0
+  max_c: 55.0
+
+typical_tier: industrial_edge
+description: Small AMR battery (20Ah LiFePO4)
+
+last_updated: "2026-01-18"

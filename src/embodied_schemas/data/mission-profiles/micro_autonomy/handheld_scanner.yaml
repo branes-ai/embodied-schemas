@@ -1,0 +1,31 @@
+id: handheld_scanner
+name: handheld-scanner
+display_name: Handheld Industrial Scanner
+tier: micro_autonomy
+description: >
+  Handheld device for barcode/defect scanning with AR overlay.
+  On-demand inference with shift-length battery requirement.
+typical_duration_hours: 8.0
+
+perception_duty:
+  active_ratio: 0.3
+  peak_ratio: 0.5
+  description: On-demand scanning
+
+control_duty:
+  active_ratio: 0.2
+  peak_ratio: 0.3
+  description: Processing + display
+
+movement_duty:
+  active_ratio: 0.0
+  peak_ratio: 0.0
+  description: Handheld - no movement
+
+environment: indoor-industrial
+constraints:
+  - shift-length battery
+  - drop resistance
+  - glove operation
+
+last_updated: "2026-01-18"

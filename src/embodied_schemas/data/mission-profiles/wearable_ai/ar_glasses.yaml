@@ -1,0 +1,31 @@
+id: ar_glasses
+name: ar-glasses
+display_name: AR Glasses Assistant
+tier: wearable_ai
+description: >
+  Augmented reality with visual recognition and display.
+  Requires continuous camera input with moderate inference load.
+typical_duration_hours: 4.0
+
+perception_duty:
+  active_ratio: 0.6
+  peak_ratio: 0.3
+  description: Continuous camera + eye tracking
+
+control_duty:
+  active_ratio: 0.4
+  peak_ratio: 0.2
+  description: Scene understanding
+
+movement_duty:
+  active_ratio: 0.8
+  peak_ratio: 0.1
+  description: Display rendering
+
+environment: indoor/outdoor
+constraints:
+  - head-mounted weight
+  - thermal comfort
+  - display power
+
+last_updated: "2026-01-18"

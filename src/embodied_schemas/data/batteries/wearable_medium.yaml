@@ -1,0 +1,19 @@
+id: wearable_medium
+name: wearable-medium
+chemistry: lipo
+capacity_wh: 4.0
+voltage_nominal: 3.7
+weight_kg: 0.025
+volume_cm3: 8.0
+max_discharge_rate_c: 1.0
+peak_discharge_rate_c: 2.0
+cycle_life: 500
+
+operating_temp:
+  min_c: 0.0
+  max_c: 45.0
+
+typical_tier: wearable_ai
+description: AR glasses class battery (1000mAh)
+
+last_updated: "2026-01-18"

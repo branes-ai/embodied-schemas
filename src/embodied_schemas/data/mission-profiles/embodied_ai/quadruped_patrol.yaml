@@ -1,0 +1,34 @@
+id: quadruped_patrol
+name: quadruped-patrol
+display_name: Quadruped Security Patrol
+tier: embodied_ai
+description: >
+  Legged robot for facility patrol and inspection.
+  Requires terrain traversal with surround perception.
+typical_duration_hours: 4.0
+
+perception_duty:
+  active_ratio: 0.85
+  peak_ratio: 0.3
+  description: Surround perception + anomaly detection
+
+control_duty:
+  active_ratio: 0.9
+  peak_ratio: 0.4
+  description: Locomotion control + navigation
+
+movement_duty:
+  active_ratio: 0.7
+  peak_ratio: 0.3
+  description: Walking with inspection stops
+
+peak_movement_power_w: 80.0
+cruise_movement_power_w: 40.0
+
+environment: indoor/outdoor
+constraints:
+  - terrain traversal
+  - stair climbing
+  - weather resistance
+
+last_updated: "2026-01-18"

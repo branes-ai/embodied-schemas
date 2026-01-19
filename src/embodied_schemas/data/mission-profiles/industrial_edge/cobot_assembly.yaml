@@ -1,0 +1,31 @@
+id: cobot_assembly
+name: cobot-assembly
+display_name: Collaborative Assembly Robot
+tier: industrial_edge
+description: >
+  Collaborative robot for assembly tasks alongside humans.
+  Continuous human detection with safety-critical requirements.
+typical_duration_hours: 8.0
+
+perception_duty:
+  active_ratio: 0.9
+  peak_ratio: 0.3
+  description: Human detection + part recognition
+
+control_duty:
+  active_ratio: 0.8
+  peak_ratio: 0.4
+  description: Motion planning + safety
+
+movement_duty:
+  active_ratio: 0.5
+  peak_ratio: 0.3
+  description: Arm movements with pauses
+
+environment: factory-floor
+constraints:
+  - human safety
+  - precision requirements
+  - cycle time
+
+last_updated: "2026-01-18"

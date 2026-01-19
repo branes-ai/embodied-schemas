@@ -1,0 +1,50 @@
+id: industrial_edge
+name: industrial_edge
+display_name: Industrial Edge
+power_min_w: 10.0
+power_max_w: 30.0
+description: >
+  Industrial-grade edge computing for continuous operation in factory and
+  warehouse environments. Emphasis on reliability, deterministic latency,
+  and integration with industrial control systems.
+
+typical_applications:
+  - Warehouse AMRs (Autonomous Mobile Robots)
+  - Collaborative robots (cobots)
+  - Automated sorting systems
+  - Quality inspection stations
+  - Inventory management robots
+
+example_platforms:
+  - Jetson Orin NX (8GB/16GB)
+  - Jetson Orin AGX (32GB)
+  - Hailo-8L PCIe
+  - Intel NUC with Arc GPU
+  - Qualcomm RB5
+
+thermal:
+  max_ambient_temp_c: 50.0
+  max_junction_temp_c: 95.0
+  typical_cooling: active_fan
+  sustained_power_derating: 0.85
+
+form_factor:
+  max_compute_weight_kg: 0.5
+  max_compute_volume_cm3: 500.0
+  max_total_system_weight_kg: 50.0
+  typical_form_factors:
+    - amr
+    - cobot
+    - rack-mount
+    - embedded-box
+
+typical_mission_hours: [4.0, 12.0]
+typical_battery_wh_per_kg: 150.0
+
+typical_allocation:
+  perception: 0.35
+  control: 0.25
+  movement: 0.30
+  overhead: 0.10
+
+last_updated: "2026-01-18"

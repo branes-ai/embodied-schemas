@@ -19,6 +19,7 @@ from embodied_schemas.cpu import CPUEntry, CPUArchitectureSummary
 from embodied_schemas.npu import NPUEntry
 from embodied_schemas.operators import OperatorEntry
 from embodied_schemas.architectures import SoftwareArchitecture
+from embodied_schemas.mission import CapabilityTierEntry, MissionProfileEntry, BatteryEntry
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -259,6 +260,45 @@ def load_architectures(data_dir: Path | None = None) -> dict[str, SoftwareArchit
     return load_all_from_directory(data_dir / "architectures", SoftwareArchitecture)
 
 
+def load_capability_tiers(data_dir: Path | None = None) -> dict[str, CapabilityTierEntry]:
+    """Load all capability tier entries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping tier IDs to CapabilityTierEntry instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "capability-tiers", CapabilityTierEntry)
+
+
+def load_mission_profiles(data_dir: Path | None = None) -> dict[str, MissionProfileEntry]:
+    """Load all mission profile entries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping profile IDs to MissionProfileEntry instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "mission-profiles", MissionProfileEntry)
+
+
+def load_batteries(data_dir: Path | None = None) -> dict[str, BatteryEntry]:
+    """Load all battery configuration entries from the catalog.
+
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data.
+
+    Returns:
+        Dictionary mapping battery IDs to BatteryEntry instances
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "batteries", BatteryEntry)
+
+
 def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
     """Validate all data files and return a list of errors.
 
@@ -283,6 +323,9 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("cpus", CPUEntry),
         ("operators", OperatorEntry),
         ("architectures", SoftwareArchitecture),
+        ("capability-tiers", CapabilityTierEntry),
+        ("mission-profiles", MissionProfileEntry),
+        ("batteries", BatteryEntry),
     ]
 
     for subdir, model_class in validations:

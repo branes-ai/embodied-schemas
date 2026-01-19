@@ -1,0 +1,31 @@
+id: urban_robotaxi
+name: urban-robotaxi
+display_name: Urban Robotaxi (L4)
+tier: automotive_ai
+description: >
+  Fully autonomous urban driving without driver.
+  Maximum perception and control for complex urban environments.
+typical_duration_hours: 10.0
+
+perception_duty:
+  active_ratio: 1.0
+  peak_ratio: 0.5
+  description: Maximum perception for complex urban
+
+control_duty:
+  active_ratio: 1.0
+  peak_ratio: 0.4
+  description: Complex decision making + prediction
+
+movement_duty:
+  active_ratio: 0.15
+  peak_ratio: 0.6
+  description: Active steering/braking
+
+environment: urban
+constraints:
+  - no driver backup
+  - pedestrian safety
+  - edge cases
+
+last_updated: "2026-01-18"

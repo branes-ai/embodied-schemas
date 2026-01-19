@@ -1,0 +1,50 @@
+id: micro_autonomy
+name: micro_autonomy
+display_name: Micro-Autonomy
+power_min_w: 1.0
+power_max_w: 10.0
+description: >
+  Small autonomous systems with significant weight and thermal constraints.
+  Typical use cases include aerial drones, handheld industrial devices, and
+  smart IoT sensors requiring real-time inference.
+
+typical_applications:
+  - Inspection drones
+  - Handheld barcode/defect scanners
+  - Smart security cameras
+  - Agricultural monitoring drones
+  - Delivery micro-drones
+
+example_platforms:
+  - Jetson Orin Nano (8GB)
+  - Hailo-8
+  - Intel Myriad X
+  - Google Coral Edge TPU
+  - Qualcomm QCS6490
+
+thermal:
+  max_ambient_temp_c: 45.0
+  max_junction_temp_c: 85.0
+  typical_cooling: passive
+  sustained_power_derating: 0.75
+
+form_factor:
+  max_compute_weight_kg: 0.1
+  max_compute_volume_cm3: 50.0
+  max_total_system_weight_kg: 2.0
+  typical_form_factors:
+    - drone
+    - handheld
+    - camera
+    - sensor-box
+
+typical_mission_hours: [0.5, 4.0]
+typical_battery_wh_per_kg: 180.0
+
+typical_allocation:
+  perception: 0.35
+  control: 0.20
+  movement: 0.35
+  overhead: 0.10
+
+last_updated: "2026-01-18"

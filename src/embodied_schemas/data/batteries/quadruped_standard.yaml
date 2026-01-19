@@ -1,0 +1,19 @@
+id: quadruped_standard
+name: quadruped-standard
+chemistry: li_ion
+capacity_wh: 800.0
+voltage_nominal: 48.0
+weight_kg: 6.0
+volume_cm3: 4000.0
+max_discharge_rate_c: 2.0
+peak_discharge_rate_c: 5.0
+cycle_life: 500
+
+operating_temp:
+  min_c: -10.0
+  max_c: 45.0
+
+typical_tier: embodied_ai
+description: Quadruped robot battery pack (Spot-class)
+
+last_updated: "2026-01-18"

@@ -1,0 +1,49 @@
+id: wearable_ai
+name: wearable_ai
+display_name: Wearable AI
+power_min_w: 0.1
+power_max_w: 1.0
+description: >
+  Ultra-low power wearable devices with severe thermal and battery constraints.
+  Requires aggressive model optimization (quantization, pruning) and often
+  relies on sensor fusion with minimal on-device inference.
+
+typical_applications:
+  - Smartwatches with health monitoring
+  - AR/VR glasses with eye tracking
+  - Hearing aids with noise cancellation
+  - Fitness trackers with activity recognition
+  - Smart rings with gesture detection
+
+example_platforms:
+  - Coral Micro (Edge TPU)
+  - MAX78000 (Analog Devices)
+  - GAP9 (GreenWaves)
+  - Syntiant NDP120
+
+thermal:
+  max_ambient_temp_c: 35.0
+  max_junction_temp_c: 70.0
+  typical_cooling: passive
+  sustained_power_derating: 0.9
+
+form_factor:
+  max_compute_weight_kg: 0.02
+  max_compute_volume_cm3: 5.0
+  max_total_system_weight_kg: 0.1
+  typical_form_factors:
+    - watch
+    - glasses
+    - earbuds
+    - ring
+
+typical_mission_hours: [8.0, 24.0]
+typical_battery_wh_per_kg: 200.0
+
+typical_allocation:
+  perception: 0.40
+  control: 0.20
+  movement: 0.20
+  overhead: 0.20
+
+last_updated: "2026-01-18"

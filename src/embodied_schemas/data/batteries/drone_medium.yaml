@@ -1,0 +1,19 @@
+id: drone_medium
+name: drone-medium
+chemistry: lipo
+capacity_wh: 100.0
+voltage_nominal: 22.2  # 6S LiPo
+weight_kg: 0.65
+volume_cm3: 280.0
+max_discharge_rate_c: 25.0
+peak_discharge_rate_c: 50.0
+cycle_life: 200
+
+operating_temp:
+  min_c: -10.0
+  max_c: 50.0
+
+typical_tier: micro_autonomy
+description: Medium drone battery (4500mAh 6S 25C)
+
+last_updated: "2026-01-18"
