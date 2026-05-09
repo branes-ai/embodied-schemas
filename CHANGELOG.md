@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **RFC 0001: Unified `ComputeProduct` Schema** (`docs/rfcs/0001-compute-product-unification.md`).
+  Surveys the four parallel category schemas in this repo (GPU / CPU / NPU /
+  Chip catalogs) and documents the coverage gap they create: `die_spec` is
+  populated on 22/22 GPU YAMLs but 0/52 across CPUs / NPUs / SoCs / Chips.
+  Proposes a single `ComputeProduct` schema with a discriminated `blocks`
+  union and a `contains` hierarchy so heterogeneous SoCs (CPU + GPU + NPU
+  in one package) can be modeled without forcing a primary-category
+  classification. Phased migration plan keeps the existing per-category
+  loaders working through the transition. Merged in PR #7
+  (commit `5a6e0f4`).
+
+### Issues opened
+
+- **#8** -- *YAML memory-bus-width bugs in two Jetson SKUs.* Caught by the
+  consumer-side bandwidth-math validator added to
+  `branes-ai/graphs#141`. Two YAMLs disagree with NVIDIA's published
+  bandwidth math `BW = bus_width / 8 * DRAM_rate`:
+  - **Jetson Thor 128GB** lists `memory_bus_width_bits: 512`. Math:
+    `273 GB/s / 8.533 GT/s LPDDR5X = 256 bits`. NVIDIA's Jetson Thor
+    announcement blog confirms 256-bit LPDDR5X.
+  - **Jetson Orin Nano 8GB** lists `memory_bus_width_bits: 64`. Math:
+    `68 GB/s / 4.267 GT/s LPDDR5-4267 = 128 bits`. NVIDIA's Orin Nano
+    datasheet specifies 128-bit.
+
+  Workaround in `graphs` is a `KNOWN_OVERRIDES` table in
+  `physical_spec_loader.py`; will retire automatically once these YAMLs
+  are corrected. The bandwidth-math invariant is a candidate for adoption
+  as a schema-level validator in this repo.
+
 ## [0.5.0] - 2026-01-03
 
 ### Added
