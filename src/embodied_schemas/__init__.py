@@ -149,6 +149,17 @@ from embodied_schemas.mission import (
     DutyCycle,
     OperatingTemperatureRange,
 )
+from embodied_schemas.process_node import (
+    ProcessNodeEntry,
+    LibraryDensity,
+    CircuitClass,
+    TransistorTopology,
+    DataConfidence,
+)
+from embodied_schemas.cooling_solution import (
+    CoolingSolutionEntry,
+    CoolingMechanism,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -167,6 +178,8 @@ from embodied_schemas.loaders import (
     load_capability_tiers,
     load_mission_profiles,
     load_batteries,
+    load_process_nodes,
+    load_cooling_solutions,
 )
 
 __version__ = "0.6.0"
@@ -305,6 +318,15 @@ __all__ = [
     "PowerAllocation",
     "DutyCycle",
     "OperatingTemperatureRange",
+    # Process Node (silicon fabrication catalog)
+    "ProcessNodeEntry",
+    "LibraryDensity",
+    "CircuitClass",
+    "TransistorTopology",
+    "DataConfidence",
+    # Cooling Solution (thermal removal catalog, peer of ProcessNode)
+    "CoolingSolutionEntry",
+    "CoolingMechanism",
     # Loaders
     "load_gpus",
     "load_gpu_architectures",
@@ -322,6 +344,8 @@ __all__ = [
     "load_capability_tiers",
     "load_mission_profiles",
     "load_batteries",
+    "load_process_nodes",
+    "load_cooling_solutions",
     # Version
     "__version__",
 ]

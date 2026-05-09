@@ -1,0 +1,115 @@
+# TSMC N16 (16FF/16FF+/16FFC) -- mainstream FinFET node from TSMC.
+# Public-estimate density figures. THEORETICAL confidence.
+# Replace with PDK-derived CALIBRATED entry when available.
+
+id: tsmc_n16
+foundry: tsmc
+node_name: N16
+node_nm: 16
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 0.8
+
+# Per-library densities (Mtx/mm^2). Sources:
+#   - Wikichip "16 nm lithography process"
+#   - TSMC ISSCC 2014/2015 disclosures
+#   - "TSMC 16FF+" press materials
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 22.0
+    library_name: "16FF+ HP"
+    confidence: theoretical
+    source: "Wikichip TSMC 16FF+ ISSCC 2015"
+    notes: "High-performance 16T cells; faster, lower density than balanced."
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 28.5
+    library_name: "16FF+ Balanced"
+    confidence: theoretical
+    source: "Wikichip TSMC 16FF+; cross-referenced GLOBALFOUNDRIES 14LPP"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 33.0
+    library_name: "16FFC LP"
+    confidence: theoretical
+    source: "TSMC 16FFC Compact disclosure 2016"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 60.0
+    library_name: "16FF+ HD-SRAM (0.074 um^2 bitcell)"
+    confidence: theoretical
+    source: "TSMC ISSCC 2014 -- 0.074 um^2 6T bitcell"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 50.0
+    library_name: "16FF+ HC-SRAM (0.088 um^2 bitcell)"
+    confidence: theoretical
+    source: "TSMC ISSCC 2014"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 4.0
+    confidence: theoretical
+    source: "Estimated from typical analog overhead at this node"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.5
+    confidence: theoretical
+    source: "Pad ring estimate; varies with IO speed grade"
+
+# Leakage power densities (W/mm^2) at nominal Vdd, Tj=85C.
+# Public estimates -- replace with PDK characterization when available.
+leakage_w_per_mm2:
+  hp_logic: 0.025
+  balanced_logic: 0.012
+  lp_logic: 0.005
+  sram_hd: 0.003
+  sram_hc: 0.004
+  analog: 0.001
+  io: 0.0005
+
+# Energy per op (pJ), keyed "<class>:<precision>". From published 16nm
+# datapath analyses; each is a coarse rollup of MAC + register + clock.
+energy_per_op_pj:
+  hp_logic:fp32: 3.5
+  hp_logic:bf16: 1.8
+  hp_logic:int8: 0.45
+  balanced_logic:fp32: 2.7
+  balanced_logic:bf16: 1.4
+  balanced_logic:int8: 0.30
+  balanced_logic:int4: 0.18
+  lp_logic:int8: 0.22
+  lp_logic:int4: 0.13
+
+# Electromigration current-density ceilings (A/cm^2). Public-reference
+# Mx layer values for typical local-routing widths; PDK overrides go here.
+em_j_max_by_temp_c:
+  85: 1.5e6
+  105: 1.0e6
+  125: 6.5e5
+
+routing_metal_width_um:
+  hp_logic: 0.064
+  balanced_logic: 0.064
+  lp_logic: 0.080
+  sram_hd: 0.048
+  sram_hc: 0.064
+
+m0_pitch_nm: 64
+m1_pitch_nm: 64
+
+cooling_compatible:
+  - passive_heatsink_small
+  - passive_heatsink_large
+  - active_fan
+  - vapor_chamber
+
+source: "Wikichip TSMC 16 nm; TSMC ISSCC 2014/2015"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  TSMC's first FinFET node, 2014 production. Variants: 16FF, 16FF+ (perf
+  uplift), 16FFC (compact, lower-cost edge). Densities here are the FF+
+  family. Mature, low NRE -- common KPU/edge target. The Stillwater KPU-T64
+  and KPU-T256 currently target this node.

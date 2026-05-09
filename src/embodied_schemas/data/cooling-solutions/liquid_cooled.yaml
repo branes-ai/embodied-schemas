@@ -1,0 +1,23 @@
+# Liquid cooled -- AIO or custom loop, pump + radiator + cold plate.
+# Workstation, server flagship, gaming halo.
+
+id: liquid_cooled
+name: "Liquid cooled (AIO / custom loop)"
+cooling_mechanism: liquid_cooled
+max_power_density_w_per_mm2: 8.0
+max_total_w: 500.0
+ambient_c_max: 40.0
+junction_c_max: 105.0
+form_factor_constraints:
+  - "requires_radiator_mount"
+  - "requires_pump_power"
+  - "tubing_routing_constraints"
+weight_g: 2000.0
+cost_usd: 200.0
+source: "Workstation accelerator references; AIO datasheets (Corsair, NZXT)"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Cold-plate microchannel + pumped coolant. Ceiling reflects realistic
+  microchannel cold plate (~6 K-mm^2/W) at typical coolant flow rates.
+  Custom loops with high-flow blocks can push higher.

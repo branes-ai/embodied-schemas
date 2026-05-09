@@ -1,0 +1,105 @@
+# TSMC N7 -- second-gen FinFET, mainstream HPC node.
+
+id: tsmc_n7
+foundry: tsmc
+node_name: N7
+node_nm: 7
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [ULVT, LVT, SVT, HVT]
+nominal_vdd_v: 0.75
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 75.0
+    library_name: "N7 HPC"
+    confidence: theoretical
+    source: "Wikichip TSMC 7nm; AMD Zen2 die-shot analysis"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 91.0
+    library_name: "N7 7.5T HD"
+    confidence: theoretical
+    source: "TSMC ISSCC 2018 (96.5 Mtx/mm^2 logic peak)"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 96.0
+    library_name: "N7 6T LP"
+    confidence: theoretical
+    source: "TSMC 7nm Mobile reference flow"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 280.0
+    library_name: "N7 HD-SRAM (0.027 um^2 bitcell)"
+    confidence: theoretical
+    source: "TSMC ISSCC 2018 -- 0.027 um^2 6T bitcell"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 230.0
+    library_name: "N7 HC-SRAM (0.032 um^2 bitcell)"
+    confidence: theoretical
+    source: "TSMC ISSCC 2018"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 180.0
+    library_name: "N7 HP-SRAM (dual-port)"
+    confidence: theoretical
+    source: "Estimated from N7 HC scaling"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 8.0
+    confidence: theoretical
+    source: "Estimated; varies widely with analog content"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 2.0
+    confidence: theoretical
+    source: "Pad ring estimate; high-speed SerDes overhead"
+
+leakage_w_per_mm2:
+  hp_logic: 0.040
+  balanced_logic: 0.018
+  lp_logic: 0.008
+  sram_hd: 0.005
+  sram_hc: 0.007
+  sram_hp: 0.012
+  analog: 0.002
+  io: 0.0008
+
+energy_per_op_pj:
+  hp_logic:fp32: 1.4
+  hp_logic:bf16: 0.7
+  hp_logic:int8: 0.18
+  balanced_logic:fp32: 1.1
+  balanced_logic:bf16: 0.55
+  balanced_logic:int8: 0.13
+  balanced_logic:int4: 0.075
+  lp_logic:int8: 0.10
+
+em_j_max_by_temp_c:
+  85: 2.0e6
+  105: 1.3e6
+  125: 8.5e5
+
+routing_metal_width_um:
+  hp_logic: 0.040
+  balanced_logic: 0.040
+  sram_hd: 0.027
+
+m0_pitch_nm: 40
+m1_pitch_nm: 40
+
+cooling_compatible:
+  - active_fan
+  - vapor_chamber
+  - liquid_cooled
+  - datacenter_direct_to_chip
+
+source: "TSMC ISSCC 2018; Wikichip TSMC 7nm; AMD Zen2 die-shot"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  TSMC's second-gen FinFET node, 2018 mass production. Used in AMD Zen2,
+  NVIDIA A100 (custom 7N), Apple A12-A14. Stillwater KPU-T768 datacenter
+  SKU targets N7. SRAM density at 280 Mtx/mm^2 is the headline figure.

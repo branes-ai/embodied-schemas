@@ -20,6 +20,8 @@ from embodied_schemas.npu import NPUEntry
 from embodied_schemas.operators import OperatorEntry
 from embodied_schemas.architectures import SoftwareArchitecture
 from embodied_schemas.mission import CapabilityTierEntry, MissionProfileEntry, BatteryEntry
+from embodied_schemas.process_node import ProcessNodeEntry
+from embodied_schemas.cooling_solution import CoolingSolutionEntry
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -232,6 +234,36 @@ def load_npus(data_dir: Path | None = None) -> dict[str, NPUEntry]:
     """
     data_dir = data_dir or get_data_dir()
     return load_all_from_directory(data_dir / "npus", NPUEntry)
+
+
+def load_process_nodes(data_dir: Path | None = None) -> dict[str, ProcessNodeEntry]:
+    """Load all process-node entries from the catalog.
+
+    Process nodes describe silicon fabrication: foundry, node name, transistor
+    topology, per-library densities and energies. Used by the SKU generator
+    and validator framework to do per-circuit-class area / power math.
+
+    Resolution order honors the env-var override path so confidential
+    PDK-derived nodes can live outside the public repo: caller may pass
+    ``data_dir`` to point at a private checkout, or rely on the default
+    ``get_data_dir()`` for public-estimate entries shipped in this package.
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "process-nodes", ProcessNodeEntry)
+
+
+def load_cooling_solutions(
+    data_dir: Path | None = None,
+) -> dict[str, CoolingSolutionEntry]:
+    """Load all cooling-solution entries from the catalog.
+
+    Cooling solutions describe thermal removal: type, max power density
+    (W/mm^2), max total W, junction temperature ceiling. Peer of
+    ProcessNode -- the thermal-hotspot validator and EM validator both
+    consume cooling-solution data alongside process-node data.
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "cooling-solutions", CoolingSolutionEntry)
 
 
 def load_operators(data_dir: Path | None = None) -> dict[str, OperatorEntry]:

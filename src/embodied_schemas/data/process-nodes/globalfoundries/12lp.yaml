@@ -1,0 +1,98 @@
+# GlobalFoundries 12LP -- 14LPP shrink, mainstream FinFET.
+# GF mainstream node for cost-sensitive accelerators and ASICs.
+
+id: gf_12lp
+foundry: globalfoundries
+node_name: 12LP
+node_nm: 12
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 0.8
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 24.0
+    library_name: "12LP HPC"
+    confidence: theoretical
+    source: "GlobalFoundries 12LP press materials 2017"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 30.0
+    library_name: "12LP HD"
+    confidence: theoretical
+    source: "GF 12LP fact sheet -- ~1.07x density vs 14LPP"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 35.0
+    library_name: "12LP LP"
+    confidence: theoretical
+    source: "GF 12LP mobile reference flow"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 65.0
+    library_name: "12LP HD-SRAM"
+    confidence: theoretical
+    source: "Estimated from 14LPP HD-SRAM scaling"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 54.0
+    confidence: theoretical
+    source: "Estimated"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 4.2
+    confidence: theoretical
+    source: "Estimated"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.5
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+leakage_w_per_mm2:
+  hp_logic: 0.024
+  balanced_logic: 0.011
+  lp_logic: 0.0048
+  sram_hd: 0.003
+  sram_hc: 0.004
+  analog: 0.001
+  io: 0.0005
+
+energy_per_op_pj:
+  hp_logic:fp32: 3.3
+  hp_logic:bf16: 1.7
+  hp_logic:int8: 0.42
+  balanced_logic:fp32: 2.5
+  balanced_logic:bf16: 1.3
+  balanced_logic:int8: 0.28
+  balanced_logic:int4: 0.17
+
+em_j_max_by_temp_c:
+  85: 1.5e6
+  105: 9.5e5
+  125: 6.2e5
+
+routing_metal_width_um:
+  hp_logic: 0.060
+  balanced_logic: 0.060
+  sram_hd: 0.046
+
+m0_pitch_nm: 60
+m1_pitch_nm: 60
+
+cooling_compatible:
+  - passive_heatsink_small
+  - passive_heatsink_large
+  - active_fan
+  - vapor_chamber
+
+source: "GlobalFoundries 12LP press materials 2017; Wikichip"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  GF 12LP, the mainstream GF FinFET node from 2018 onwards. 14LPP-derived
+  with ~10-15% performance uplift. AMD Ryzen 2000-series I/O die uses
+  this node. Cost-effective mainstream option for KPU SKUs that don't
+  need bleeding-edge density.

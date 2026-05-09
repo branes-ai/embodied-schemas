@@ -1,0 +1,25 @@
+# Datacenter direct-to-chip -- facility-water cold plate, no AIO pump.
+# Hyperscaler accelerator (H100 SXM, MI300X, Blackwell GB200).
+
+id: datacenter_dtc
+name: "Datacenter direct-to-chip cold plate"
+cooling_mechanism: datacenter_direct_to_chip
+max_power_density_w_per_mm2: 12.0
+max_total_w: 1000.0
+ambient_c_max: 35.0
+junction_c_max: 95.0
+form_factor_constraints:
+  - "requires_facility_water"
+  - "OCP_or_proprietary_manifold"
+  - "leak_detection_required"
+weight_g: 3000.0
+cost_usd: 800.0
+source: "OCP cold-plate references; H100 SXM / GB200 NVL72 cooling"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Facility-supplied chilled water (typ. W32-W45 supply) through a
+  high-density microchannel cold plate. Ceiling reflects modern
+  hyperscale designs (H100 SXM @ 700W on ~80 mm^2, GB200 @ 1200W per
+  Blackwell die). Lower Tj_max (95 C) reflects datacenter reliability
+  targets (longer service lifetime).

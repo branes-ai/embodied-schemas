@@ -1,0 +1,23 @@
+# Passive fanless -- no heatsink fins, ambient convection only.
+# Drone, badge, IoT, sensor-class envelopes.
+
+id: passive_fanless
+name: "Passive fanless (ambient convection)"
+cooling_mechanism: passive_fanless
+max_power_density_w_per_mm2: 0.3
+max_total_w: 6.0
+ambient_c_max: 35.0
+junction_c_max: 95.0
+form_factor_constraints:
+  - "no fan"
+  - "no heatsink fins"
+  - "ambient airflow only"
+weight_g: 0.0
+cost_usd: 0.0
+source: "Industry thermal-design references; drone/IoT module datasheets"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Ceiling figure derived from typical SoC-on-PCB thermal resistance with
+  no fins (~25 C/W package + ~10 C/W board). Real envelope depends on
+  PCB area, copper pour, and device orientation.
