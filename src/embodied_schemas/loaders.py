@@ -22,6 +22,7 @@ from embodied_schemas.architectures import SoftwareArchitecture
 from embodied_schemas.mission import CapabilityTierEntry, MissionProfileEntry, BatteryEntry
 from embodied_schemas.process_node import ProcessNodeEntry
 from embodied_schemas.cooling_solution import CoolingSolutionEntry
+from embodied_schemas.kpu import KPUEntry
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -264,6 +265,18 @@ def load_cooling_solutions(
     """
     data_dir = data_dir or get_data_dir()
     return load_all_from_directory(data_dir / "cooling-solutions", CoolingSolutionEntry)
+
+
+def load_kpus(data_dir: Path | None = None) -> dict[str, KPUEntry]:
+    """Load all KPU SKU entries from the catalog.
+
+    KPUs (Knowledge Processing Units) are general parallel execution
+    engines, peer of GPUs / CPUs / NPUs. Each KPUEntry references a
+    ProcessNodeEntry by id (silicon fabrication) and a CoolingSolutionEntry
+    per thermal profile (thermal removal).
+    """
+    data_dir = data_dir or get_data_dir()
+    return load_all_from_directory(data_dir / "kpus", KPUEntry)
 
 
 def load_operators(data_dir: Path | None = None) -> dict[str, OperatorEntry]:

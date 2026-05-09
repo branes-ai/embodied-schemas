@@ -160,6 +160,24 @@ from embodied_schemas.cooling_solution import (
     CoolingSolutionEntry,
     CoolingMechanism,
 )
+from embodied_schemas.kpu import (
+    KPUEntry,
+    KPUArchitecture,
+    KPUTileSpec,
+    KPUTileScheduleClass,
+    KPUNoCSpec,
+    KPUMemorySubsystem,
+    KPUSiliconBin,
+    SiliconBinBlock,
+    TransistorSource,
+    TransistorSourceKind,
+    KPUDieSpec,
+    KPUClocks,
+    KPUTheoreticalPerformance,
+    KPUThermalProfile,
+    KPUPowerSpec,
+    KPUMarket,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -180,6 +198,7 @@ from embodied_schemas.loaders import (
     load_batteries,
     load_process_nodes,
     load_cooling_solutions,
+    load_kpus,
 )
 
 __version__ = "0.6.0"
@@ -346,6 +365,24 @@ __all__ = [
     "load_batteries",
     "load_process_nodes",
     "load_cooling_solutions",
+    "load_kpus",
+    # KPU SKU
+    "KPUEntry",
+    "KPUArchitecture",
+    "KPUTileSpec",
+    "KPUTileScheduleClass",
+    "KPUNoCSpec",
+    "KPUMemorySubsystem",
+    "KPUSiliconBin",
+    "SiliconBinBlock",
+    "TransistorSource",
+    "TransistorSourceKind",
+    "KPUDieSpec",
+    "KPUClocks",
+    "KPUTheoreticalPerformance",
+    "KPUThermalProfile",
+    "KPUPowerSpec",
+    "KPUMarket",
     # Version
     "__version__",
 ]
