@@ -1,0 +1,98 @@
+# GlobalFoundries 12LP+ -- performance-tuned 12LP variant, FinFET.
+# Higher-VDD HP cells, ~15% performance uplift over 12LP, similar density.
+
+id: gf_12lp_plus
+foundry: globalfoundries
+node_name: 12LP+
+node_nm: 12
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [LVT, SVT, HVT, eLVT]
+nominal_vdd_v: 0.85
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 26.0
+    library_name: "12LP+ HPC"
+    confidence: theoretical
+    source: "GlobalFoundries 12LP+ press 2020"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 31.0
+    library_name: "12LP+ HD"
+    confidence: theoretical
+    source: "GF 12LP+ fact sheet -- targeting AI inference"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 36.0
+    library_name: "12LP+ LP"
+    confidence: theoretical
+    source: "Estimated from 12LP scaling"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 68.0
+    library_name: "12LP+ HD-SRAM"
+    confidence: theoretical
+    source: "GF 12LP+ -- improved 6T bitcell"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 56.0
+    confidence: theoretical
+    source: "Estimated"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 4.3
+    confidence: theoretical
+    source: "Estimated"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.5
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+# 12LP+ targets higher Fmax via slightly higher Vdd; leakage rises.
+leakage_w_per_mm2:
+  hp_logic: 0.030
+  balanced_logic: 0.013
+  lp_logic: 0.0055
+  sram_hd: 0.0035
+  sram_hc: 0.0045
+  analog: 0.0011
+  io: 0.0005
+
+energy_per_op_pj:
+  hp_logic:fp32: 3.0
+  hp_logic:bf16: 1.5
+  hp_logic:int8: 0.38
+  balanced_logic:fp32: 2.3
+  balanced_logic:bf16: 1.2
+  balanced_logic:int8: 0.26
+  balanced_logic:int4: 0.155
+
+em_j_max_by_temp_c:
+  85: 1.5e6
+  105: 9.5e5
+  125: 6.2e5
+
+routing_metal_width_um:
+  hp_logic: 0.060
+  balanced_logic: 0.060
+  sram_hd: 0.046
+
+m0_pitch_nm: 60
+m1_pitch_nm: 60
+
+cooling_compatible:
+  - passive_heatsink_large
+  - active_fan
+  - vapor_chamber
+
+source: "GlobalFoundries 12LP+ press 2020"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  12LP+ targets AI/ML accelerators with higher Fmax via richer Vt mix and
+  slightly higher Vdd. Roughly +15% performance vs 12LP at similar density.
+  Used in tenstorrent / mid-range AI chips. Good fit for KPU SKUs that need
+  performance uplift on the same mature 12nm GF platform.

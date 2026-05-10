@@ -1,0 +1,121 @@
+# GlobalFoundries 12FDX -- FD-SOI process; body-bias capable.
+# Different transistor topology from FinFET: lower peak density but
+# wider DVFS range, ultra-low leakage modes, and forward/reverse body
+# bias for dynamic power/perf tradeoffs.
+
+id: gf_12fdx
+foundry: globalfoundries
+node_name: 12FDX
+node_nm: 12
+transistor_topology: fd_soi
+body_bias_supported: true
+back_bias_range_mv: [-3000, 3000]
+vt_options: [LVT, SLVT, RVT, HVT]
+nominal_vdd_v: 0.7
+
+# FD-SOI has lower peak density than FinFET at the same node label.
+# Compensates with body bias (Vt swing) and ultra-low leakage.
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 18.0
+    library_name: "12FDX HPC"
+    confidence: theoretical
+    source: "GlobalFoundries 12FDX disclosures 2017-2019"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 23.0
+    library_name: "12FDX HD"
+    confidence: theoretical
+    source: "GF 12FDX fact sheet"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 27.0
+    library_name: "12FDX LP"
+    confidence: theoretical
+    source: "GF 12FDX mobile flow"
+  ull_logic:
+    circuit_class: ull_logic
+    mtx_per_mm2: 22.0
+    library_name: "12FDX ULL (reverse body bias)"
+    confidence: theoretical
+    source: "GF 12FDX always-on / sensor flow"
+    notes: "ULL mode with reverse body bias yields >100x leakage reduction"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 50.0
+    library_name: "12FDX HD-SRAM"
+    confidence: theoretical
+    source: "GF 12FDX SRAM characterization"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 6.5
+    confidence: theoretical
+    source: "FD-SOI is analog-friendly; higher density than FinFET-equivalent"
+    notes: "FD-SOI's BOX layer reduces parasitics; commonly used for RF/mixed-signal"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.5
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+# FD-SOI leakage is much lower than FinFET, especially in ULL mode with
+# reverse body bias.
+leakage_w_per_mm2:
+  hp_logic: 0.014
+  balanced_logic: 0.006
+  lp_logic: 0.002
+  ull_logic: 0.0001  # reverse-body-biased; deep sub-threshold
+  sram_hd: 0.0015
+  analog: 0.0008
+  io: 0.0004
+
+energy_per_op_pj:
+  hp_logic:fp32: 2.6
+  hp_logic:bf16: 1.3
+  hp_logic:int8: 0.32
+  balanced_logic:fp32: 2.1
+  balanced_logic:bf16: 1.05
+  balanced_logic:int8: 0.24
+  balanced_logic:int4: 0.14
+  lp_logic:int8: 0.18
+
+em_j_max_by_temp_c:
+  85: 1.6e6
+  105: 1.05e6
+  125: 6.8e5
+
+routing_metal_width_um:
+  hp_logic: 0.064
+  balanced_logic: 0.064
+  sram_hd: 0.050
+
+m0_pitch_nm: 64
+m1_pitch_nm: 64
+
+cooling_compatible:
+  - passive_fanless
+  - passive_heatsink_small
+  - passive_heatsink_large
+  - active_fan
+
+source: "GlobalFoundries 12FDX disclosures 2017-2019; Wikichip FD-SOI"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  GF 12FDX is FD-SOI (fully-depleted silicon-on-insulator), structurally
+  different from FinFET. Key features:
+
+  - **Body bias**: forward (FBB) raises Fmax; reverse (RBB) crashes
+    leakage. Up to +/- 3 V back-bias range. This gives FD-SOI a much
+    wider DVFS envelope than FinFET.
+  - **Ultra-low leakage**: ULL libraries with RBB reach near-zero static
+    power. Ideal for always-on sensors, drones, retention domains.
+  - **Lower peak density**: ~25-30% lower Mtx/mm^2 than 12LP at the same
+    label. The tradeoff is energy efficiency, not raw density.
+  - **Analog-friendly**: BOX layer reduces substrate noise and parasitics;
+    favored for RF, mixed-signal, sensor frontends.
+
+  Excellent fit for ultra-low-power KPU SKUs (drones, always-on edge,
+  battery-bound robots). Validates the ProcessNode schema's
+  ``transistor_topology=fd_soi`` and ``body_bias_supported=true`` paths.
