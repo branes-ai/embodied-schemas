@@ -21,7 +21,7 @@ ProcessNode and the validator framework will check consistency.
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from embodied_schemas.gpu import Foundry, MemoryType
 from embodied_schemas.process_node import CircuitClass, DataConfidence
@@ -206,6 +206,41 @@ class TransistorSource(BaseModel):
 
     model_config = {"extra": "forbid"}
 
+    @model_validator(mode="after")
+    def _validate_kind_fields(self) -> "TransistorSource":
+        """Ensure the right field combination is set for each kind.
+
+        Catches malformed silicon_bin entries at load time rather than
+        deferring to the silicon_math resolver, which would surface
+        them as runtime errors during area / power computation.
+        """
+        if self.kind == TransistorSourceKind.FIXED:
+            if self.mtx is None:
+                raise ValueError(
+                    "kind=FIXED requires 'mtx' to be set"
+                )
+            if self.per_unit_mtx is not None or self.count_ref is not None:
+                raise ValueError(
+                    "kind=FIXED must not set 'per_unit_mtx' or 'count_ref'; "
+                    "those are for kind=PER_*"
+                )
+        else:
+            # PER_PE, PER_KIB, PER_ROUTER, PER_CONTROLLER all require both.
+            if self.per_unit_mtx is None:
+                raise ValueError(
+                    f"kind={self.kind.value} requires 'per_unit_mtx' to be set"
+                )
+            if not self.count_ref:
+                raise ValueError(
+                    f"kind={self.kind.value} requires 'count_ref' to be set"
+                )
+            if self.mtx is not None:
+                raise ValueError(
+                    f"kind={self.kind.value} must not set 'mtx'; "
+                    f"that is only for kind=FIXED"
+                )
+        return self
+
 
 class SiliconBinBlock(BaseModel):
     """One block in the silicon-area decomposition.
@@ -302,9 +337,26 @@ class KPUPowerSpec(BaseModel):
     default_thermal_profile: str = Field(
         ..., description="Name of the default profile in thermal_profiles"
     )
-    thermal_profiles: list[KPUThermalProfile] = Field(...)
+    thermal_profiles: list[KPUThermalProfile] = Field(..., min_length=1)
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_default_profile_name(self) -> "KPUPowerSpec":
+        """Ensure ``default_thermal_profile`` names a real profile.
+
+        Catches typos at YAML load time -- otherwise downstream
+        consumers (the SKU generator, validator framework, KPU YAML
+        loader) hit a confusing KeyError / Optional unwrap later.
+        """
+        names = [p.name for p in self.thermal_profiles]
+        if self.default_thermal_profile not in names:
+            raise ValueError(
+                f"default_thermal_profile={self.default_thermal_profile!r} "
+                f"is not in thermal_profiles "
+                f"(available: {names})"
+            )
+        return self
 
 
 class KPUMarket(BaseModel):

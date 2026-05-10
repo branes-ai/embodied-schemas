@@ -244,10 +244,11 @@ def load_process_nodes(data_dir: Path | None = None) -> dict[str, ProcessNodeEnt
     topology, per-library densities and energies. Used by the SKU generator
     and validator framework to do per-circuit-class area / power math.
 
-    Resolution order honors the env-var override path so confidential
-    PDK-derived nodes can live outside the public repo: caller may pass
-    ``data_dir`` to point at a private checkout, or rely on the default
-    ``get_data_dir()`` for public-estimate entries shipped in this package.
+    Args:
+        data_dir: Optional path to data directory. Defaults to package data
+            via ``get_data_dir()``. To use a private PDK-derived catalog,
+            pass an explicit ``data_dir`` (env-var-based override is not
+            implemented in this loader; callers do their own resolution).
     """
     data_dir = data_dir or get_data_dir()
     return load_all_from_directory(data_dir / "process-nodes", ProcessNodeEntry)
@@ -371,6 +372,9 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("capability-tiers", CapabilityTierEntry),
         ("mission-profiles", MissionProfileEntry),
         ("batteries", BatteryEntry),
+        ("process-nodes", ProcessNodeEntry),
+        ("cooling-solutions", CoolingSolutionEntry),
+        ("kpus", KPUEntry),
     ]
 
     for subdir, model_class in validations:
