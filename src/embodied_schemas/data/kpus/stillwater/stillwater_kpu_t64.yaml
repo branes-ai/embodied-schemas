@@ -37,6 +37,7 @@ kpu_architecture:
         int8: 2048
         int4: 4096
         bf16: 1024
+        fp16: 1024  # Same datapath as BF16 on KPU; same throughput
       schedule_class: output_stationary
       pipeline_fill_cycles: 32
       pipeline_drain_cycles: 32
@@ -48,6 +49,7 @@ kpu_architecture:
       pe_circuit_class: balanced_logic
       ops_per_tile_per_clock:
         bf16: 1024
+        fp16: 1024  # Same datapath as BF16; same throughput
         fp32: 512
         int8: 2048
       schedule_class: output_stationary
@@ -62,6 +64,7 @@ kpu_architecture:
       ops_per_tile_per_clock:
         int8: 2048
         bf16: 1024
+        fp16: 1024  # Same datapath as BF16; same throughput
       schedule_class: output_stationary
       pipeline_fill_cycles: 32
       pipeline_drain_cycles: 32
