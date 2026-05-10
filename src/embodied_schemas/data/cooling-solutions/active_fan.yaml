@@ -1,0 +1,22 @@
+# Active fan -- heatsink + fan, the workhorse cooling solution.
+# Standard PCIe accelerator card, NUC, laptop class.
+
+id: active_fan
+name: "Active fan (heatsink + axial fan)"
+cooling_mechanism: active_fan
+max_power_density_w_per_mm2: 2.5
+max_total_w: 100.0
+ambient_c_max: 45.0
+junction_c_max: 105.0
+form_factor_constraints:
+  - "height<=60mm"
+  - "requires_unobstructed_airflow"
+weight_g: 400.0
+cost_usd: 25.0
+source: "PCIe inference card thermal references; standard server cooling"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Mainstream cooling for PCIe accelerator cards. Ceiling assumes ~10mm
+  fin pitch, 80x80 fan @ 200 LFM. Higher airflow (server chassis) pushes
+  the ceiling up; obstructed mounts pull it down.

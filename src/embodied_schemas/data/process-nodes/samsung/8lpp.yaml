@@ -1,0 +1,89 @@
+# Samsung 8LPP -- 10nm-class FinFET, used in NVIDIA Orin SoC.
+
+id: samsung_8lpp
+foundry: samsung
+node_name: 8LPP
+node_nm: 8
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 0.75
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 50.0
+    library_name: "8LPP HPC"
+    confidence: theoretical
+    source: "Wikichip Samsung 8nm; NVIDIA Orin die-shot analysis"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 61.0
+    library_name: "8LPP HD"
+    confidence: theoretical
+    source: "Samsung 8LPP press materials; estimated 1.10x vs 10LPP"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 68.0
+    library_name: "8LPP LP"
+    confidence: theoretical
+    source: "Samsung 8LPP mobile flow estimate"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 175.0
+    library_name: "8LPP HD-SRAM"
+    confidence: theoretical
+    source: "Estimated from 10LPP scaling; published Samsung 7LPP refs"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 6.0
+    confidence: theoretical
+    source: "Estimated"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.8
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+leakage_w_per_mm2:
+  hp_logic: 0.032
+  balanced_logic: 0.014
+  lp_logic: 0.006
+  sram_hd: 0.004
+  analog: 0.0015
+  io: 0.0006
+
+energy_per_op_pj:
+  hp_logic:fp32: 2.0
+  hp_logic:bf16: 1.0
+  hp_logic:int8: 0.25
+  balanced_logic:fp32: 1.6
+  balanced_logic:bf16: 0.8
+  balanced_logic:int8: 0.18
+  balanced_logic:int4: 0.11
+
+em_j_max_by_temp_c:
+  85: 1.7e6
+  105: 1.1e6
+  125: 7.0e5
+
+routing_metal_width_um:
+  hp_logic: 0.052
+  balanced_logic: 0.052
+  sram_hd: 0.034
+
+m0_pitch_nm: 51
+m1_pitch_nm: 51
+
+cooling_compatible:
+  - passive_heatsink_large
+  - active_fan
+  - vapor_chamber
+
+source: "Wikichip Samsung 8nm; NVIDIA Orin die-shot analysis"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Samsung 8LPP is a 10LPP shrink, FinFET. NVIDIA Orin SoC family is
+  fabricated on this node (455 mm^2, ~17B transistors). Already referenced
+  by embodied-schemas Orin GPU YAMLs.

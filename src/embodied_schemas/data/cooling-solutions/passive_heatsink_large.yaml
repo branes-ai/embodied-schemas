@@ -1,0 +1,23 @@
+# Large passive heatsink -- substantial fin stack, no fan.
+# Industrial fanless edge servers, Jetson AGX Orin Industrial, automotive.
+
+id: passive_heatsink_large
+name: "Large passive heatsink (industrial fanless)"
+cooling_mechanism: passive_heatsink_large
+max_power_density_w_per_mm2: 1.0
+max_total_w: 30.0
+ambient_c_max: 50.0
+junction_c_max: 105.0
+form_factor_constraints:
+  - "height<=40mm"
+  - "no fan"
+  - "requires_chassis_thermal_path"
+weight_g: 250.0
+cost_usd: 12.0
+source: "Industrial PC thermal references; Jetson AGX Orin Industrial"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Industrial fanless edge with chassis as secondary heatspreader. Common
+  KPU automotive / robot-controller target. Higher Tj_max (105 C) reflects
+  industrial/automotive temp grades.

@@ -1,0 +1,202 @@
+# Stillwater KPU-T256 -- high-performance edge / embodied AI accelerator.
+# 256 heterogeneous tiles (179 INT8, 51 BF16, 26 Matrix), 20x20 PE arrays,
+# TSMC N16. Targets autonomous vehicles, advanced robots, edge servers.
+#
+# Per M0.5 (kpu_t256.py): 20x20 PE arrays per tile so T256 has a
+# meaningful peak advantage over T128 (102,400 PEs total vs 131,072 in
+# T128 -- the inverse-scaling sweet spot).
+
+id: stillwater_kpu_t256
+name: "Stillwater KPU-T256"
+vendor: stillwater
+
+process_node_id: tsmc_n16
+
+die:
+  architecture: "KPU Tile"
+  foundry: tsmc
+  process_nm: 16
+  process_name: "N16"
+  transistors_billion: 5.04
+  die_size_mm2: 136.0
+  is_chiplet: false
+  num_dies: 1
+
+kpu_architecture:
+  total_tiles: 256
+  multi_precision_alu: [int4, int8, bf16, fp32]
+
+  tiles:
+    - tile_type: "INT8-primary"
+      num_tiles: 179
+      pe_array_rows: 20
+      pe_array_cols: 20
+      pe_circuit_class: balanced_logic
+      ops_per_tile_per_clock:
+        int8: 800
+        int4: 1600
+        bf16: 400
+      schedule_class: output_stationary
+      pipeline_fill_cycles: 20
+      pipeline_drain_cycles: 20
+
+    - tile_type: "BF16-primary"
+      num_tiles: 51
+      pe_array_rows: 20
+      pe_array_cols: 20
+      pe_circuit_class: balanced_logic
+      ops_per_tile_per_clock:
+        bf16: 400
+        fp32: 200
+        int8: 800
+      schedule_class: output_stationary
+      pipeline_fill_cycles: 20
+      pipeline_drain_cycles: 20
+
+    - tile_type: "Matrix"
+      num_tiles: 26
+      pe_array_rows: 20
+      pe_array_cols: 20
+      pe_circuit_class: hp_logic
+      ops_per_tile_per_clock:
+        int8: 800
+        bf16: 400
+      schedule_class: output_stationary
+      pipeline_fill_cycles: 20
+      pipeline_drain_cycles: 20
+
+  noc:
+    topology: mesh_2d
+    mesh_rows: 16
+    mesh_cols: 16
+    flit_bytes: 16
+    router_circuit_class: hp_logic
+    bisection_bandwidth_gbps: 256.0
+
+  memory:
+    memory_type: lpddr5
+    memory_size_gb: 32.0
+    memory_bus_bits: 256
+    memory_bandwidth_gbps: 256.0
+    memory_controllers: 16
+    l3_kib_per_tile: 256
+    l2_kib_per_tile: 32
+    l1_kib_per_pe: 4
+
+silicon_bin:
+  blocks:
+    - name: pe_int8
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: per_pe
+        per_unit_mtx: 0.006
+        count_ref: "tile.INT8-primary"
+
+    - name: pe_bf16
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: per_pe
+        per_unit_mtx: 0.012
+        count_ref: "tile.BF16-primary"
+
+    - name: pe_matrix
+      circuit_class: hp_logic
+      transistor_source:
+        kind: per_pe
+        per_unit_mtx: 0.020
+        count_ref: "tile.Matrix"
+
+    # Per-PE L1 register state is rolled into pe_* block transistor
+    # counts (part of PE area in domain-flow tiles).
+
+    - name: l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: per_kib
+        per_unit_mtx: 0.052
+        count_ref: l2_total_kib
+
+    - name: l3_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: per_kib
+        per_unit_mtx: 0.052
+        count_ref: l3_total_kib
+
+    - name: noc_routers
+      circuit_class: hp_logic
+      transistor_source:
+        kind: per_router
+        per_unit_mtx: 0.8
+        count_ref: noc
+
+    - name: memory_phys
+      circuit_class: analog
+      transistor_source:
+        kind: per_controller
+        per_unit_mtx: 6.0
+        count_ref: memory
+
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 8.0
+
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 18.0
+
+clocks:
+  base_clock_mhz: 1000.0
+  boost_clock_mhz: 1750.0
+
+# Roll-up @ default 30W profile, 1.4 GHz. From tile_mix_consistency:
+#   INT8 ops/clock: 256 tiles x  800 = 204,800 -> 286.72 TOPS
+#   BF16 ops/clock: 256 tiles x  400 = 102,400 -> 143.36 TFLOPS
+#   FP32 ops/clock:  51 tiles x  200 =  10,200 ->  14.28 TFLOPS  (BF16-primary)
+#   INT4 ops/clock: 179 tiles x 1600 = 286,400 -> 400.96 TOPS    (INT8-primary)
+performance:
+  int8_tops: 287.0
+  bf16_tflops: 143.0
+  fp32_tflops: 14.3
+  int4_tops: 401.0
+
+power:
+  tdp_watts: 30.0
+  max_power_watts: 50.0
+  min_power_watts: 15.0
+  idle_power_watts: 8.0
+  default_thermal_profile: "30W"
+  thermal_profiles:
+    - name: "15W"
+      tdp_watts: 15.0
+      clock_mhz: 1100.0
+      cooling_solution_id: passive_heatsink_large
+    - name: "30W"
+      tdp_watts: 30.0
+      clock_mhz: 1400.0
+      cooling_solution_id: active_fan
+    - name: "50W"
+      tdp_watts: 50.0
+      clock_mhz: 1650.0
+      cooling_solution_id: active_fan
+
+market:
+  launch_date: "2026-Q2"
+  launch_msrp_usd: 1092.0
+  target_market: embodied
+  product_family: "Stillwater KPU"
+  model_tier: high
+  is_available: false
+  is_discontinued: false
+
+notes: |
+  High-performance KPU SKU for edge servers, autonomous vehicles, advanced
+  drones. 256 tiles in a 16x16 grid, 20x20 PE arrays. The M0.5 sweet spot:
+  big enough for serious peak compute, dense enough that per-tile
+  utilization stays high. 30W default with 15W and 50W profiles. TSMC N16,
+  ~287 INT8 TOPS at default profile.
+last_updated: "2026-05-09"

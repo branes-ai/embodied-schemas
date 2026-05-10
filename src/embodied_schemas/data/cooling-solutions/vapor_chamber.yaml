@@ -1,0 +1,23 @@
+# Vapor chamber -- spread-plate VC + fan(s).
+# High-end consumer GPU / workstation accelerator.
+
+id: vapor_chamber
+name: "Vapor chamber spread-plate"
+cooling_mechanism: vapor_chamber
+max_power_density_w_per_mm2: 4.0
+max_total_w: 250.0
+ambient_c_max: 40.0
+junction_c_max: 105.0
+form_factor_constraints:
+  - "height<=80mm"
+  - "dual_slot_or_more"
+  - "requires_unobstructed_airflow"
+weight_g: 1200.0
+cost_usd: 80.0
+source: "RTX 4090 / RX 7900 XTX thermal references; AIO GPU cards"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Vapor-chamber base levels die hotspot vs heatsink-direct. Common in
+  300+W consumer GPUs. The W/mm^2 ceiling reflects the spread benefit:
+  ~2x what a same-sized fin stack on a copper baseplate would deliver.

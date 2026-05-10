@@ -1,0 +1,106 @@
+# TSMC N5 -- third-gen FinFET, mainstream advanced HPC/mobile node.
+
+id: tsmc_n5
+foundry: tsmc
+node_name: N5
+node_nm: 5
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [ULVT, LVT, SVT, HVT, eLVT]
+nominal_vdd_v: 0.7
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 145.0
+    library_name: "N5 HPC"
+    confidence: theoretical
+    source: "Wikichip TSMC 5nm; Apple M1 die-shot analysis"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 173.0
+    library_name: "N5 6T HD"
+    confidence: theoretical
+    source: "TSMC ISSCC 2020 -- 1.84x logic density vs N7"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 185.0
+    library_name: "N5 ULP"
+    confidence: theoretical
+    source: "TSMC 5nm Mobile reference flow"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 380.0
+    library_name: "N5 HD-SRAM (0.021 um^2 bitcell)"
+    confidence: theoretical
+    source: "TSMC ISSCC 2020 -- 0.021 um^2 6T bitcell (1.35x N7)"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 310.0
+    library_name: "N5 HC-SRAM"
+    confidence: theoretical
+    source: "TSMC ISSCC 2020"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 240.0
+    library_name: "N5 HP-SRAM (dual-port)"
+    confidence: theoretical
+    source: "Estimated"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 10.0
+    confidence: theoretical
+    source: "Estimated; analog scales poorly with node"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 2.5
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+leakage_w_per_mm2:
+  hp_logic: 0.060
+  balanced_logic: 0.026
+  lp_logic: 0.011
+  sram_hd: 0.007
+  sram_hc: 0.010
+  sram_hp: 0.018
+  analog: 0.0025
+  io: 0.001
+
+energy_per_op_pj:
+  hp_logic:fp32: 0.85
+  hp_logic:bf16: 0.42
+  hp_logic:int8: 0.11
+  balanced_logic:fp32: 0.65
+  balanced_logic:bf16: 0.32
+  balanced_logic:int8: 0.075
+  balanced_logic:int4: 0.045
+  lp_logic:int8: 0.060
+
+em_j_max_by_temp_c:
+  85: 2.5e6
+  105: 1.6e6
+  125: 1.0e6
+
+routing_metal_width_um:
+  hp_logic: 0.030
+  balanced_logic: 0.030
+  sram_hd: 0.021
+
+m0_pitch_nm: 30
+m1_pitch_nm: 30
+
+cooling_compatible:
+  - active_fan
+  - vapor_chamber
+  - liquid_cooled
+  - datacenter_direct_to_chip
+
+source: "TSMC ISSCC 2020; Wikichip; Apple M1 die-shot analysis"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  TSMC's third-gen FinFET node, 2020 mass production. Used in Apple A14/M1,
+  AMD Zen3/Zen4 (5nm), NVIDIA H100 (custom 4N derivative). SRAM scaling
+  slows here (1.35x vs 1.84x for logic) -- the SRAM-density wall begins.
+  Future Stillwater KPU SKUs targeting datacenter inference can use N5.

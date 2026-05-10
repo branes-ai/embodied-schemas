@@ -1,0 +1,96 @@
+# TSMC N12 (12FFC / 12FFN) -- 16FF+ shrink with 12nm marketing label.
+# Roughly 10-15% density and perf uplift over 16FF+.
+
+id: tsmc_n12
+foundry: tsmc
+node_name: N12
+node_nm: 12
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 0.75
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 26.0
+    library_name: "12FFC HP"
+    confidence: theoretical
+    source: "TSMC 12FFC announcement 2017"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 33.0
+    library_name: "12FFC Balanced"
+    confidence: theoretical
+    source: "Estimated 15% uplift over 16FF+ balanced"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 38.0
+    library_name: "12FFC LP"
+    confidence: theoretical
+    source: "Estimated from 16FFC LP scaling"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 70.0
+    library_name: "12FFC HD-SRAM"
+    confidence: theoretical
+    source: "Estimated 17% uplift over 16FF+ HD-SRAM"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 58.0
+    confidence: theoretical
+    source: "Estimated"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 4.5
+    confidence: theoretical
+    source: "Estimated from typical analog overhead"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.6
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+leakage_w_per_mm2:
+  hp_logic: 0.022
+  balanced_logic: 0.010
+  lp_logic: 0.0042
+  sram_hd: 0.0026
+  sram_hc: 0.0034
+  analog: 0.001
+  io: 0.0005
+
+energy_per_op_pj:
+  hp_logic:fp32: 3.2
+  hp_logic:bf16: 1.6
+  hp_logic:int8: 0.40
+  balanced_logic:fp32: 2.4
+  balanced_logic:bf16: 1.25
+  balanced_logic:int8: 0.27
+  balanced_logic:int4: 0.16
+
+em_j_max_by_temp_c:
+  85: 1.4e6
+  105: 9.0e5
+  125: 6.0e5
+
+routing_metal_width_um:
+  hp_logic: 0.058
+  balanced_logic: 0.058
+  sram_hd: 0.044
+
+m0_pitch_nm: 58
+m1_pitch_nm: 58
+
+cooling_compatible:
+  - passive_heatsink_large
+  - active_fan
+  - vapor_chamber
+
+source: "TSMC 12FFC announcement 2017; Wikichip"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  TSMC marketing-renamed 16FF+ shrink, ~15% density uplift. Often used for
+  cost-down derivatives of 16nm designs. Mid-tier KPU SKUs (KPU-T256,
+  KPU-T768 lower bin) can target this node.

@@ -1,0 +1,21 @@
+# Small passive heatsink -- compact fins, no fan.
+# Edge-AI module class (e.g., Jetson Orin Nano, Coral, Hailo-8 dev kit).
+
+id: passive_heatsink_small
+name: "Small passive heatsink (compact fins)"
+cooling_mechanism: passive_heatsink_small
+max_power_density_w_per_mm2: 0.5
+max_total_w: 15.0
+ambient_c_max: 40.0
+junction_c_max: 100.0
+form_factor_constraints:
+  - "height<=15mm"
+  - "no fan"
+weight_g: 30.0
+cost_usd: 2.0
+source: "Jetson Orin Nano thermal datasheet; Coral USB accelerator notes"
+confidence: theoretical
+last_updated: "2026-05-09"
+notes: |
+  Typical of edge AI SOMs in 5-15W envelopes. Fin density and material
+  (Al vs Cu) shifts the ceiling +/- 30%.
