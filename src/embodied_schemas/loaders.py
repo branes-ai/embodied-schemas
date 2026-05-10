@@ -4,6 +4,7 @@ Provides utilities for loading and validating YAML data files
 from the data catalog.
 """
 
+import os
 from pathlib import Path
 from typing import TypeVar, Type
 import yaml
@@ -237,6 +238,14 @@ def load_npus(data_dir: Path | None = None) -> dict[str, NPUEntry]:
     return load_all_from_directory(data_dir / "npus", NPUEntry)
 
 
+_DATA_CONFIDENCE_RANK = {
+    "calibrated": 3,
+    "interpolated": 2,
+    "theoretical": 1,
+    "unknown": 0,
+}
+
+
 def load_process_nodes(data_dir: Path | None = None) -> dict[str, ProcessNodeEntry]:
     """Load all process-node entries from the catalog.
 
@@ -244,14 +253,59 @@ def load_process_nodes(data_dir: Path | None = None) -> dict[str, ProcessNodeEnt
     topology, per-library densities and energies. Used by the SKU generator
     and validator framework to do per-circuit-class area / power math.
 
+    Resolution order (Phase 7 of the KPU SKU plan):
+
+    1. **Public catalog** -- ``data_dir or get_data_dir()`` provides the
+       baseline THEORETICAL entries shipped in this package
+       (``data/process-nodes/<foundry>/<id>.yaml``).
+    2. **Optional private overlay** -- if the environment variable
+       ``PROCESS_NODE_DATA_DIR`` is set, additional ProcessNode YAMLs at
+       that path are merged into the result. PDK-derived data is often
+       confidential; the overlay lets CALIBRATED entries live outside
+       this public package without forking the loader.
+    3. **Confidence-based collision resolution** -- when the same id
+       appears in both the public catalog and the overlay, the entry
+       with HIGHER ``confidence`` wins (CALIBRATED > INTERPOLATED >
+       THEORETICAL > UNKNOWN). A CALIBRATED PDK overlay always
+       supersedes the public THEORETICAL estimate; a stale overlay
+       does not silently downgrade calibrated public data.
+
     Args:
         data_dir: Optional path to data directory. Defaults to package data
-            via ``get_data_dir()``. To use a private PDK-derived catalog,
-            pass an explicit ``data_dir`` (env-var-based override is not
-            implemented in this loader; callers do their own resolution).
+            via ``get_data_dir()``. The ``PROCESS_NODE_DATA_DIR`` env var
+            still applies on top.
     """
-    data_dir = data_dir or get_data_dir()
-    return load_all_from_directory(data_dir / "process-nodes", ProcessNodeEntry)
+    base_dir = data_dir or get_data_dir()
+    result = load_all_from_directory(
+        base_dir / "process-nodes", ProcessNodeEntry
+    )
+
+    overlay_path = os.environ.get("PROCESS_NODE_DATA_DIR")
+    if overlay_path:
+        overlay_dir = Path(overlay_path)
+        if overlay_dir.is_dir():
+            overlay = load_all_from_directory(overlay_dir, ProcessNodeEntry)
+            for node_id, overlay_entry in overlay.items():
+                existing = result.get(node_id)
+                if existing is None:
+                    result[node_id] = overlay_entry
+                    continue
+                # Both present -- higher confidence wins.
+                ov_rank = _DATA_CONFIDENCE_RANK.get(
+                    overlay_entry.confidence.value, 0
+                )
+                ex_rank = _DATA_CONFIDENCE_RANK.get(
+                    existing.confidence.value, 0
+                )
+                if ov_rank > ex_rank:
+                    result[node_id] = overlay_entry
+                # ex_rank >= ov_rank: keep existing
+        else:
+            print(
+                f"Warning: PROCESS_NODE_DATA_DIR={overlay_path!r} is not "
+                f"a directory; skipping overlay."
+            )
+    return result
 
 
 def load_cooling_solutions(
