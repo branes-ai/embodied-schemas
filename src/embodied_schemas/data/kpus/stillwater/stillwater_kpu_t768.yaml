@@ -190,18 +190,43 @@ power:
   idle_power_watts: 15.0
   default_thermal_profile: "60W"
   thermal_profiles:
+    # Per-precision efficiency / utilization from kpu_t768.py factory.
     - name: "30W"
       tdp_watts: 30.0
       clock_mhz: 1100.0
       cooling_solution_id: active_fan
+      efficiency_factor_by_precision:
+        int8: 0.75
+        bf16: 0.70
+        int4: 0.78
+      tile_utilization_by_precision:
+        int8: 0.95
+        bf16: 0.92
+        int4: 0.96
     - name: "60W"
       tdp_watts: 60.0
       clock_mhz: 1200.0
       cooling_solution_id: active_fan
+      efficiency_factor_by_precision:
+        int8: 0.80
+        bf16: 0.75
+        int4: 0.82
+      tile_utilization_by_precision:
+        int8: 0.96
+        bf16: 0.94
+        int4: 0.97
     - name: "100W"
       tdp_watts: 100.0
       clock_mhz: 1350.0
       cooling_solution_id: liquid_cooled
+      efficiency_factor_by_precision:
+        int8: 0.85
+        bf16: 0.80
+        int4: 0.87
+      tile_utilization_by_precision:
+        int8: 0.98
+        bf16: 0.96
+        int4: 0.99
 
 market:
   launch_date: "2026-Q4"
