@@ -322,7 +322,51 @@ class KPUThermalProfile(BaseModel):
         ..., description="References data/cooling-solutions/<id>.yaml"
     )
 
+    # Optional per-precision calibration data. Both maps key on lowercase
+    # precision names ('int4', 'int8', 'bf16', 'fp32', etc.) and carry
+    # values in [0, 1]. When absent, downstream consumers (the graphs
+    # KPU YAML loader, validator framework) fall back to flat
+    # placeholders (~0.70 efficiency, ~0.95 utilization) -- those are
+    # safe defaults; populate when measured calibration data exists.
+    efficiency_factor_by_precision: dict[str, float] | None = Field(
+        None,
+        description=(
+            "Per-precision combined efficiency factor (measured / sustained). "
+            "Range [0, 1]; e.g., 0.68 means 68%% of sustained throughput "
+            "is achieved on real workloads. Profile-specific because DVFS "
+            "throttling, memory contention, and thermal margins shift "
+            "with TDP."
+        ),
+    )
+    tile_utilization_by_precision: dict[str, float] | None = Field(
+        None,
+        description=(
+            "Per-precision fraction of tiles actively scheduled for the "
+            "precision's primary workload. Range [0, 1]. Lower than 1.0 "
+            "when some tile classes are idle during precision-specific "
+            "execution (e.g., FP32 only uses BF16-primary tiles)."
+        ),
+    )
+
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_efficiency_ranges(self) -> "KPUThermalProfile":
+        """Ensure efficiency / utilization values are in [0, 1] when set."""
+        for attr_name, label in (
+            ("efficiency_factor_by_precision", "efficiency_factor"),
+            ("tile_utilization_by_precision", "tile_utilization"),
+        ):
+            mapping = getattr(self, attr_name)
+            if mapping is None:
+                continue
+            for precision, value in mapping.items():
+                if not 0.0 <= value <= 1.0:
+                    raise ValueError(
+                        f"{attr_name}[{precision!r}] = {value} is outside "
+                        f"[0, 1]; {label} is a unit fraction."
+                    )
+        return self
 
 
 class KPUPowerSpec(BaseModel):
