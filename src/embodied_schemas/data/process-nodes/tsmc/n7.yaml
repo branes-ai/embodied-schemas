@@ -77,6 +77,22 @@ energy_per_op_pj:
   balanced_logic:int4: 0.075
   lp_logic:int8: 0.10
 
+# Per-byte SRAM access energy (~half of N16 due to capacitance scaling).
+sram_access_pj_per_byte:
+  sram_hd: 0.15
+  sram_hc: 0.25
+  sram_hp: 0.40
+
+# DRAM PHY energy. N7 is similar to N16 since PHY energy is dominated by
+# package/PCB capacitance, not the logic node. HBM3 is the typical pairing
+# for N7 datacenter parts -- lower per-byte cost than LPDDR.
+dram_io_pj_per_byte: 5.0
+
+# NoC: ~half of N16 numbers (smaller transistors, lower switching cap).
+noc_pj_per_flit_per_hop:
+  hp_logic: 0.75
+  balanced_logic: 0.50
+
 em_j_max_by_temp_c:
   85: 2.0e6
   105: 1.3e6
