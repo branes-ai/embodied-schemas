@@ -1,0 +1,205 @@
+id: kpu_t64_32x32_lp5x4_7nm_tsmc_hpc
+name: KPU T64 (32x32 PE, lpddr5x x4, TSMC N7 HPC)
+vendor: stillwater
+process_node_id: tsmc_n7
+die:
+  architecture: KPU Tile
+  foundry: tsmc
+  process_nm: 7
+  process_name: N7
+  transistors_billion: 1.633
+  die_size_mm2: 17.9
+  is_chiplet: false
+  num_dies: 1
+kpu_architecture:
+  total_tiles: 64
+  tiles:
+  - tile_type: INT8-primary
+    num_tiles: 44
+    pe_array_rows: 32
+    pe_array_cols: 32
+    pe_circuit_class: balanced_logic
+    ops_per_tile_per_clock:
+      int8: 2048.0
+      int4: 4096.0
+      bf16: 1024.0
+      fp16: 1024.0
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 32
+    pipeline_drain_cycles: 32
+    notes: ''
+  - tile_type: BF16-primary
+    num_tiles: 13
+    pe_array_rows: 32
+    pe_array_cols: 32
+    pe_circuit_class: balanced_logic
+    ops_per_tile_per_clock:
+      bf16: 1024.0
+      fp16: 1024.0
+      fp32: 512.0
+      int8: 2048.0
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 32
+    pipeline_drain_cycles: 32
+    notes: ''
+  - tile_type: Matrix
+    num_tiles: 7
+    pe_array_rows: 32
+    pe_array_cols: 32
+    pe_circuit_class: hp_logic
+    ops_per_tile_per_clock:
+      int8: 2048.0
+      bf16: 1024.0
+      fp16: 1024.0
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 32
+    pipeline_drain_cycles: 32
+    notes: ''
+  noc:
+    topology: mesh_2d
+    mesh_rows: 8
+    mesh_cols: 8
+    flit_bytes: 16
+    router_circuit_class: hp_logic
+    bisection_bandwidth_gbps: 128.0
+  memory:
+    memory_type: lpddr5x
+    memory_size_gb: 8.0
+    memory_bus_bits: 64
+    memory_bandwidth_gbps: 68.0
+    memory_controllers: 4
+    l3_kib_per_tile: 256
+    l2_kib_per_tile: 32
+    l1_kib_per_pe: 4
+  multi_precision_alu:
+  - int4
+  - int8
+  - bf16
+  - fp32
+silicon_bin:
+  blocks:
+  - name: pe_int8
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.006
+      count_ref: tile.INT8-primary
+    notes: ''
+  - name: pe_bf16
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.012
+      count_ref: tile.BF16-primary
+    notes: ''
+  - name: pe_matrix
+    circuit_class: hp_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.02
+      count_ref: tile.Matrix
+    notes: ''
+  - name: l2_sram
+    circuit_class: sram_hd
+    transistor_source:
+      kind: per_kib
+      per_unit_mtx: 0.052
+      count_ref: l2_total_kib
+    notes: ''
+  - name: l3_sram
+    circuit_class: sram_hd
+    transistor_source:
+      kind: per_kib
+      per_unit_mtx: 0.052
+      count_ref: l3_total_kib
+    notes: ''
+  - name: noc_routers
+    circuit_class: hp_logic
+    transistor_source:
+      kind: per_router
+      per_unit_mtx: 0.8
+      count_ref: noc
+    notes: ''
+  - name: memory_phys
+    circuit_class: analog
+    transistor_source:
+      kind: per_controller
+      per_unit_mtx: 6.0
+      count_ref: memory
+    notes: ''
+  - name: io_pads
+    circuit_class: io
+    transistor_source:
+      kind: fixed
+      mtx: 8.0
+    notes: ''
+  - name: control_logic
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: fixed
+      mtx: 18.0
+    notes: ''
+clocks:
+  base_clock_mhz: 450.0
+  boost_clock_mhz: 750.0
+performance:
+  int8_tops: 78.6
+  bf16_tflops: 39.3
+  fp32_tflops: 3.99
+  int4_tops: 108.1
+power:
+  tdp_watts: 2.7
+  max_power_watts: 4.0
+  min_power_watts: 1.3
+  idle_power_watts: 0.22
+  default_thermal_profile: default
+  thermal_profiles:
+  - name: lp
+    tdp_watts: 1.3
+    clock_mhz: 450.0
+    cooling_solution_id: passive_heatsink_large
+    efficiency_factor_by_precision:
+      int8: 0.73
+      bf16: 0.68
+      int4: 0.78
+    tile_utilization_by_precision:
+      int8: 0.95
+      bf16: 0.9
+      int4: 0.97
+    vdd_v: 0.5
+  - name: default
+    tdp_watts: 2.7
+    clock_mhz: 600.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.73
+      bf16: 0.68
+      int4: 0.78
+    tile_utilization_by_precision:
+      int8: 0.95
+      bf16: 0.9
+      int4: 0.97
+    vdd_v: 0.65
+  - name: boost
+    tdp_watts: 4.0
+    clock_mhz: 700.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.73
+      bf16: 0.68
+      int4: 0.78
+    tile_utilization_by_precision:
+      int8: 0.95
+      bf16: 0.9
+      int4: 0.97
+    vdd_v: 0.75
+market:
+  target_market: embodied
+  product_family: Stillwater KPU
+  model_tier: entry
+  is_available: false
+  is_discontinued: false
+notes: Tile-count sweep at TSMC N7 HPC, lpddr5x x4, 32x32 PE arrays. Identical architecture
+  and (clock, Vdd) operating points to the 12nm_gf_fdx sweep -- only the process node
+  varies between the two.
+last_updated: '2026-05-11'
