@@ -1,0 +1,242 @@
+id: kpu_t768_16x8_hbm3x16_7nm_tsmc_hpc
+name: Stillwater KPU-T768
+vendor: stillwater
+process_node_id: tsmc_n7
+die:
+  architecture: KPU Tile
+  foundry: tsmc
+  process_nm: 7
+  process_name: N7
+  transistors_billion: 13.14
+  die_size_mm2: 330.0
+  is_chiplet: false
+  num_dies: 1
+kpu_architecture:
+  total_tiles: 768
+  multi_precision_alu:
+  - int4
+  - int8
+  - bf16
+  - fp32
+  tiles:
+  - tile_type: INT8-primary
+    num_tiles: 537
+    pe_array_rows: 16
+    pe_array_cols: 8
+    pe_circuit_class: balanced_logic
+    ops_per_tile_per_clock:
+      int8: 512
+      int4: 1024
+      bf16: 256
+      fp16: 256
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 16
+    pipeline_drain_cycles: 16
+  - tile_type: BF16-primary
+    num_tiles: 154
+    pe_array_rows: 16
+    pe_array_cols: 8
+    pe_circuit_class: balanced_logic
+    ops_per_tile_per_clock:
+      bf16: 256
+      fp16: 256
+      fp32: 128
+      int8: 512
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 16
+    pipeline_drain_cycles: 16
+  - tile_type: Matrix
+    num_tiles: 77
+    pe_array_rows: 8
+    pe_array_cols: 8
+    pe_circuit_class: hp_logic
+    ops_per_tile_per_clock:
+      int8: 8192
+      bf16: 4096
+      fp16: 4096
+    schedule_class: weight_stationary
+    pipeline_fill_cycles: 8
+    pipeline_drain_cycles: 8
+    notes: 'Tensor-core-style tile: 8x8 PE array runs as systolic matmul with
+
+      weight-stationary accumulation, yielding 128 INT8 ops/PE/cycle
+
+      (vs 8 ops/PE/cycle for the simple rows*cols*2 model). Used for
+
+      large-matrix LLM inference workloads.
+
+      '
+  noc:
+    topology: mesh_2d
+    mesh_rows: 32
+    mesh_cols: 24
+    flit_bytes: 32
+    router_circuit_class: hp_logic
+    bisection_bandwidth_gbps: 1024.0
+  memory:
+    memory_type: hbm3
+    memory_size_gb: 64.0
+    memory_bus_bits: 4096
+    memory_bandwidth_gbps: 1638.0
+    memory_controllers: 8
+    l3_kib_per_tile: 256
+    l2_kib_per_tile: 32
+    l1_kib_per_pe: 4
+silicon_bin:
+  blocks:
+  - name: pe_int8
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.02
+      count_ref: tile.INT8-primary
+    notes: 'INT8 PE @ N7 with per-PE register state rolled in. ~20K
+
+      transistors per PE (datacenter PEs carry larger weight buffers
+
+      than edge SKUs).
+
+      '
+  - name: pe_bf16
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.03
+      count_ref: tile.BF16-primary
+  - name: pe_matrix
+    circuit_class: hp_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.3
+      count_ref: tile.Matrix
+    notes: 'Matrix PE is much larger -- systolic cell with 8x-deep
+
+      accumulator pipeline + weight registers + input forwarding +
+
+      per-PE L1. ~300K transistors per cell.
+
+      '
+  - name: l2_sram
+    circuit_class: sram_hd
+    transistor_source:
+      kind: per_kib
+      per_unit_mtx: 0.022
+      count_ref: l2_total_kib
+  - name: l3_sram
+    circuit_class: sram_hd
+    transistor_source:
+      kind: per_kib
+      per_unit_mtx: 0.022
+      count_ref: l3_total_kib
+    notes: 'Distributed L3: 256 KiB x 768 = 192 MiB'
+  - name: noc_routers
+    circuit_class: hp_logic
+    transistor_source:
+      kind: per_router
+      per_unit_mtx: 4.0
+      count_ref: noc
+    notes: 32-byte flit routers with deep buffers for datacenter NoC
+  - name: memory_phys
+    circuit_class: analog
+    transistor_source:
+      kind: per_controller
+      per_unit_mtx: 200.0
+      count_ref: memory
+    notes: HBM3 PHY is heavy -- ~200 Mtx per controller, dominates analog area
+  - name: io_pads
+    circuit_class: io
+    transistor_source:
+      kind: fixed
+      mtx: 60.0
+    notes: PCIe Gen5 x16 + power management + sideband
+  - name: control_logic
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: fixed
+      mtx: 100.0
+    notes: Top-level scheduler, virtualization, multi-tenancy
+clocks:
+  base_clock_mhz: 1000.0
+  boost_clock_mhz: 1600.0
+performance:
+  int8_tops: 1353.8
+  bf16_tflops: 676.9
+  fp32_tflops: 27.1
+  int4_tops: 756.1
+power:
+  tdp_watts: 60.0
+  max_power_watts: 100.0
+  min_power_watts: 30.0
+  idle_power_watts: 3.35
+  default_thermal_profile: 60W
+  thermal_profiles:
+  - name: 30W
+    tdp_watts: 30.0
+    clock_mhz: 1075.0
+    vdd_v: 0.55
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.75
+      bf16: 0.7
+      int4: 0.78
+    tile_utilization_by_precision:
+      int8: 0.95
+      bf16: 0.92
+      int4: 0.96
+  - name: 60W
+    tdp_watts: 60.0
+    clock_mhz: 1375.0
+    vdd_v: 0.7
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.8
+      bf16: 0.75
+      int4: 0.82
+    tile_utilization_by_precision:
+      int8: 0.96
+      bf16: 0.94
+      int4: 0.97
+  - name: 100W
+    tdp_watts: 100.0
+    clock_mhz: 1550.0
+    vdd_v: 0.85
+    cooling_solution_id: liquid_cooled
+    efficiency_factor_by_precision:
+      int8: 0.85
+      bf16: 0.8
+      int4: 0.87
+    tile_utilization_by_precision:
+      int8: 0.98
+      bf16: 0.96
+      int4: 0.99
+market:
+  launch_date: 2026-Q4
+  launch_msrp_usd: null
+  target_market: datacenter
+  product_family: Stillwater KPU
+  model_tier: datacenter
+  is_available: false
+  is_discontinued: false
+notes: 'Datacenter-class KPU SKU for AI inference at scale. 768 heterogeneous
+
+  tiles in a 32x24 grid; INT8/BF16 tiles use 16x8 PE arrays while Matrix
+
+  tiles use 8x8 systolic blocks (tensor-core-style) for LLM inference.
+
+  192 MiB distributed L3 scratchpad. HBM3 64 GB / 1.6 TB/s. TSMC N7
+
+  process. 60W default TDP with 30W and 100W profiles; 100W requires
+
+  liquid cooling.
+
+
+  Validates the schema''s tensor-core-style tile path: Matrix tiles have
+
+  8192 INT8 ops/clock at 64 PEs (128 ops/PE/cycle) via systolic
+
+  accumulation, which the simple rows*cols*ops_per_pe model would
+
+  underestimate by 16x.
+
+  '
+last_updated: '2026-05-09'

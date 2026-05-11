@@ -1,0 +1,201 @@
+id: kpu_t128_32x32_lp5x8_16nm_tsmc_ffp
+name: Stillwater KPU-T128
+vendor: stillwater
+process_node_id: tsmc_n16
+die:
+  architecture: KPU Tile
+  foundry: tsmc
+  process_nm: 16
+  process_name: N16
+  transistors_billion: 3.22
+  die_size_mm2: 96.0
+  is_chiplet: false
+  num_dies: 1
+kpu_architecture:
+  total_tiles: 128
+  multi_precision_alu:
+  - int4
+  - int8
+  - bf16
+  - fp32
+  tiles:
+  - tile_type: INT8-primary
+    num_tiles: 89
+    pe_array_rows: 32
+    pe_array_cols: 32
+    pe_circuit_class: balanced_logic
+    ops_per_tile_per_clock:
+      int8: 2048
+      int4: 4096
+      bf16: 1024
+      fp16: 1024
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 32
+    pipeline_drain_cycles: 32
+  - tile_type: BF16-primary
+    num_tiles: 26
+    pe_array_rows: 32
+    pe_array_cols: 32
+    pe_circuit_class: balanced_logic
+    ops_per_tile_per_clock:
+      bf16: 1024
+      fp16: 1024
+      fp32: 512
+      int8: 2048
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 32
+    pipeline_drain_cycles: 32
+  - tile_type: Matrix
+    num_tiles: 13
+    pe_array_rows: 32
+    pe_array_cols: 32
+    pe_circuit_class: hp_logic
+    ops_per_tile_per_clock:
+      int8: 2048
+      bf16: 1024
+      fp16: 1024
+    schedule_class: output_stationary
+    pipeline_fill_cycles: 32
+    pipeline_drain_cycles: 32
+  noc:
+    topology: mesh_2d
+    mesh_rows: 16
+    mesh_cols: 8
+    flit_bytes: 16
+    router_circuit_class: hp_logic
+    bisection_bandwidth_gbps: 96.0
+  memory:
+    memory_type: lpddr5
+    memory_size_gb: 16.0
+    memory_bus_bits: 128
+    memory_bandwidth_gbps: 96.0
+    memory_controllers: 8
+    l3_kib_per_tile: 256
+    l2_kib_per_tile: 32
+    l1_kib_per_pe: 4
+silicon_bin:
+  blocks:
+  - name: pe_int8
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.006
+      count_ref: tile.INT8-primary
+  - name: pe_bf16
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.012
+      count_ref: tile.BF16-primary
+  - name: pe_matrix
+    circuit_class: hp_logic
+    transistor_source:
+      kind: per_pe
+      per_unit_mtx: 0.02
+      count_ref: tile.Matrix
+  - name: l2_sram
+    circuit_class: sram_hd
+    transistor_source:
+      kind: per_kib
+      per_unit_mtx: 0.052
+      count_ref: l2_total_kib
+  - name: l3_sram
+    circuit_class: sram_hd
+    transistor_source:
+      kind: per_kib
+      per_unit_mtx: 0.052
+      count_ref: l3_total_kib
+  - name: noc_routers
+    circuit_class: hp_logic
+    transistor_source:
+      kind: per_router
+      per_unit_mtx: 0.8
+      count_ref: noc
+  - name: memory_phys
+    circuit_class: analog
+    transistor_source:
+      kind: per_controller
+      per_unit_mtx: 6.0
+      count_ref: memory
+  - name: io_pads
+    circuit_class: io
+    transistor_source:
+      kind: fixed
+      mtx: 6.0
+  - name: control_logic
+    circuit_class: balanced_logic
+    transistor_source:
+      kind: fixed
+      mtx: 12.0
+clocks:
+  base_clock_mhz: 350.0
+  boost_clock_mhz: 600.0
+performance:
+  int8_tops: 124.5
+  bf16_tflops: 62.3
+  fp32_tflops: 6.32
+  int4_tops: 173.2
+power:
+  tdp_watts: 12.0
+  max_power_watts: 18.0
+  min_power_watts: 6.0
+  idle_power_watts: 0.9
+  default_thermal_profile: 12W
+  thermal_profiles:
+  - name: 6W
+    tdp_watts: 6.0
+    clock_mhz: 350.0
+    vdd_v: 0.6
+    cooling_solution_id: passive_heatsink_large
+    efficiency_factor_by_precision:
+      int8: 0.63
+      bf16: 0.58
+      int4: 0.68
+    tile_utilization_by_precision:
+      int8: 0.91
+      bf16: 0.86
+      int4: 0.93
+  - name: 12W
+    tdp_watts: 12.0
+    clock_mhz: 475.0
+    vdd_v: 0.75
+    cooling_solution_id: passive_heatsink_large
+    efficiency_factor_by_precision:
+      int8: 0.68
+      bf16: 0.63
+      int4: 0.73
+    tile_utilization_by_precision:
+      int8: 0.94
+      bf16: 0.89
+      int4: 0.96
+  - name: 18W
+    tdp_watts: 18.0
+    clock_mhz: 500.0
+    vdd_v: 0.9
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.72
+      bf16: 0.67
+      int4: 0.77
+    tile_utilization_by_precision:
+      int8: 0.96
+      bf16: 0.91
+      int4: 0.97
+market:
+  launch_date: 2026-Q1
+  launch_msrp_usd: null
+  target_market: embodied
+  product_family: Stillwater KPU
+  model_tier: mid
+  is_available: false
+  is_discontinued: false
+notes: 'Mid-range KPU SKU. M0.5 inverse-scaling: T128 keeps 32x32 PE arrays for
+
+  more total PEs (131K) than T256''s 20x20 layout (102K). 70/20/10 tile
+
+  mix. Targets autonomous robots, advanced edge AI applications. TSMC N16,
+
+  12W default with 6W and 18W profiles.
+
+  '
+last_updated: '2026-05-09'
