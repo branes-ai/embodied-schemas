@@ -347,6 +347,29 @@ class KPUThermalProfile(BaseModel):
             "execution (e.g., FP32 only uses BF16-primary tiles)."
         ),
     )
+    activity_factor: float | None = Field(
+        None, gt=0,
+        description=(
+            "Multiplier on the WorkloadAssumption's compute_duty_cycle "
+            "for THIS profile only. Lets the architect tune a single "
+            "profile (typically the lower-power ones) without changing "
+            "the chip-wide workload model. Default None = use the "
+            "workload duty cycle as-is. Example: profile '15W' with "
+            "activity_factor=0.5 dissipates half the dynamic power of "
+            "the same clock at activity_factor=1.0."
+        ),
+    )
+    vdd_v: float | None = Field(
+        None, gt=0,
+        description=(
+            "Core supply voltage for THIS operating point in volts. "
+            "Default None = use ProcessNode.nominal_vdd_v. Dynamic power "
+            "scales by (vdd_v / nominal_vdd_v)^2 -- so lower-power "
+            "profiles drop both clock AND voltage (Orin-style DVFS), "
+            "and the (V^2 * f) product is what spreads TDP across "
+            "profiles. Typical range at 16nm FinFET: 0.55-0.95 V."
+        ),
+    )
 
     model_config = {"extra": "forbid"}
 
