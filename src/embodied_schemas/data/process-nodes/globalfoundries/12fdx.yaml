@@ -80,6 +80,23 @@ energy_per_op_pj:
   balanced_logic:int4: 0.14
   lp_logic:int8: 0.18
 
+# Per-byte SRAM access energy. FD-SOI's BOX layer cuts wire capacitance,
+# so SRAM access is a bit cheaper than equivalent-label FinFET.
+# Source: GF 12FDX SRAM characterization; CACTI 12nm extrapolation.
+sram_access_pj_per_byte:
+  sram_hd: 0.25
+
+# DRAM PHY energy. PHY cost is dominated by package/PCB capacitance, so
+# similar to N16 LPDDR5 PHY. LPDDR5x runs at higher data rates but
+# per-byte cost is comparable.
+dram_io_pj_per_byte: 6.5
+
+# NoC traversal energy. Between N16 (1.0/1.5) and N7 (0.5/0.75) -- FD-SOI
+# wires are thinner than 14LPP equivalent, lower cap.
+noc_pj_per_flit_per_hop:
+  hp_logic: 1.2
+  balanced_logic: 0.8
+
 em_j_max_by_temp_c:
   85: 1.6e6
   105: 1.05e6
