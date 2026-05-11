@@ -195,6 +195,33 @@ class ProcessNodeEntry(BaseModel):
             "Examples: 'balanced_logic:int8', 'hp_logic:bf16'."
         ),
     )
+    sram_access_pj_per_byte: dict[CircuitClass, float] = Field(
+        default_factory=dict,
+        description=(
+            "Per-byte SRAM access energy by library (sram_hd, sram_hc, sram_hp). "
+            "Representative figure for ~32-256 KiB caches at this node. "
+            "Used by the KPU power model to derive L2/L3 access power from "
+            "sustained byte-rate. L1 access energy is rolled into "
+            "energy_per_op_pj for the PE library."
+        ),
+    )
+    dram_io_pj_per_byte: float | None = Field(
+        None, ge=0,
+        description=(
+            "PHY-side DRAM I/O energy in pJ per byte transferred at the chip "
+            "package boundary. Excludes the DRAM die's internal energy. "
+            "Typical ranges: LPDDR5 ~5-10 pJ/byte, HBM3 ~3-5, DDR5 ~6-10."
+        ),
+    )
+    noc_pj_per_flit_per_hop: dict[CircuitClass, float] = Field(
+        default_factory=dict,
+        description=(
+            "Per-flit-per-hop NoC traversal energy by router library. Typical "
+            "16-byte mesh router at N16: ~1.0 pJ/flit/hop on balanced_logic, "
+            "~1.5 on hp_logic. Used by the KPU power model to derive on-chip "
+            "communication power from estimated cross-tile traffic."
+        ),
+    )
 
     # Reliability
     em_j_max_by_temp_c: dict[int, float] = Field(

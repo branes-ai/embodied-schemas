@@ -82,6 +82,27 @@ energy_per_op_pj:
   lp_logic:int8: 0.22
   lp_logic:int4: 0.13
 
+# Per-byte SRAM access energy. Representative for ~32-256 KiB caches.
+# Sources: ITRS / ISSCC SRAM characterization at 16FF+; CACTI 6.5 N16
+# extrapolation. L1 (small per-PE register file) is rolled into
+# energy_per_op_pj for the PE library.
+sram_access_pj_per_byte:
+  sram_hd: 0.30
+  sram_hc: 0.50
+
+# DRAM PHY energy (chip-side I/O, excludes the DRAM die's internal cost).
+# Typical LPDDR5 PHY at 16nm: ~7 pJ/byte. HBM2/3 PHY (wider, slower)
+# would be ~3-5. Source: Micron LPDDR5 datasheets; JEDEC PHY references.
+dram_io_pj_per_byte: 7.0
+
+# Per-flit-per-hop NoC traversal energy. Assumes 16-byte (128-bit) flit
+# width, 5-port mesh router. Source: Wentzlaff et al. / OCN literature
+# scaled to 16nm. hp_logic routers are larger but faster; balanced is the
+# default for area-bounded designs.
+noc_pj_per_flit_per_hop:
+  hp_logic: 1.5
+  balanced_logic: 1.0
+
 # Electromigration current-density ceilings (A/cm^2). Public-reference
 # Mx layer values for typical local-routing widths; PDK overrides go here.
 em_j_max_by_temp_c:
