@@ -216,6 +216,7 @@ from embodied_schemas.loaders import (
     load_process_nodes,
     load_cooling_solutions,
     load_kpus,
+    load_compute_products,
 )
 
 __version__ = "0.6.0"
@@ -383,6 +384,7 @@ __all__ = [
     "load_process_nodes",
     "load_cooling_solutions",
     "load_kpus",
+    "load_compute_products",
     # KPU SKU
     "KPUEntry",
     "KPUArchitecture",
