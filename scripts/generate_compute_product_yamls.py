@@ -132,20 +132,15 @@ def main() -> None:
     print(f"Found {len(kpus)} legacy KPU SKUs")
 
     written = 0
-    skipped = 0
-    for sku_id, entry in sorted(kpus.items()):
+    for _sku_id, entry in sorted(kpus.items()):
         cp = kpu_entry_to_compute_product(entry)
         out_path = OUT_DIR / cp.vendor / f"{cp.id}.yaml"
         write_yaml(cp, out_path)
         rel = out_path.relative_to(REPO_ROOT)
-        if out_path.exists():
-            print(f"  wrote {rel}")
-            written += 1
-        else:
-            print(f"  skipped {rel}")
-            skipped += 1
+        print(f"  wrote {rel}")
+        written += 1
 
-    print(f"\nDone: {written} written, {skipped} skipped")
+    print(f"\nDone: {written} written")
 
 
 if __name__ == "__main__":
