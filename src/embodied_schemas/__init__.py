@@ -178,6 +178,23 @@ from embodied_schemas.kpu import (
     KPUPowerSpec,
     KPUMarket,
 )
+from embodied_schemas.compute_product import (
+    ComputeProduct,
+    ProductKind,
+    PackagingKind,
+    LifecycleStatus,
+    DieRole,
+    BlockKind,
+    KPUBlock,
+    AnyBlock,
+    InterconnectLevel,
+    TopologyKind,
+    Interconnect,
+    Die,
+    Packaging,
+    Power,
+    Market,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -383,6 +400,22 @@ __all__ = [
     "KPUThermalProfile",
     "KPUPowerSpec",
     "KPUMarket",
+    # ComputeProduct (v1, KPU-only) -- unified spine, additive
+    "ComputeProduct",
+    "ProductKind",
+    "PackagingKind",
+    "LifecycleStatus",
+    "DieRole",
+    "BlockKind",
+    "KPUBlock",
+    "AnyBlock",
+    "InterconnectLevel",
+    "TopologyKind",
+    "Interconnect",
+    "Die",
+    "Packaging",
+    "Power",
+    "Market",
     # Version
     "__version__",
 ]
