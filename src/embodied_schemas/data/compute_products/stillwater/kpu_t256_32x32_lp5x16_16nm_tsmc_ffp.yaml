@@ -213,9 +213,9 @@ notes: 'High-performance KPU SKU for edge servers, autonomous vehicles, advanced
 
   across the entry / mid / high tier are continuous. 30W default with 15W
 
-  and 50W profiles. TSMC N16, ~315 INT8 TOPS at the default profile (600 MHz @ 0.75V;
-  the earlier ~734 figure was from a 1400 MHz operating point retired in PR #153 when
-  Vdd-aware DVFS replaced fixed-Vdd clocks).
+  and 50W profiles. TSMC N16, ~315 INT8 TOPS at the default profile (600 MHz @ 0.75V; the
+  earlier ~734 figure was from a 1400 MHz operating point retired in PR #153 when Vdd-aware
+  DVFS replaced fixed-Vdd clocks).
 
   '
 last_updated: '2026-05-09'
