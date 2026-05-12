@@ -1,5 +1,5 @@
-id: kpu_t256_32x32_lp5x16_16nm_tsmc_ffp
-name: Stillwater KPU-T256
+id: kpu_t64_32x32_lp5x4_16nm_tsmc_ffp
+name: Stillwater KPU-T64
 vendor: stillwater
 kind: chip
 packaging:
@@ -11,8 +11,8 @@ dies:
 - die_id: kpu_compute
   die_role: compute
   process_node_id: tsmc_n16
-  die_size_mm2: 188.0
-  transistors_billion: 6.42
+  die_size_mm2: 50.0
+  transistors_billion: 1.61
   silicon_bin:
     blocks:
     - name: pe_int8
@@ -21,21 +21,21 @@ dies:
         kind: per_pe
         per_unit_mtx: 0.006
         count_ref: tile.INT8-primary
-      notes: ''
+      notes: INT8 MAC + reg + sequencing per PE; 6K transistors @ 16nm
     - name: pe_bf16
       circuit_class: balanced_logic
       transistor_source:
         kind: per_pe
         per_unit_mtx: 0.012
         count_ref: tile.BF16-primary
-      notes: ''
+      notes: BF16 multiplier + adder + reg per PE; 12K transistors
     - name: pe_matrix
       circuit_class: hp_logic
       transistor_source:
         kind: per_pe
         per_unit_mtx: 0.02
         count_ref: tile.Matrix
-      notes: ''
+      notes: Mixed-precision PE with FP32 accumulator; 20K transistors
     - name: l2_sram
       circuit_class: sram_hd
       transistor_source:
@@ -49,7 +49,7 @@ dies:
         kind: per_kib
         per_unit_mtx: 0.052
         count_ref: l3_total_kib
-      notes: ''
+      notes: Distributed per-tile L3 scratchpad (256 KiB x 64 tiles = 16 MiB)
     - name: noc_routers
       circuit_class: hp_logic
       transistor_source:
@@ -63,25 +63,25 @@ dies:
         kind: per_controller
         per_unit_mtx: 6.0
         count_ref: memory
-      notes: ''
+      notes: LPDDR5 PHY per controller
     - name: io_pads
       circuit_class: io
       transistor_source:
         kind: fixed
-        mtx: 8.0
+        mtx: 5.0
       notes: ''
     - name: control_logic
       circuit_class: balanced_logic
       transistor_source:
         kind: fixed
-        mtx: 18.0
-      notes: ''
+        mtx: 8.0
+      notes: Top-level scheduler, host interface, DMA controllers
   clocks:
-    base_clock_mhz: 450.0
-    boost_clock_mhz: 750.0
+    base_clock_mhz: 350.0
+    boost_clock_mhz: 600.0
   blocks:
   - kind: kpu
-    total_tiles: 256
+    total_tiles: 64
     multi_precision_alu:
     - int4
     - int8
@@ -89,7 +89,7 @@ dies:
     - fp32
     tiles:
     - tile_type: INT8-primary
-      num_tiles: 179
+      num_tiles: 44
       pe_array_rows: 32
       pe_array_cols: 32
       pe_circuit_class: balanced_logic
@@ -103,7 +103,7 @@ dies:
       pipeline_drain_cycles: 32
       notes: ''
     - tile_type: BF16-primary
-      num_tiles: 51
+      num_tiles: 13
       pe_array_rows: 32
       pe_array_cols: 32
       pe_circuit_class: balanced_logic
@@ -117,7 +117,7 @@ dies:
       pipeline_drain_cycles: 32
       notes: ''
     - tile_type: Matrix
-      num_tiles: 26
+      num_tiles: 7
       pe_array_rows: 32
       pe_array_cols: 32
       pe_circuit_class: hp_logic
@@ -128,94 +128,91 @@ dies:
       schedule_class: output_stationary
       pipeline_fill_cycles: 32
       pipeline_drain_cycles: 32
-      notes: ''
+      notes: Matrix tiles use HP_LOGIC for Fmax-critical mixed-precision dataflow
     noc:
       topology: mesh_2d
-      mesh_rows: 16
-      mesh_cols: 16
+      mesh_rows: 8
+      mesh_cols: 8
       flit_bytes: 16
       router_circuit_class: hp_logic
-      bisection_bandwidth_gbps: 256.0
+      bisection_bandwidth_gbps: 64.0
     memory:
       memory_type: lpddr5
-      memory_size_gb: 32.0
-      memory_bus_bits: 256
-      memory_bandwidth_gbps: 256.0
-      memory_controllers: 16
+      memory_size_gb: 8.0
+      memory_bus_bits: 64
+      memory_bandwidth_gbps: 64.0
+      memory_controllers: 4
       l3_kib_per_tile: 256
       l2_kib_per_tile: 32
       l1_kib_per_pe: 4
   interconnects: []
 performance:
-  int8_tops: 314.6
-  bf16_tflops: 157.3
-  fp32_tflops: 15.67
-  int4_tops: 439.9
+  int8_tops: 62.3
+  bf16_tflops: 31.1
+  fp32_tflops: 3.16
+  int4_tops: 85.6
 power:
-  tdp_watts: 30.0
-  max_power_watts: 50.0
-  min_power_watts: 15.0
-  idle_power_watts: 1.79
-  default_thermal_profile: 30W
+  tdp_watts: 6.0
+  max_power_watts: 10.0
+  min_power_watts: 3.0
+  idle_power_watts: 0.46
+  default_thermal_profile: 6W
   thermal_profiles:
-  - name: 15W
-    tdp_watts: 15.0
-    clock_mhz: 450.0
+  - name: 3W
+    tdp_watts: 3.0
+    clock_mhz: 350.0
+    cooling_solution_id: passive_heatsink_small
+    efficiency_factor_by_precision:
+      int8: 0.6
+      bf16: 0.55
+      int4: 0.65
+    tile_utilization_by_precision:
+      int8: 0.9
+      bf16: 0.85
+      int4: 0.92
+    vdd_v: 0.6
+  - name: 6W
+    tdp_watts: 6.0
+    clock_mhz: 475.0
     cooling_solution_id: passive_heatsink_large
     efficiency_factor_by_precision:
-      int8: 0.68
-      bf16: 0.63
-      int4: 0.73
+      int8: 0.65
+      bf16: 0.6
+      int4: 0.7
     tile_utilization_by_precision:
       int8: 0.93
       bf16: 0.88
       int4: 0.95
-    vdd_v: 0.6
-  - name: 30W
-    tdp_watts: 30.0
-    clock_mhz: 600.0
-    cooling_solution_id: active_fan
+    vdd_v: 0.75
+  - name: 10W
+    tdp_watts: 10.0
+    clock_mhz: 550.0
+    cooling_solution_id: passive_heatsink_large
     efficiency_factor_by_precision:
-      int8: 0.73
-      bf16: 0.68
-      int4: 0.78
+      int8: 0.7
+      bf16: 0.65
+      int4: 0.75
     tile_utilization_by_precision:
       int8: 0.95
       bf16: 0.9
       int4: 0.97
-    vdd_v: 0.75
-  - name: 50W
-    tdp_watts: 50.0
-    clock_mhz: 700.0
-    cooling_solution_id: active_fan
-    efficiency_factor_by_precision:
-      int8: 0.78
-      bf16: 0.73
-      int4: 0.83
-    tile_utilization_by_precision:
-      int8: 0.97
-      bf16: 0.92
-      int4: 0.98
     vdd_v: 0.9
 market:
-  launch_date: 2026-Q2
-  launch_msrp_usd: 1092.0
-  target_market: embodied
+  launch_date: 2025-Q4
+  target_market: edge
   product_family: Stillwater KPU
-  model_tier: high
+  model_tier: entry
   is_available: false
 confidence: theoretical
-notes: 'High-performance KPU SKU for edge servers, autonomous vehicles, advanced
+notes: 'Entry-level KPU SKU for edge AI: drones, mobile robots, fanless industrial
 
-  drones. 256 tiles in a 16x16 grid, 32x32 PE arrays (262,144 PEs total).
+  edge. 64 heterogeneous tiles in an 8x8 checkerboard, 70/20/10 mix between
 
-  Tile microarchitecture is uniform with T64 / T128 so cost / perf curves
+  INT8-primary, BF16-primary, and Matrix tile classes. 32x32 PE arrays per
 
-  across the entry / mid / high tier are continuous. 30W default with 15W
+  tile (1024 PEs/tile, 65,536 PEs total). 16 MiB distributed L3 scratchpad.
 
-  and 50W profiles. TSMC N16, ~315 INT8 TOPS at the default profile (600 MHz @ 0.75V; the
-  earlier ~734 figure was from a 1400 MHz operating point retired in PR #153 when Vdd-aware
-  DVFS replaced fixed-Vdd clocks).
+  TSMC N16 process, 6W default TDP with 3W/10W profiles.
 
   '
 last_updated: '2026-05-09'
