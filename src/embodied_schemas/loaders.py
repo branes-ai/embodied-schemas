@@ -24,6 +24,7 @@ from embodied_schemas.mission import CapabilityTierEntry, MissionProfileEntry, B
 from embodied_schemas.process_node import ProcessNodeEntry
 from embodied_schemas.cooling_solution import CoolingSolutionEntry
 from embodied_schemas.kpu import KPUEntry
+from embodied_schemas.compute_product import ComputeProduct
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -332,6 +333,34 @@ def load_kpus(data_dir: Path | None = None) -> dict[str, KPUEntry]:
     """
     data_dir = data_dir or get_data_dir()
     return load_all_from_directory(data_dir / "kpus", KPUEntry)
+
+
+def load_compute_products(
+    data_dir: Path | None = None,
+) -> dict[str, ComputeProduct]:
+    """Load all ComputeProduct entries from the catalog.
+
+    Reads YAMLs under ``data/compute_products/<vendor>/<id>.yaml`` and
+    returns a dict keyed by id. The unified ComputeProduct schema (v1)
+    covers KPU monolithic products today; future block kinds (GPU, CPU,
+    NPU, DSP, memory dies) extend the discriminated ``blocks`` union as
+    they're added.
+
+    Sibling to ``load_kpus()`` during the parallel-migration phase: a
+    SKU may exist in either ``data/kpus/`` (legacy KPUEntry) or
+    ``data/compute_products/`` (new ComputeProduct). Once all SKUs are
+    migrated, ``load_kpus()`` becomes a thin shim over this loader plus
+    an adapter; the legacy directory is removed.
+
+    Returns an empty dict if the ``data/compute_products/`` directory
+    does not exist (graceful migration -- the catalog still loads even
+    on a checkout that predates the directory).
+    """
+    data_dir = data_dir or get_data_dir()
+    cp_dir = data_dir / "compute_products"
+    if not cp_dir.is_dir():
+        return {}
+    return load_all_from_directory(cp_dir, ComputeProduct)
 
 
 def load_operators(data_dir: Path | None = None) -> dict[str, OperatorEntry]:
