@@ -432,11 +432,21 @@ def load_kpus(data_dir: Path | None = None) -> dict[str, KPUEntry]:
     Prefer ``load_compute_products()`` for new code -- it returns the
     canonical schema and avoids the per-call reverse-adapt cost.
 
-    Returns an empty dict if neither ``data/compute_products/`` nor any
-    legacy ``data/kpus/`` directory exists.
+    Fallback path: if ``data/compute_products/`` is empty or missing
+    (e.g., a caller pinned to a pre-PR-#15 checkout that still ships
+    the legacy ``data/kpus/`` catalog), the shim reads directly from
+    ``data/kpus/<vendor>/<id>.yaml``. Same-shape KPUEntry instances
+    either way.
+
+    Returns an empty dict if neither catalog directory exists.
     """
+    data_dir = data_dir or get_data_dir()
     cps = load_compute_products(data_dir=data_dir)
     if not cps:
+        # Legacy fallback: caller may still have data/kpus/ populated.
+        legacy_dir = data_dir / "kpus"
+        if legacy_dir.is_dir():
+            return load_all_from_directory(legacy_dir, KPUEntry)
         return {}
     process_nodes = load_process_nodes(data_dir=data_dir)
     out: dict[str, KPUEntry] = {}
@@ -581,6 +591,7 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("process-nodes", ProcessNodeEntry),
         ("cooling-solutions", CoolingSolutionEntry),
         ("kpus", KPUEntry),
+        ("compute_products", ComputeProduct),
     ]
 
     for subdir, model_class in validations:
