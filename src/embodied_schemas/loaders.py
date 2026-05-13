@@ -23,8 +23,19 @@ from embodied_schemas.architectures import SoftwareArchitecture
 from embodied_schemas.mission import CapabilityTierEntry, MissionProfileEntry, BatteryEntry
 from embodied_schemas.process_node import ProcessNodeEntry
 from embodied_schemas.cooling_solution import CoolingSolutionEntry
-from embodied_schemas.kpu import KPUEntry
-from embodied_schemas.compute_product import ComputeProduct
+from embodied_schemas.kpu import (
+    KPUArchitecture,
+    KPUDieSpec,
+    KPUEntry,
+    KPUMarket,
+    KPUPowerSpec,
+)
+from embodied_schemas.compute_product import (
+    ComputeProduct,
+    KPUBlock,
+    LifecycleStatus,
+    PackagingKind,
+)
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -323,16 +334,138 @@ def load_cooling_solutions(
     return load_all_from_directory(data_dir / "cooling-solutions", CoolingSolutionEntry)
 
 
-def load_kpus(data_dir: Path | None = None) -> dict[str, KPUEntry]:
-    """Load all KPU SKU entries from the catalog.
+def _compute_product_to_kpu_entry(
+    cp: ComputeProduct,
+    process_node: ProcessNodeEntry,
+) -> KPUEntry:
+    """Reverse-adapt a v1 monolithic-KPU ComputeProduct to a KPUEntry.
 
-    KPUs (Knowledge Processing Units) are general parallel execution
-    engines, peer of GPUs / CPUs / NPUs. Each KPUEntry references a
-    ProcessNodeEntry by id (silicon fabrication) and a CoolingSolutionEntry
-    per thermal profile (thermal removal).
+    Used by the ``load_kpus()`` backward-compat shim. The legacy
+    ``KPUDieSpec`` has redundant copies of foundry / process_name /
+    process_nm that the unified schema offloaded to ProcessNode; the
+    caller passes the resolved node so we can fill those in.
+
+    Raises ValueError for shapes that KPUEntry can't represent
+    (multi-die, non-KPUBlock, mismatched process node).
+    """
+    if len(cp.dies) != 1:
+        raise ValueError(
+            f"_compute_product_to_kpu_entry: KPUEntry can only represent "
+            f"one die, got {len(cp.dies)} for {cp.id!r}"
+        )
+    die = cp.dies[0]
+    if len(die.blocks) != 1:
+        raise ValueError(
+            f"_compute_product_to_kpu_entry: KPUEntry can only represent "
+            f"one KPUBlock per die, got {len(die.blocks)} for {cp.id!r}"
+        )
+    block = die.blocks[0]
+    if not isinstance(block, KPUBlock):
+        raise ValueError(
+            f"_compute_product_to_kpu_entry: only KPUBlock is supported, "
+            f"got {type(block).__name__} for {cp.id!r}"
+        )
+    if process_node.id != die.process_node_id:
+        raise ValueError(
+            f"_compute_product_to_kpu_entry: process_node.id "
+            f"{process_node.id!r} does not match die.process_node_id "
+            f"{die.process_node_id!r} for {cp.id!r}"
+        )
+
+    return KPUEntry(
+        id=cp.id,
+        name=cp.name,
+        vendor=cp.vendor,
+        process_node_id=die.process_node_id,
+        die=KPUDieSpec(
+            architecture="KPU Tile",
+            foundry=process_node.foundry,
+            process_nm=process_node.node_nm,
+            process_name=process_node.node_name,
+            transistors_billion=die.transistors_billion,
+            die_size_mm2=die.die_size_mm2,
+            is_chiplet=cp.packaging.kind != PackagingKind.MONOLITHIC,
+            num_dies=cp.packaging.num_dies,
+        ),
+        kpu_architecture=KPUArchitecture(
+            total_tiles=block.total_tiles,
+            multi_precision_alu=block.multi_precision_alu,
+            tiles=block.tiles,
+            noc=block.noc,
+            memory=block.memory,
+        ),
+        silicon_bin=die.silicon_bin,
+        clocks=die.clocks,
+        performance=cp.performance,
+        power=KPUPowerSpec(
+            tdp_watts=cp.power.tdp_watts,
+            max_power_watts=cp.power.max_power_watts,
+            min_power_watts=cp.power.min_power_watts,
+            idle_power_watts=cp.power.idle_power_watts,
+            default_thermal_profile=cp.power.default_thermal_profile,
+            thermal_profiles=cp.power.thermal_profiles,
+        ),
+        market=KPUMarket(
+            launch_date=cp.market.launch_date,
+            launch_msrp_usd=cp.market.launch_msrp_usd,
+            target_market=cp.market.target_market,
+            product_family=cp.market.product_family,
+            model_tier=cp.market.model_tier,
+            is_available=cp.market.is_available,
+            is_discontinued=(cp.lifecycle == LifecycleStatus.EOL),
+        ),
+        notes=cp.notes,
+        datasheet_url=cp.datasheet_url,
+        last_updated=cp.last_updated,
+    )
+
+
+def load_kpus(data_dir: Path | None = None) -> dict[str, KPUEntry]:
+    """Backward-compat shim: return every KPU SKU as a ``KPUEntry``.
+
+    The legacy ``data/kpus/<vendor>/<id>.yaml`` catalog was retired in
+    favor of the unified ``data/compute_products/<vendor>/<id>.yaml``
+    catalog. This function now reads from the new catalog and
+    reverse-adapts each ComputeProduct to a KPUEntry on the fly,
+    preserving the old API for any straggler still consuming KPUEntry.
+
+    Prefer ``load_compute_products()`` for new code -- it returns the
+    canonical schema and avoids the per-call reverse-adapt cost.
+
+    Fallback path: if ``data/compute_products/`` is empty or missing
+    (e.g., a caller pinned to a pre-PR-#15 checkout that still ships
+    the legacy ``data/kpus/`` catalog), the shim reads directly from
+    ``data/kpus/<vendor>/<id>.yaml``. Same-shape KPUEntry instances
+    either way.
+
+    Returns an empty dict if neither catalog directory exists.
     """
     data_dir = data_dir or get_data_dir()
-    return load_all_from_directory(data_dir / "kpus", KPUEntry)
+    cps = load_compute_products(data_dir=data_dir)
+    if not cps:
+        # Legacy fallback: caller may still have data/kpus/ populated.
+        legacy_dir = data_dir / "kpus"
+        if legacy_dir.is_dir():
+            return load_all_from_directory(legacy_dir, KPUEntry)
+        return {}
+    process_nodes = load_process_nodes(data_dir=data_dir)
+    out: dict[str, KPUEntry] = {}
+    for sku_id, cp in cps.items():
+        if not cp.dies:
+            continue
+        node = process_nodes.get(cp.dies[0].process_node_id)
+        if node is None:
+            # Skip rather than raise: an unresolvable process_node_id is
+            # a catalog inconsistency the caller surfaces via validators,
+            # not a load-time error.
+            continue
+        try:
+            out[sku_id] = _compute_product_to_kpu_entry(cp, node)
+        except ValueError:
+            # Non-KPU compute products (e.g., future GPU blocks) can't
+            # be represented as KPUEntry; silently skip them here.
+            continue
+    return out
 
 
 def load_compute_products(
@@ -458,6 +591,7 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("process-nodes", ProcessNodeEntry),
         ("cooling-solutions", CoolingSolutionEntry),
         ("kpus", KPUEntry),
+        ("compute_products", ComputeProduct),
     ]
 
     for subdir, model_class in validations:
