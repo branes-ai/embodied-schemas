@@ -1,0 +1,118 @@
+# TSMC N4P -- third-gen FinFET HPC variant; 6%% performance / 4%% density gain
+# over N5 with same back-end-of-line. Used in NVIDIA Blackwell datacenter
+# (B100, B200) and Tegra Blackwell (Jetson AGX Thor / IGX T5000), plus
+# AMD Zen5 / Phoenix2 / Strix Point and recent Apple M-series IP.
+#
+# Density numbers below are N5 numbers scaled by ~1.04 (TSMC's published
+# 6%% density-equivalent uplift; this is conservative -- early Blackwell
+# die-shot reverse-engineering reports closer to ~1.06 for logic).
+# SRAM cell area is identical to N5 (TSMC didn't shrink the bitcell at
+# N4P; SRAM scaling has stalled across the industry since N5).
+
+id: tsmc_n4p
+foundry: tsmc
+node_name: N4P
+node_nm: 4
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [ULVT, LVT, SVT, HVT, eLVT]
+nominal_vdd_v: 0.7
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 151.0
+    library_name: "N4P HPC"
+    confidence: theoretical
+    source: "TSMC N4P brief (6%% perf / 4%% density vs N5); NVIDIA Blackwell die-shot reverse-engineering"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 180.0
+    library_name: "N4P 6T HD"
+    confidence: theoretical
+    source: "Scaled from N5 6T HD by 1.04 per TSMC density brief"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 192.0
+    library_name: "N4P ULP"
+    confidence: theoretical
+    source: "Scaled from N5 ULP by 1.04"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 380.0
+    library_name: "N4P HD-SRAM (0.021 um^2 bitcell, identical to N5)"
+    confidence: theoretical
+    source: "TSMC -- bitcell unchanged from N5 (industry-wide SRAM scaling stall)"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 310.0
+    library_name: "N4P HC-SRAM (identical to N5)"
+    confidence: theoretical
+    source: "TSMC -- HC bitcell unchanged from N5"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 240.0
+    library_name: "N4P HP-SRAM (dual-port, identical to N5)"
+    confidence: theoretical
+    source: "TSMC -- HP bitcell unchanged from N5"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 10.0
+    confidence: theoretical
+    source: "Analog scales poorly; identical to N5 figure"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 2.5
+    confidence: theoretical
+    source: "Pad ring estimate, unchanged from N5"
+
+leakage_w_per_mm2:
+  hp_logic: 0.058
+  balanced_logic: 0.025
+  lp_logic: 0.010
+  sram_hd: 0.007
+  sram_hc: 0.010
+  sram_hp: 0.018
+  analog: 0.0025
+  io: 0.001
+
+energy_per_op_pj:
+  hp_logic:fp32: 0.80
+  hp_logic:bf16: 0.40
+  hp_logic:int8: 0.105
+  balanced_logic:fp32: 0.61
+  balanced_logic:bf16: 0.30
+  balanced_logic:int8: 0.070
+  balanced_logic:int4: 0.042
+  lp_logic:int8: 0.057
+
+em_j_max_by_temp_c:
+  85: 2.6e6
+  105: 1.7e6
+  125: 1.05e6
+
+routing_metal_width_um:
+  hp_logic: 0.030
+  balanced_logic: 0.030
+  sram_hd: 0.021
+
+m0_pitch_nm: 30
+m1_pitch_nm: 30
+
+cooling_compatible:
+  - active_fan
+  - vapor_chamber
+  - liquid_cooled
+  - datacenter_direct_to_chip
+
+source: "TSMC N4P process brief; NVIDIA Blackwell whitepaper; AMD Zen5 disclosures"
+confidence: theoretical
+last_updated: "2026-05-15"
+notes: |
+  TSMC's N4P is the performance-tuned third-gen FinFET, derivative of N5.
+  Mass production 2022. Hosts NVIDIA Blackwell datacenter (B100, B200,
+  GB200) AND Tegra Blackwell (Jetson AGX Thor / IGX T5000), plus AMD
+  Zen5 / Phoenix2 / Strix Point. SRAM density unchanged from N5 -- the
+  industry-wide SRAM scaling wall continues. Logic density gains over N5
+  are in the 4-6%% range depending on cell library; this YAML uses the
+  conservative 4%% number throughout.

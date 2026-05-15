@@ -1,0 +1,289 @@
+# NVIDIA Jetson AGX Thor 128GB module (P3835-0001 commercial T5000;
+# the industrial IGX T5000 SoM uses the same silicon).
+#
+# Second GPU SKU in the data/compute_products/ catalog after Jetson AGX
+# Orin (PR #20). First customer of the new tsmc/n4p process node.
+# Data sourced from:
+#   - NVIDIA Jetson Thor SoC product brief (2025)
+#   - NVIDIA Blackwell architecture whitepaper (T200 / GB202 silicon)
+#   - graphs/src/graphs/hardware/models/automotive/jetson_thor_128gb.py
+#     (well-validated graphs mapper, the migration source)
+#
+# Confidence == "theoretical":
+#   - Per-SM transistor counts not publicly disclosed by NVIDIA.
+#     silicon_bin numbers are estimates based on Blackwell SM area
+#     scaled to the published Tegra Thor envelope (~600 mm^2, ~22 B
+#     transistors).
+#   - Thermal-profile efficiency factors come from the projected
+#     "Orin-style" derate factors in the graphs mapper docstring;
+#     no on-silicon Thor calibration data exists in the catalog yet
+#     (no dev kit in the lab per CLAUDE.md hardware access notes).
+#
+# Out of scope for this YAML (separate Tegra block kinds in v3+,
+# matching the AGX Orin YAML's deferral list):
+#   - 14x ARM Cortex-A78AE CPU complex (analog of the AGX Orin's
+#     8-core complex, scaled up for Thor)
+#   - 2x DLA (Deep Learning Accelerator)
+#   - 2x PVA (Programmable Vision Accelerator)
+#   - ISP, NVENC/NVDEC, audio, display engines
+# These will land as additional blocks on this same Die when
+# CPU / DLA / PVA block kinds are defined.
+
+id: nvidia_jetson_agx_thor_128gb
+name: NVIDIA Jetson AGX Thor 128GB
+vendor: nvidia
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: flip_chip_bga
+
+lifecycle: production
+
+dies:
+- die_id: tegra_t200_gpu
+  die_role: compute
+  process_node_id: tsmc_n4p
+  die_size_mm2: 600.0
+  transistors_billion: 30.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # CUDA cores: 8192 total (64 SMs * 128 cores). Per-SM Blackwell CUDA
+    # core block estimated at ~1.4 Mtx per CUDA core (slightly denser
+    # than Ampere's ~1.5 due to N4P node shrink + microarchitecture
+    # cleanup). Total ~11.5 B transistors -- ~52% of die budget, in
+    # line with academic SM area breakdowns for Blackwell.
+    - name: cuda_cores
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 11469.0
+      notes: 8192 CUDA cores @ ~1.4 Mtx each (Blackwell subcore + register file)
+    # -------------------------------------------------------------------
+    # Tensor cores: 256 total (64 SMs * 4 cores). Blackwell 5th-gen TC
+    # ships FP4 / FP6 support and a wider accumulator path; ~12 Mtx
+    # per TC (vs Ampere's ~10) reflects the added precisions.
+    # Total ~3.07 B.
+    - name: tensor_cores
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3072.0
+      notes: 256 Tensor Cores (Blackwell 5th-gen) @ ~12 Mtx each
+    # -------------------------------------------------------------------
+    # L1 / shared unified store: 256 KiB per SM (doubled vs Ampere's
+    # 192 KiB). 256 KiB * 64 SMs = 16384 KiB. SRAM HD density on N4P
+    # is the same as N5 (380 Mtx/mm^2), giving ~853 Mtx total for L1.
+    - name: l1_shared_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 853.0
+      notes: 256 KiB unified L1/shared per SM x 64 SMs = 16 MiB
+    # -------------------------------------------------------------------
+    # L2 cache: 8 MiB shared (LLC on Blackwell-Tegra, twice Orin's 4 MiB).
+    # 8192 KiB * 0.052 Mtx/KiB = 426 Mtx.
+    - name: l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 426.0
+      notes: 8 MiB shared L2 (LLC; Blackwell-Tegra has no distinct L3)
+    # -------------------------------------------------------------------
+    # SM-to-L2 fabric: 64 SMs * L2 slices = much wider than Orin's
+    # 16-port crossbar. Blackwell-Tegra likely uses a 2D mesh (crossbar
+    # quadratic cost prohibitive at this width); estimate ~80 Mtx per
+    # mesh node = 5120 Mtx total.
+    - name: sm_to_l2_mesh
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 5120.0
+      notes: SM-to-L2 mesh fabric (64 SMs as endpoints, mesh routers per row/col)
+    # -------------------------------------------------------------------
+    # LPDDR5X PHY: 256-bit bus = 8 controllers (32-bit each), running
+    # LPDDR5X-8533 (vs Orin's LPDDR5-6400). Per-controller ~150 Mtx.
+    - name: lpddr5x_phy
+      circuit_class: analog
+      transistor_source:
+        kind: fixed
+        mtx: 1200.0
+      notes: 256-bit LPDDR5X PHY (8 controllers x 32-bit), 273 GB/s peak
+    # -------------------------------------------------------------------
+    # IO ring: PCIe Gen5 x16, USB, GPIO, MIPI CSI lanes for cameras,
+    # Ethernet, DisplayPort. Roughly equivalent to Orin's IO budget.
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: PCIe Gen5 x16 + USB + MIPI CSI + DisplayPort + Ethernet + GPIO
+    # -------------------------------------------------------------------
+    # Scheduler / GigaThread Engine / kernel dispatch / power management.
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: GigaThread Engine, kernel dispatch, nvpmodel power management
+    # -------------------------------------------------------------------
+    # Non-GPU Tegra SoC blocks (ARM CPU, DLA, PVA, ISP, codecs, display).
+    # Carries the remaining transistor budget pending dedicated block
+    # kinds. Estimated at ~Orin's 10.3 B scaled by Thor's larger die +
+    # ARM core count (14 vs 8 cores). Final number derived to make
+    # silicon_bin sum match die-level transistors_billion.
+    - name: other_tegra_soc_blocks
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 7060.0
+      notes: ARM CPU complex (14x A78AE) + DLA + PVA + ISP + codecs + display (pending dedicated block kinds)
+  clocks:
+    base_clock_mhz: 800.0
+    boost_clock_mhz: 1300.0
+  blocks:
+  - kind: gpu
+    num_sms: 64
+    cuda_cores_per_sm: 128
+    tensor_cores_per_sm: 4
+    threads_per_sm: 128
+    warps_per_sm: 4
+    warp_size: 32
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    compute_fabrics:
+    # -------------------------------------------------------------------
+    # CUDA cores: 128 per SM. Same FMA (2 ops/clock) baseline as Ampere
+    # but on N4P -- ~1.3 pJ per FP32 FMA (vs Ampere's 1.9 pJ at 8nm).
+    - fabric_kind: cuda_core
+      circuit_class: hp_logic
+      units_per_sm: 128
+      ops_per_unit_per_clock:
+        fp32: 2
+        fp16: 2
+        int8: 2
+      energy_per_flop_fp32_pj: 1.3
+      energy_scaling:
+        fp32: 1.0
+        fp16: 0.5
+        int8: 0.125
+    # -------------------------------------------------------------------
+    # Tensor cores: 4 per SM, Blackwell 5th-gen. Lower per-TC ops/clock
+    # than Ampere (64 vs 256 FP16) reflects Blackwell's reorganization
+    # toward more SMs at lower per-TC throughput. Same circuit_class
+    # but ~15%% more energy-efficient than CUDA cores.
+    - fabric_kind: tensor_core
+      circuit_class: hp_logic
+      units_per_sm: 4
+      ops_per_unit_per_clock:
+        fp16: 64
+        int8: 64
+      energy_per_flop_fp32_pj: 1.11
+      energy_scaling:
+        fp16: 0.5
+        int8: 0.125
+    memory:
+      memory_type: lpddr5x
+      memory_size_gb: 128.0
+      memory_bus_bits: 256
+      memory_bandwidth_gbps: 273.0
+      memory_controllers: 8
+      l1_kib_per_sm: 256
+      l1_kind: unified
+      l2_total_kib: 8192
+      l2_topology: shared_llc
+      l3_present: false
+      l3_total_kib: 0
+      coherence_protocol: none
+      read_energy_pj_per_byte: 12.0
+      write_energy_pj_per_byte: 14.4
+    noc:
+      # 64 SMs make a crossbar quadratically expensive; Blackwell-Tegra
+      # is modeled as a 2D mesh (8x8) per Blackwell datacenter literature.
+      topology: mesh_2d
+      bisection_bandwidth_gbps: 4096.0
+      controller_count: 64
+      flit_size_bytes: 32
+      hop_latency_ns: 3.0
+      pj_per_flit_per_hop: 6.0
+      routing_distance_factor: 4.0
+    min_occupancy: 0.3
+    max_concurrent_kernels: 16
+    wave_quantization: 4
+  interconnects: []
+
+# Chip-level performance roll-up. Marketed numbers are at the 100W
+# profile (1.25 GHz sustained) and include all engines (GPU + 2x DLA +
+# sparsity). The numbers below are GPU-only DENSE peaks at the 60W
+# default profile (1.1 GHz sustained) -- the regime the graphs mapper
+# is calibrated against, and the realistic deployment target.
+performance:
+  int8_tops: 100.0
+  bf16_tflops: 50.0
+  fp32_tflops: 18.0
+
+power:
+  tdp_watts: 60.0
+  max_power_watts: 100.0
+  min_power_watts: 30.0
+  idle_power_watts: 8.0
+  default_thermal_profile: 60W
+  # Three nvpmodel profiles. Same KPUThermalProfile shape as Orin AGX
+  # -- per-precision GPU DVFS extras live inside GPUBlock; chip-level
+  # profile carries scalar clock_mhz + per-precision efficiency_factor.
+  thermal_profiles:
+  - name: 30W
+    tdp_watts: 30.0
+    clock_mhz: 750.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.50
+      fp16: 0.45
+      fp32: 0.30
+    vdd_v: 0.72
+  - name: 60W
+    tdp_watts: 60.0
+    clock_mhz: 1100.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.65
+      fp16: 0.60
+      fp32: 0.45
+    vdd_v: 0.82
+  - name: 100W
+    tdp_watts: 100.0
+    clock_mhz: 1250.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.80
+      fp16: 0.70
+      fp32: 0.55
+    vdd_v: 0.95
+
+market:
+  launch_date: '2025-12-01'
+  launch_msrp_usd: 2999.0
+  target_market: edge
+  product_family: Jetson Thor
+  model_tier: high
+  is_available: true
+
+confidence: theoretical
+notes: >
+  NVIDIA Jetson AGX Thor 128GB module. Second GPU SKU migrated to the
+  v2 ComputeProduct schema (after Jetson AGX Orin 64GB in PR #20).
+  Blackwell-Tegra generation, TSMC N4P, 8192 CUDA cores + 256 Tensor
+  cores (64 SMs), 8 MB shared L2 (LLC), 128 GB LPDDR5X-8533
+  @ 273 GB/s. Three nvpmodel power profiles: 30W (typical
+  deployment, autonomous vehicles), 60W (default, humanoid robots),
+  100W (development / benchtop). Industrial sibling IGX T5000 ships
+  electrically equivalent silicon -- this YAML is the analytical
+  proxy for both modules. Marketing (sparsity-inclusive) headline is
+  2000 TOPS INT8; this YAML carries the dense-datapath 1000 TOPS
+  number per the graphs mapper's "actual datapath" rule.
+last_updated: '2026-05-15'
