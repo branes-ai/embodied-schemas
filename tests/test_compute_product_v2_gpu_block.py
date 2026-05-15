@@ -407,11 +407,14 @@ def test_compute_product_with_gpu_die_round_trips(gpu_block):
 
 def test_v2_does_not_break_existing_kpu_catalog():
     """The full 12-SKU KPU ComputeProduct catalog must continue to load
-    cleanly after v2 schema additions."""
+    cleanly after v2 schema additions. Scoped to the KPU subset because
+    later v2 PRs add GPU SKUs (e.g., nvidia_jetson_agx_orin_64gb)."""
     from embodied_schemas.loaders import load_compute_products
     products = load_compute_products()
-    assert len(products) >= 12
-    for sku_id, product in products.items():
+    kpu_products = {
+        sku: cp for sku, cp in products.items() if cp.vendor == "stillwater"
+    }
+    assert len(kpu_products) >= 12
+    for sku_id, product in kpu_products.items():
         assert isinstance(product, ComputeProduct)
-        # All v1 SKUs are KPU
         assert product.dies[0].blocks[0].kind == BlockKind.KPU

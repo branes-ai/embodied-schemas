@@ -63,21 +63,26 @@ def kpus():
 # Catalog completeness
 # ---------------------------------------------------------------------------
 
-def test_catalog_has_all_12_skus(cps):
-    """Every expected KPU SKU has a ComputeProduct YAML."""
-    missing = EXPECTED_SKU_IDS - set(cps.keys())
-    extra = set(cps.keys()) - EXPECTED_SKU_IDS
+def test_catalog_has_all_12_kpu_skus(cps):
+    """Every expected KPU SKU has a ComputeProduct YAML. (Originally
+    asserted "no extra SKUs", but v2 added a Jetson AGX Orin GPU SKU
+    so the assertion now scopes to the KPU subset.)"""
+    kpu_ids = {sku for sku, cp in cps.items() if cp.vendor == "stillwater"}
+    missing = EXPECTED_SKU_IDS - kpu_ids
+    extra = kpu_ids - EXPECTED_SKU_IDS
     assert not missing, f"missing from compute_products: {sorted(missing)}"
-    assert not extra, f"unexpected SKUs in compute_products: {sorted(extra)}"
+    assert not extra, f"unexpected stillwater SKUs in compute_products: {sorted(extra)}"
 
 
-def test_compute_products_matches_legacy_kpus(cps, kpus):
-    """The compute_products catalog has exactly the same SKU ids as the
-    legacy kpus catalog (1:1 parity, PR #4's main proof)."""
-    assert set(cps.keys()) == set(kpus.keys()), (
+def test_compute_products_kpu_subset_matches_legacy_kpus(cps, kpus):
+    """The KPU subset of compute_products has exactly the same SKU ids
+    as the legacy kpus catalog (1:1 parity, PR #4's main proof, with
+    the v2 catalog now scoped to the KPU subset since GPU SKUs joined)."""
+    cps_kpu_ids = {sku for sku, cp in cps.items() if cp.vendor == "stillwater"}
+    assert cps_kpu_ids == set(kpus.keys()), (
         f"id-set mismatch: "
-        f"only in cps: {sorted(set(cps) - set(kpus))}, "
-        f"only in kpus: {sorted(set(kpus) - set(cps))}"
+        f"only in cps (KPU subset): {sorted(cps_kpu_ids - set(kpus))}, "
+        f"only in kpus: {sorted(set(kpus) - cps_kpu_ids)}"
     )
 
 
@@ -166,19 +171,30 @@ def test_compute_product_content_matches_legacy_kpu_entry(sku_id, cps, kpus):
 # ---------------------------------------------------------------------------
 
 def test_tile_count_coverage(cps):
-    """The catalog covers tile counts {64, 128, 256, 512, 768}."""
-    tile_counts = {cp.dies[0].blocks[0].total_tiles for cp in cps.values()}
+    """The KPU subset of the catalog covers tile counts {64, 128, 256, 512, 768}.
+    GPU SKUs don't have tile_count -- scoping the assertion to KPUs."""
+    tile_counts = {
+        cp.dies[0].blocks[0].total_tiles
+        for cp in cps.values()
+        if cp.dies[0].blocks[0].kind == BlockKind.KPU
+    }
     assert tile_counts == {64, 128, 256, 512, 768}, (
         f"unexpected tile_count set: {sorted(tile_counts)}"
     )
 
 
 def test_process_node_coverage(cps):
-    """The catalog covers process nodes {tsmc_n16, gf_12fdx, tsmc_n7}."""
+    """The catalog covers the expected process nodes. KPU SKUs cover
+    {tsmc_n16, gf_12fdx, tsmc_n7}; v2 added samsung_8lpp via Jetson
+    AGX Orin. Asserts each KPU node is present and that the GPU one
+    is too if any GPU SKUs exist."""
     nodes = {cp.dies[0].process_node_id for cp in cps.values()}
-    assert nodes == {"tsmc_n16", "gf_12fdx", "tsmc_n7"}, (
-        f"unexpected process_node set: {sorted(nodes)}"
+    expected_kpu_nodes = {"tsmc_n16", "gf_12fdx", "tsmc_n7"}
+    assert expected_kpu_nodes.issubset(nodes), (
+        f"missing expected KPU process nodes; got: {sorted(nodes)}"
     )
+    if any(cp.vendor == "nvidia" for cp in cps.values()):
+        assert "samsung_8lpp" in nodes
 
 
 def test_model_tier_coverage(cps):
