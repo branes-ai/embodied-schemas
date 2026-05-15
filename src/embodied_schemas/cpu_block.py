@@ -334,8 +334,8 @@ class CPUMemorySubsystem(BaseModel):
     )
 
     # Per-byte energy
-    read_energy_pj_per_byte: float | None = Field(None, ge=0)
-    write_energy_pj_per_byte: float | None = Field(None, ge=0)
+    read_energy_pj_per_byte: float | None = Field(default=None, ge=0)
+    write_energy_pj_per_byte: float | None = Field(default=None, ge=0)
 
     model_config = {"extra": "forbid"}
 
@@ -354,7 +354,9 @@ class CPUMemorySubsystem(BaseModel):
 
     @model_validator(mode="after")
     def _validate_l4_consistency(self) -> "CPUMemorySubsystem":
-        """Same shape as l3 consistency. l4_kind must be set if present."""
+        """Same shape as l3 consistency. l4_kind must be set if present,
+        and must be empty when not present (catches typo'd YAMLs that
+        toggled one field without the other)."""
         if self.l4_present and self.l4_total_kib <= 0:
             raise ValueError(
                 f"l4_present=True requires l4_total_kib > 0; got {self.l4_total_kib}"
@@ -366,6 +368,10 @@ class CPUMemorySubsystem(BaseModel):
         if self.l4_present and not self.l4_kind:
             raise ValueError(
                 "l4_present=True requires non-empty l4_kind ('edram', 'hbm', etc.)"
+            )
+        if not self.l4_present and self.l4_kind:
+            raise ValueError(
+                f"l4_present=False requires empty l4_kind; got {self.l4_kind!r}"
             )
         return self
 
@@ -440,7 +446,7 @@ class CPUThermalProfile(BaseModel):
 
     # Optional per-precision empirical efficiency (matches GPU/KPU shape)
     efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-    vdd_v: float | None = Field(None, gt=0)
+    vdd_v: float | None = Field(default=None, gt=0)
 
     model_config = {"extra": "forbid"}
 

@@ -329,6 +329,18 @@ def test_l4_present_requires_kind_string(i7_memory):
         CPUMemorySubsystem(**payload)
 
 
+def test_l4_absent_rejects_l4_kind(i7_memory):
+    """If l4_present=False, l4_kind must also be empty -- catches
+    typo'd YAMLs that toggled one field without the other (e.g. set
+    l4_kind='edram' but forgot to set l4_present=True)."""
+    payload = i7_memory.model_dump()
+    payload["l4_present"] = False
+    payload["l4_total_kib"] = 0
+    payload["l4_kind"] = "edram"   # invalid -- present=False but kind set
+    with pytest.raises(ValidationError, match="l4_present=False requires empty"):
+        CPUMemorySubsystem(**payload)
+
+
 def test_simd_efficiency_must_be_unit_fraction(cpu_block):
     payload = cpu_block.model_dump()
     payload["simd_efficiency_by_op_kind"]["matrix"] = 1.5
@@ -354,13 +366,17 @@ def test_extra_fields_forbidden_on_cpu_block(cpu_block):
 
 
 def test_cpu_block_requires_at_least_one_cluster(i7_memory, i7_noc):
-    with pytest.raises(ValidationError):
+    """Isolate the empty-clusters invariant. ``total_effective_cores``
+    set to a valid positive value so the only invalid field is
+    ``core_clusters=[]``; this way the assertion can't pass spuriously
+    on a different validation."""
+    with pytest.raises(ValidationError, match="core_clusters"):
         CPUBlock(
-            core_clusters=[],
-            total_effective_cores=0,
+            core_clusters=[],   # the one invariant under test
+            total_effective_cores=10,
             simd_width_lanes=8,
             memory=i7_memory, noc=i7_noc,
-            min_occupancy=0.4, max_concurrent_threads=1, wave_quantization=1,
+            min_occupancy=0.4, max_concurrent_threads=10, wave_quantization=1,
         )
 
 
