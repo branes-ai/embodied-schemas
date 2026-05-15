@@ -283,6 +283,34 @@ def test_gpu_theoretical_performance_negative_value_rejected():
         )
 
 
+def test_l3_present_true_requires_nonzero_capacity(agx_orin_memory):
+    """l3_present=True with l3_total_kib=0 is a self-contradiction."""
+    payload = agx_orin_memory.model_dump()
+    payload["l3_present"] = True
+    payload["l3_total_kib"] = 0
+    with pytest.raises(ValidationError, match="l3_present=True requires"):
+        GPUMemorySubsystem(**payload)
+
+
+def test_l3_present_false_requires_zero_capacity(agx_orin_memory):
+    """l3_present=False with l3_total_kib>0 claims phantom L3."""
+    payload = agx_orin_memory.model_dump()
+    payload["l3_present"] = False
+    payload["l3_total_kib"] = 4096
+    with pytest.raises(ValidationError, match="l3_present=False requires"):
+        GPUMemorySubsystem(**payload)
+
+
+def test_l3_present_true_with_capacity_validates(agx_orin_memory):
+    """A datacenter GPU with a real L3 (e.g., AMD MI300)."""
+    payload = agx_orin_memory.model_dump()
+    payload["l3_present"] = True
+    payload["l3_total_kib"] = 256 * 1024  # 256 MiB
+    mem = GPUMemorySubsystem(**payload)
+    assert mem.l3_present is True
+    assert mem.l3_total_kib == 256 * 1024
+
+
 # ---------------------------------------------------------------------------
 # 3. ComputeProduct end-to-end with a GPU die
 # ---------------------------------------------------------------------------

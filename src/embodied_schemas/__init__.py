@@ -415,7 +415,7 @@ __all__ = [
     "KPUThermalProfile",
     "KPUPowerSpec",
     "KPUMarket",
-    # ComputeProduct (v1, KPU-only) -- unified spine, additive
+    # ComputeProduct (v1 + v2) -- unified spine, additive
     "ComputeProduct",
     "ProductKind",
     "PackagingKind",
@@ -431,6 +431,18 @@ __all__ = [
     "Packaging",
     "Power",
     "Market",
+    # GPUBlock + supporting types (v2, additive)
+    "GPUBlock",
+    "GPUComputeFabric",
+    "GPUMemorySubsystem",
+    "GPUOnDieFabric",
+    "GPUThermalProfile",
+    "GPUTheoreticalPerformance",
+    "GPUFabricKind",
+    "GPUL1Kind",
+    "GPUL2Topology",
+    "GPUNoCTopology",
+    "ClockDomain",
     # Version
     "__version__",
 ]

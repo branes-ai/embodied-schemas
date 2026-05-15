@@ -36,7 +36,7 @@ Future-deferred (v3+):
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -154,7 +154,7 @@ class GPUComputeFabric(BaseModel):
         ..., gt=0,
         description=(
             "Energy per FP32 FMA in picojoules at the fabric's nominal "
-            "operating point. Tensor cores are ~15%% more energy-"
+            "operating point. Tensor cores are ~15% more energy-"
             "efficient than CUDA cores for fused MAC + accumulate."
         ),
     )
@@ -221,10 +221,31 @@ class GPUMemorySubsystem(BaseModel):
     )
 
     # Per-byte energy (used by the energy estimator for memory traffic)
-    read_energy_pj_per_byte: Optional[float] = Field(None, ge=0)
-    write_energy_pj_per_byte: Optional[float] = Field(None, ge=0)
+    read_energy_pj_per_byte: float | None = Field(None, ge=0)
+    write_energy_pj_per_byte: float | None = Field(None, ge=0)
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_l3_consistency(self) -> "GPUMemorySubsystem":
+        """``l3_present`` and ``l3_total_kib`` must agree.
+
+        Catches typo'd YAMLs where someone toggled one field without the
+        other -- e.g., ``l3_present=True, l3_total_kib=0`` (claims an L3
+        of zero bytes) or ``l3_present=False, l3_total_kib=4096`` (claims
+        4 MiB of L3 in a chip that says it has none).
+        """
+        if self.l3_present and self.l3_total_kib <= 0:
+            raise ValueError(
+                f"l3_present=True requires l3_total_kib > 0; got "
+                f"l3_total_kib={self.l3_total_kib}"
+            )
+        if not self.l3_present and self.l3_total_kib > 0:
+            raise ValueError(
+                f"l3_present=False requires l3_total_kib == 0; got "
+                f"l3_total_kib={self.l3_total_kib}"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -311,7 +332,7 @@ class GPUThermalProfile(BaseModel):
     native_acceleration_by_precision: dict[str, bool] = Field(default_factory=dict)
 
     # Optional: profile-wide voltage (for V^2 * f power scaling)
-    vdd_v: Optional[float] = Field(None, gt=0)
+    vdd_v: float | None = Field(None, gt=0)
 
     model_config = {"extra": "forbid"}
 
@@ -360,7 +381,7 @@ class GPUTheoreticalPerformance(BaseModel):
     # Optional sparsity-amplified peaks. Ampere 2:4 structured sparsity
     # gives 2x speedup on supporting Tensor cores; Hopper adds INT4
     # sparsity. None means sparsity not supported / not reported.
-    sparse_peak_ops_per_sec_by_precision: Optional[dict[str, float]] = Field(None)
+    sparse_peak_ops_per_sec_by_precision: dict[str, float] | None = Field(None)
 
     model_config = {"extra": "forbid"}
 

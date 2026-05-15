@@ -30,10 +30,10 @@ v2 scope (additive): GPU block kind.
   - Existing KPU YAMLs validate identically -- v2 only adds new types,
     it does not modify or rename anything in v1.
 
-Deferred to v2+:
+Deferred to v3+:
 
-  - GPU / CPU / NPU / DSP / Memory / IO / Bridge / ISP / VideoCodec /
-    AudioCodec block kinds
+  - CPU / NPU / DSP / Memory / IO / Bridge / ISP / VideoCodec /
+    AudioCodec block kinds (GPU shipped in v2)
   - Per-die ``voltage_rails`` / ``clock_domains`` (multi-rail DVFS)
   - Per-die thermal coupling and 3D stacking metadata
   - ``Switch`` first-class entity
