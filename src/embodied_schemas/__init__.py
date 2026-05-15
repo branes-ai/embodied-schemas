@@ -195,6 +195,19 @@ from embodied_schemas.compute_product import (
     Power,
     Market,
 )
+from embodied_schemas.gpu_block import (
+    GPUBlock,
+    GPUComputeFabric,
+    GPUMemorySubsystem,
+    GPUOnDieFabric,
+    GPUThermalProfile,
+    GPUTheoreticalPerformance,
+    GPUFabricKind,
+    GPUL1Kind,
+    GPUL2Topology,
+    GPUNoCTopology,
+    ClockDomain,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,

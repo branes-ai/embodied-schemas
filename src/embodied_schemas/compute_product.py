@@ -1,4 +1,8 @@
-"""Unified ComputeProduct schema (v1, KPU-only).
+"""Unified ComputeProduct schema.
+
+v1 (KPU-only) shipped in PRs #15-#18. v2 adds GPUBlock as the second
+discriminated-union member; see ``gpu_block.py`` and
+``graphs/docs/designs/gpu-compute-product-schema-extension.md``.
 
 Implements the v1 scope from the assessment at
 ``graphs/docs/assessments/kpu-as-generic-compute-product.md``: a unified
@@ -6,15 +10,25 @@ spine for compute products with per-die structure (process_node_id +
 silicon_bin + die area + clocks per die) and a discriminated ``blocks``
 union for category-specific architectural detail.
 
-v1 scope: KPU monolithic only.
+v1 scope (now v1.0, additive): KPU monolithic only.
 
-  - One ``Block`` discriminator value defined: ``BlockKind.KPU``.
+  - ``BlockKind.KPU`` discriminator value defined.
   - One ``Die`` per ComputeProduct (monolithic).
   - Inter-die ``Interconnect`` list reserved for future use (empty in v1).
   - ``ThermalProfile`` / ``Power`` / ``Market`` are vendor-neutral
     duplicates of the existing KPU-prefixed types so the adapter (PR #3)
     is mechanical.
   - ``LifecycleStatus`` enum replaces today's ``is_discontinued: bool``.
+
+v2 scope (additive): GPU block kind.
+
+  - ``BlockKind.GPU`` discriminator value added.
+  - ``GPUBlock`` and supporting GPU-shaped sub-types live in
+    ``gpu_block.py`` (separate module to keep this file focused on
+    the spine + discriminator wiring).
+  - ``AnyBlock`` union now accepts ``KPUBlock | GPUBlock``.
+  - Existing KPU YAMLs validate identically -- v2 only adds new types,
+    it does not modify or rename anything in v1.
 
 Deferred to v2+:
 
@@ -124,13 +138,14 @@ class DieRole(str, Enum):
 # ---------------------------------------------------------------------------
 
 class BlockKind(str, Enum):
-    """Discriminator for ``Block`` subclasses. v1 only ships ``KPU``;
-    future block kinds (``GPU``, ``CPU``, ``NPU``, ``DSP``, ``MEMORY``,
-    ``IO``, ``BRIDGE``, ``ISP``, ``VIDEO_CODEC``, ``AUDIO_CODEC``,
-    ``RADAR_DSP``, ``LIDAR_PREPROC``) come in subsequent PRs as their
-    catalogs are added."""
+    """Discriminator for ``Block`` subclasses. v1 ships ``KPU``; v2
+    adds ``GPU``. Future block kinds (``CPU``, ``NPU``, ``DSP``,
+    ``MEMORY``, ``IO``, ``BRIDGE``, ``ISP``, ``VIDEO_CODEC``,
+    ``AUDIO_CODEC``, ``RADAR_DSP``, ``LIDAR_PREPROC``) come in
+    subsequent PRs as their catalogs are added."""
 
     KPU = "kpu"
+    GPU = "gpu"
 
 
 class KPUBlock(BaseModel):
@@ -167,10 +182,17 @@ class KPUBlock(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-# Discriminated union for ``Die.blocks``. v1 has one element; future PRs
-# extend this with ``Union[KPUBlock, GPUBlock, CPUBlock, ...]`` and
-# Pydantic dispatches by the ``kind`` discriminator.
-AnyBlock = Annotated[Union[KPUBlock], Field(discriminator="kind")]
+# Imported here (after KPUBlock is defined) to keep the discriminator
+# union local. ``GPUBlock`` lives in ``gpu_block.py`` because its
+# supporting types (GPUComputeFabric, GPUMemorySubsystem,
+# GPUOnDieFabric, GPUThermalProfile, GPUTheoreticalPerformance,
+# ClockDomain) form a self-contained GPU module.
+from embodied_schemas.gpu_block import GPUBlock  # noqa: E402
+
+# Discriminated union for ``Die.blocks``. v1 had one element (KPUBlock);
+# v2 adds GPUBlock. Future PRs extend this with ``CPUBlock``, ``NPUBlock``,
+# etc. and Pydantic dispatches by the ``kind`` discriminator.
+AnyBlock = Annotated[Union[KPUBlock, GPUBlock], Field(discriminator="kind")]
 
 
 # ---------------------------------------------------------------------------
