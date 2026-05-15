@@ -150,11 +150,15 @@ dies:
     threads_per_sm: 128
     warps_per_sm: 4
     warp_size: 32
+    # Precisions actually present in compute_fabrics[*].ops_per_unit_per_clock
+    # below. FP64 / BF16 are NOT modeled at the fabric level on Thor (Blackwell
+    # FP64 path is heavily de-prioritized vs Ampere; BF16 folds into the FP16
+    # tensor core path with the same ops/clock and is therefore omitted here
+    # to avoid claiming separate peaks). Add them only when the fabric carries
+    # a real ops/clock entry for them.
     multi_precision_alu:
-    - fp64
     - fp32
     - fp16
-    - bf16
     - int8
     compute_fabrics:
     # -------------------------------------------------------------------
@@ -217,14 +221,18 @@ dies:
     wave_quantization: 4
   interconnects: []
 
-# Chip-level performance roll-up. Marketed numbers are at the 100W
-# profile (1.25 GHz sustained) and include all engines (GPU + 2x DLA +
-# sparsity). The numbers below are GPU-only DENSE peaks at the 60W
-# default profile (1.1 GHz sustained) -- the regime the graphs mapper
-# is calibrated against, and the realistic deployment target.
+# Chip-level performance roll-up, derived from the per-fabric arithmetic
+# above at the 60W default profile (1.1 GHz sustained):
+#   FP32: CUDA  = 8192 cores * 2 ops/clk * 1.1e9 = 18.0 TFLOPS
+#   FP16: CUDA + Tensor = 8192*2 + 256*64 = 32768 ops/clk * 1.1e9 = 36.0 TFLOPS
+#   INT8: CUDA + Tensor = 8192*2 + 256*64 = 32768 ops/clk * 1.1e9 = 36.0 TOPS
+# NVIDIA's marketed Thor peaks (1000 / 2000 TOPS INT8) include sparsity
+# and all engines (GPU + 2x DLA + PVA); the numbers below are GPU-only
+# DENSE peaks. BF16 not separately reported because its modeled rate
+# matches FP16 (same tensor-core path, same ops/clock).
 performance:
-  int8_tops: 100.0
-  bf16_tflops: 50.0
+  int8_tops: 36.0
+  bf16_tflops: 36.0
   fp32_tflops: 18.0
 
 power:
