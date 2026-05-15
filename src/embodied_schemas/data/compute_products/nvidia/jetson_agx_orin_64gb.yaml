@@ -1,0 +1,306 @@
+# NVIDIA Jetson AGX Orin 64GB module (P3701-0005, "Industrial" SKU
+# behaves identically to commercial for analytical purposes).
+#
+# This is the FIRST GPU SKU in the data/compute_products/ catalog; the
+# corresponding GPUBlock schema landed in embodied-schemas PR #19.
+# Data sourced from:
+#   - NVIDIA Jetson AGX Orin Series Technical Brief (32GB / 64GB)
+#   - NVIDIA Ampere SM Architecture Whitepaper (GA10B SoC == Tegra Orin)
+#   - graphs/src/graphs/hardware/models/edge/jetson_orin_agx_64gb.py
+#     (well-validated graphs mapper, the migration source)
+#
+# Confidence == "theoretical" because:
+#   - Per-SM transistor counts are NOT publicly disclosed by NVIDIA.
+#     The silicon_bin numbers are estimates based on Ampere SM
+#     transistor budgets reported in academic die-shot analyses,
+#     scaled to GA10B's published 17B transistor / 455 mm^2 envelope.
+#   - Thermal-profile efficiency factors come from Jetson customer
+#     calibration runs (Conv2D microbenchmarks 2026-02-03 in graphs);
+#     INT8 numbers extrapolate from FP16 since PyTorch can't drive
+#     Tensor cores in INT8 without TensorRT.
+#
+# Out of scope for this YAML (separate Tegra block kinds in v3+):
+#   - 8x ARM Cortex-A78AE CPU complex (covered today by
+#     graphs.hardware.models.edge.jetson_orin_agx_cpu)
+#   - 2x DLA (Deep Learning Accelerator) -- 52.5 TOPS INT8 dense
+#   - 2x PVA (Programmable Vision Accelerator)
+#   - ISP, NVENC/NVDEC video codecs, audio codecs, display engines
+# These will land as additional blocks on this same Die when CPU /
+# DLA / PVA block kinds are defined.
+
+id: nvidia_jetson_agx_orin_64gb
+name: NVIDIA Jetson AGX Orin 64GB
+vendor: nvidia
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: flip_chip_bga
+
+lifecycle: production
+
+dies:
+- die_id: ga10b_gpu
+  die_role: compute
+  process_node_id: samsung_8lpp
+  die_size_mm2: 455.0
+  transistors_billion: 17.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # CUDA cores: 2048 total (16 SMs * 128 cores). Per-SM Ampere CUDA
+    # core block ("subcore" / FP32 + INT32 datapath) estimated at ~1.5
+    # Mtx per CUDA core including local register file slice. Total
+    # ~3.07 B transistors -- ~18% of die budget, in line with academic
+    # SM area breakdowns for Ampere (Choquette et al., IEEE Micro 2021).
+    - name: cuda_cores
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3072.0
+      notes: 2048 CUDA cores @ ~1.5 Mtx each (Ampere subcore + register file)
+    # -------------------------------------------------------------------
+    # Tensor cores: 64 total (16 SMs * 4 cores). 3rd-gen Ampere TC has
+    # 4x4x4 mixed-precision dataflow + accumulator; ~10 Mtx per TC is
+    # the academic estimate (NVIDIA hasn't disclosed). Total 640 Mtx.
+    - name: tensor_cores
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 640.0
+      notes: 64 Tensor Cores (Ampere 3rd-gen) @ ~10 Mtx each
+    # -------------------------------------------------------------------
+    # L1 / shared unified store: 192 KiB per SM declared, 128 KiB
+    # configurable as L1 cache. SRAM at HD density (0.052 Mtx/KiB).
+    # 192 KiB * 16 SMs = 3072 KiB; 3072 * 0.052 = ~160 Mtx.
+    - name: l1_shared_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 160.0
+      notes: 192 KiB unified L1/shared per SM x 16 SMs = 3 MiB
+    # -------------------------------------------------------------------
+    # L2 cache: 4 MB shared (LLC on Ampere SoCs). At HD SRAM density:
+    # 4096 KiB * 0.052 = 213 Mtx.
+    - name: l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 213.0
+      notes: 4 MiB shared L2 (LLC; Ampere SoC has no distinct L3)
+    # -------------------------------------------------------------------
+    # SM-to-L2 crossbar fabric: 16 SMs * 4 L2 slices = 64-port crossbar.
+    # Per-SM crossbar share roughly proportional to num_sms^2 / num_sms;
+    # estimate ~50 Mtx per port = 800 Mtx total.
+    - name: sm_to_l2_crossbar
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: SM-to-L2 crossbar with 16 SMs as ports (64-way to L2 slices)
+    # -------------------------------------------------------------------
+    # LPDDR5 PHY: 256-bit bus = 8 controllers (32-bit each). Each
+    # controller carries PHY + analog drivers + ECC; ~150 Mtx per
+    # controller. Total 1.2 B (analog dominates here).
+    - name: lpddr5_phy
+      circuit_class: analog
+      transistor_source:
+        kind: fixed
+        mtx: 1200.0
+      notes: 256-bit LPDDR5 PHY (8 controllers x 32-bit), 204.8 GB/s
+    # -------------------------------------------------------------------
+    # IO ring: PCIe Gen4 x16, USB, GPIO, MIPI CSI lanes for cameras,
+    # display outputs. Bundled here pending a dedicated IOBlock.
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: PCIe Gen4 x16 + USB + MIPI CSI + DisplayPort + GPIO
+    # -------------------------------------------------------------------
+    # Scheduler / GigaThread Engine / kernel dispatch / power management.
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: GigaThread Engine, kernel dispatch, nvpmodel power management
+    # -------------------------------------------------------------------
+    # Non-GPU Tegra SoC blocks. The GA10B die is a full SoC: 8x ARM
+    # Cortex-A78AE CPU complex (~5 B), 2x DLA (~1.2 B), 2x PVA (~0.6 B),
+    # ISP / NVENC / NVDEC / audio / display engines (~3.5 B together).
+    # These will move out of this catch-all when CPU / DLA / PVA / ISP
+    # block kinds are defined and added to this Die. For now bundling
+    # them here is what reconciles silicon_bin sum (~6.7 B GPU-only)
+    # with the declared 17 B die-level total (so the per-die area math
+    # in the validator framework lines up).
+    - name: other_tegra_soc_blocks
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 10300.0
+      notes: ARM CPU complex + DLA + PVA + ISP + codecs + display (pending dedicated block kinds)
+  clocks:
+    base_clock_mhz: 612.0
+    boost_clock_mhz: 1300.0
+  blocks:
+  - kind: gpu
+    num_sms: 16
+    cuda_cores_per_sm: 128
+    tensor_cores_per_sm: 4
+    threads_per_sm: 64
+    warps_per_sm: 2
+    warp_size: 32
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    compute_fabrics:
+    # -------------------------------------------------------------------
+    # CUDA cores: 128 per SM. FMA = 2 ops/clock for FP32 baseline.
+    # FP16 / INT8 also issue on CUDA cores at higher rate (separate
+    # from Tensor cores), but the dominant path uses Tensor cores.
+    # Energy per FP32 FMA: 1.9 pJ at 8nm (Samsung 8LPP), standard-cell
+    # baseline.
+    - fabric_kind: cuda_core
+      circuit_class: hp_logic
+      units_per_sm: 128
+      ops_per_unit_per_clock:
+        fp64: 2
+        fp32: 2
+        fp16: 4
+        int8: 8
+      energy_per_flop_fp32_pj: 1.9
+      energy_scaling:
+        fp64: 2.0
+        fp32: 1.0
+        fp16: 0.5
+        int8: 0.125
+    # -------------------------------------------------------------------
+    # Tensor cores: 4 per SM, Ampere 3rd-gen. 256 FP16 ops/clock and
+    # 512 INT8 ops/clock per TC (4x4x4 mixed-precision dataflow). About
+    # 15% more energy-efficient than CUDA cores for fused MAC + accum.
+    - fabric_kind: tensor_core
+      circuit_class: hp_logic
+      units_per_sm: 4
+      ops_per_unit_per_clock:
+        fp16: 256
+        int8: 512
+      energy_per_flop_fp32_pj: 1.62
+      energy_scaling:
+        fp16: 0.5
+        int8: 0.125
+    memory:
+      memory_type: lpddr5
+      memory_size_gb: 64.0
+      memory_bus_bits: 256
+      memory_bandwidth_gbps: 204.8
+      memory_controllers: 8
+      l1_kib_per_sm: 128
+      l1_kind: unified
+      l2_total_kib: 4096
+      l2_topology: shared_llc
+      l3_present: false
+      l3_total_kib: 0
+      coherence_protocol: none
+      read_energy_pj_per_byte: 15.0
+      write_energy_pj_per_byte: 18.0
+    noc:
+      topology: crossbar
+      bisection_bandwidth_gbps: 2048.0
+      controller_count: 16
+      flit_size_bytes: 32
+      hop_latency_ns: 2.0
+      pj_per_flit_per_hop: 8.0
+      routing_distance_factor: 1.0
+    min_occupancy: 0.3
+    max_concurrent_kernels: 8
+    wave_quantization: 4
+  interconnects: []
+
+# Chip-level performance roll-up. AGX Orin's marketed numbers are at
+# the MAXN profile (1.0 GHz sustained) and include all engines (GPU +
+# 2x DLA + sparse). The numbers below are GPU-only DENSE peaks at the
+# 30W default profile (650 MHz sustained) -- the regime the graphs
+# mapper is calibrated against, and the realistic deployment target.
+# Reused KPUTheoreticalPerformance type pending a v3 generalization
+# (the design doc covers this trade-off).
+performance:
+  int8_tops: 31.95
+  bf16_tflops: 15.97
+  fp32_tflops: 2.66
+
+power:
+  tdp_watts: 30.0
+  max_power_watts: 60.0
+  min_power_watts: 15.0
+  idle_power_watts: 5.0
+  default_thermal_profile: 30W
+  # Chip-level thermal_profiles uses KPUThermalProfile shape (carries
+  # name / tdp_watts / clock_mhz / cooling_solution_id and optional
+  # per-precision efficiency maps). The richer GPU-shaped DVFS data
+  # (base/boost/sustained per profile, per-precision instruction
+  # efficiency, memory clock per profile) lives inside GPUBlock and
+  # would belong on a per-block thermal profile structure -- v3
+  # generalization scope (see graphs#179 design doc).
+  thermal_profiles:
+  - name: 15W
+    tdp_watts: 15.0
+    clock_mhz: 400.0
+    cooling_solution_id: passive_heatsink_large
+    efficiency_factor_by_precision:
+      int8: 0.47
+      fp16: 0.40
+      fp32: 0.25
+    vdd_v: 0.72
+  - name: 30W
+    tdp_watts: 30.0
+    clock_mhz: 650.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.60
+      fp16: 0.50
+      fp32: 0.35
+    vdd_v: 0.80
+  - name: 50W
+    tdp_watts: 50.0
+    clock_mhz: 900.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.40
+      fp16: 0.27
+      fp32: 0.26
+      bf16: 0.29
+    vdd_v: 0.88
+  - name: MAXN
+    tdp_watts: 60.0
+    clock_mhz: 1000.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.75
+      fp16: 0.65
+      fp32: 0.50
+    vdd_v: 0.95
+
+market:
+  launch_date: '2022-11-01'
+  launch_msrp_usd: 1999.0
+  target_market: edge
+  product_family: Jetson Orin
+  model_tier: high
+  is_available: true
+
+confidence: theoretical
+notes: >
+  NVIDIA Jetson AGX Orin 64GB module. First GPU SKU migrated to the v2
+  ComputeProduct schema. Ampere generation, Samsung 8LPP, 2048 CUDA
+  cores + 64 Tensor cores (16 SMs), 4 MB shared L2 (LLC), 64 GB
+  LPDDR5 @ 204.8 GB/s. Four nvpmodel power profiles: 15W (passive,
+  battery deployment), 30W (default, active cooling), 50W (high
+  performance), MAXN (unconstrained, throttles under load). Sibling
+  industrial SKU (P3701-0008, "AGX Orin Industrial") is electrically
+  equivalent and uses this same SKU as its mapper proxy in the graphs
+  Jetson roadmap chart.
+last_updated: '2026-05-15'
