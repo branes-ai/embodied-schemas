@@ -65,12 +65,14 @@ def test_compute_product_module_imports():
         )
 
 
-def test_v1_block_kind_only_kpu():
-    """v1 only ships BlockKind.KPU; future kinds come in later PRs."""
+def test_v1_block_kind_kpu_present():
+    """v1 ships BlockKind.KPU; v2 added BlockKind.GPU. Earlier this test
+    pinned the count at 1 to lock in v1's "KPU-only" scope; updated in v2
+    to assert the v1 kind is still present without policing additions
+    that come in later PRs."""
     assert BlockKind.KPU.value == "kpu"
-    assert len(list(BlockKind)) == 1, (
-        f"v1 expects exactly one BlockKind value; got {list(BlockKind)}"
-    )
+    kinds = {k.value for k in BlockKind}
+    assert "kpu" in kinds
 
 
 def test_v1_lifecycle_enum_complete():
