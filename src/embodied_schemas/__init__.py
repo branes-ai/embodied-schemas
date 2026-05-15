@@ -208,6 +208,19 @@ from embodied_schemas.gpu_block import (
     GPUNoCTopology,
     ClockDomain,
 )
+from embodied_schemas.cpu_block import (
+    CPUBlock,
+    CPUComputeFabric,
+    CoreClusterSpec,
+    CPUMemorySubsystem,
+    CPUOnDieFabric,
+    CPUThermalProfile,
+    CPUTheoreticalPerformance,
+    CoreClusterKind,
+    CPUISAExtension,
+    L2Layout,
+    CPUNoCTopology,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -443,6 +456,18 @@ __all__ = [
     "GPUL2Topology",
     "GPUNoCTopology",
     "ClockDomain",
+    # CPUBlock + supporting types (v3, additive)
+    "CPUBlock",
+    "CPUComputeFabric",
+    "CoreClusterSpec",
+    "CPUMemorySubsystem",
+    "CPUOnDieFabric",
+    "CPUThermalProfile",
+    "CPUTheoreticalPerformance",
+    "CoreClusterKind",
+    "CPUISAExtension",
+    "L2Layout",
+    "CPUNoCTopology",
     # Version
     "__version__",
 ]
