@@ -1,0 +1,316 @@
+# Intel Core i7-12700K (12th-gen Alder Lake, desktop K-series).
+#
+# First CPU SKU in the data/compute_products/ catalog and the proof
+# point that the v3 ComputeProduct schema (CPUBlock + supporting
+# types, landed in embodied-schemas#22) actually works. Sprint #182
+# PR 3.
+#
+# Data sourced from:
+#   - Intel Core i7-12700K product spec (ARK page)
+#   - Intel Alder Lake architecture brief + Anandtech die-shot analysis
+#   - graphs/src/graphs/hardware/models/edge/intel_core_i7_12700k.py
+#     (well-validated graphs mapper, the migration source; has
+#     measured calibration data on user's local hardware per CLAUDE.md)
+#
+# Confidence == "theoretical":
+#   - Per-core transistor counts derived from Anandtech's published
+#     Golden Cove die-shot analysis; Intel publishes more die-area
+#     data than NVIDIA so the silicon_bin is better-grounded than the
+#     GPU SKUs, but still not a direct disclosure.
+#   - All ops/clock and energy figures are AVX2 / AVX-VNNI datasheet
+#     peaks; sustained efficiency factors are AVX2 hybrid-scheduler
+#     defaults from the graphs CPUMapper.
+#
+# Out of scope for this YAML (separate block kinds in v4+):
+#   - Intel UHD 770 iGPU (GPUBlock; would land as a second block on
+#     this same die, very similar shape to Jetson Orin's GPUBlock)
+#   - Intel ME (Management Engine, security processor)
+#   - Display engine, video codecs (Quick Sync), thunderbolt PHY
+# These will land as additional blocks when the relevant block kinds
+# are defined.
+
+id: intel_core_i7_12700k
+name: Intel Core i7-12700K
+vendor: intel
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: lga1700
+
+lifecycle: production
+
+dies:
+- die_id: alder_lake_die
+  die_role: compute
+  process_node_id: intel_7
+  die_size_mm2: 215.0
+  transistors_billion: 22.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 8 Golden Cove P-cores. Per-core ~300 Mtx including AVX2 datapath,
+    # OoO scheduler, register file, ROB, branch predictor (per
+    # Anandtech die-shot reverse-engineering). Total 2400 Mtx.
+    - name: p_cores
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 2400.0
+      notes: 8x Golden Cove P-cores @ ~300 Mtx each (Anandtech die-shot estimate)
+    # -------------------------------------------------------------------
+    # 4 Gracemont E-cores in 1 cluster. Per-core ~100 Mtx (much smaller
+    # than P-cores: simpler scheduler, no SMT, narrower OoO window).
+    # Total 400 Mtx.
+    - name: e_cores
+      circuit_class: lp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: 4x Gracemont E-cores @ ~100 Mtx each (in 1 cluster, no SMT)
+    # -------------------------------------------------------------------
+    # L1 (per-core): 48 KB D + 32 KB I per P-core = 80 KB; 32 KB D +
+    # 64 KB I per E-core = 96 KB. (8*80 + 4*96) = 1024 KiB total.
+    # At HD SRAM density on Intel 7 (260 Mtx/mm^2 -> ~0.4 Mtx/KiB).
+    - name: l1_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 410.0
+      notes: L1 D + I across 8 P-cores (48+32 KB) + 4 E-cores (32+64 KB) = 1 MiB
+    # -------------------------------------------------------------------
+    # L2 (per-core / per-cluster): 1.25 MB private per P-core (10 MB
+    # total) + 2 MB shared per E-cluster (4 E-cores) = 12 MB total.
+    # At HD SRAM density: 12288 KiB * ~0.4 Mtx/KiB = ~5000 Mtx.
+    - name: l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 5000.0
+      notes: L2 (P-core 1.25 MB private + E-cluster 2 MB shared) = 12 MiB physical
+    # -------------------------------------------------------------------
+    # L3 LLC: 25 MB shared across all cores via the ring bus. At HD
+    # SRAM density: 25600 KiB * ~0.4 Mtx/KiB = ~10240 Mtx.
+    - name: l3_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 10240.0
+      notes: 25 MiB shared L3 LLC (12 ring stops)
+    # -------------------------------------------------------------------
+    # Ring bus + L3 slice routers + snoop controllers. 12 ring stops
+    # (8 P + 4 E) with double-ring topology (data + snoop). ~80 Mtx
+    # per stop = ~960 Mtx total.
+    - name: ring_bus
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 960.0
+      notes: Alder Lake double ring bus (12 stops, snoop + data rings)
+    # -------------------------------------------------------------------
+    # DDR5 PHY + IMC: dual-channel DDR5-4800. Per-channel ~200 Mtx
+    # for PHY + analog drivers + IMC logic.
+    - name: ddr5_phy
+      circuit_class: analog
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: 128-bit DDR5-4800 dual-channel PHY + IMC
+    # -------------------------------------------------------------------
+    # IO ring: PCIe Gen5 x16, PCIe Gen4 x4, USB, DMI, GPIO. ~150 Mtx.
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 150.0
+      notes: PCIe Gen5 x16 + PCIe Gen4 x4 + USB + DMI + GPIO
+    # -------------------------------------------------------------------
+    # iGPU (Intel UHD 770): 32 EUs. Not modeled as a separate GPUBlock
+    # in this YAML (would need its own block kind in the dies[0].blocks
+    # list). Allocated here in the silicon_bin so the area math
+    # reconciles. ~1500 Mtx for the iGPU + display engine + video codecs.
+    - name: igpu_uhd_770
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1500.0
+      notes: Intel UHD 770 (32 EUs) + display engine + Quick Sync video codecs (pending GPUBlock for iGPU)
+    # -------------------------------------------------------------------
+    # Intel ME (Management Engine) + power management controller
+    # + miscellaneous fixed-function logic.
+    - name: me_and_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 540.0
+      notes: Intel ME + PMC + clock generators + misc fixed-function (pending dedicated block kinds)
+  clocks:
+    base_clock_mhz: 3600.0
+    boost_clock_mhz: 5000.0
+  blocks:
+  - kind: cpu
+    total_effective_cores: 10   # 8 P + int(4 E * 0.6)
+    simd_width_lanes: 8         # 256-bit AVX2 = 8 FP32 lanes
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    - int4
+    core_clusters:
+    # -------------------------------------------------------------------
+    # P-cluster: 8 Golden Cove cores, SMT=2 (16 threads), 1.25 MB
+    # private L2 per core. Single fabric: AVX-VNNI (covers AVX2 +
+    # AVX-VNNI INT8 path; AVX-512 was fused off on retail Alder Lake).
+    - cluster_kind: performance
+      num_cores: 8
+      smt_threads: 2
+      aggregate_weight: 1.0
+      compute_fabrics:
+      - isa_extension: avx_vnni
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          fp64: 8
+          fp32: 16
+          fp16: 4    # emulated (no native AVX-512_FP16)
+          bf16: 4    # emulated (no native AVX-512_BF16)
+          int8: 64   # AVX-VNNI VPDPBUSD
+          int4: 128  # packed-INT4 emulation via VPDPBUSD
+        energy_per_flop_fp32_pj: 0.85
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 1.0
+          bf16: 1.0
+          int8: 0.30
+          int4: 0.18
+      l1_kib_per_core: 48
+      l2_layout: private_per_core
+      l2_kib_per_core: 1280
+      l2_kib_shared: 0
+    # -------------------------------------------------------------------
+    # E-cluster: 4 Gracemont cores, no SMT (4 threads), 2 MB SHARED
+    # L2 across the 4-core cluster. Half-width AVX2 (1 FMA pipe vs P's
+    # 2). aggregate_weight=0.6 reflects empirical E-core / P-core
+    # throughput ratio.
+    - cluster_kind: efficient
+      num_cores: 4
+      smt_threads: 1
+      aggregate_weight: 0.6
+      compute_fabrics:
+      - isa_extension: avx_vnni
+        circuit_class: lp_logic
+        ops_per_core_per_clock:
+          fp64: 4
+          fp32: 8
+          fp16: 2
+          bf16: 2
+          int8: 32
+          int4: 64
+        energy_per_flop_fp32_pj: 0.65
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 1.0
+          bf16: 1.0
+          int8: 0.30
+          int4: 0.18
+      l1_kib_per_core: 32
+      l2_layout: shared_per_cluster
+      l2_kib_per_core: 0
+      l2_kib_shared: 2048
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 64.0
+      memory_bus_bits: 128
+      memory_bandwidth_gbps: 76.8
+      memory_controllers: 2
+      l3_present: true
+      l3_total_kib: 25600
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: snoopy_mesi
+      read_energy_pj_per_byte: 25.0
+      write_energy_pj_per_byte: 30.0
+    noc:
+      topology: double_ring
+      bisection_bandwidth_gbps: 512.0
+      stop_count: 12   # 8 P + 4 E
+      flit_size_bytes: 32
+      hop_latency_ns: 1.5
+      pj_per_flit_per_hop: 5.0
+      routing_distance_factor: 1.0
+    simd_efficiency_by_op_kind:
+      elementwise: 0.95
+      matrix: 0.80
+      default: 0.70
+    min_occupancy: 0.4
+    max_concurrent_threads: 20   # 8*2 + 4*1
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up, derived from per-fabric arithmetic
+# at the 125W PL1 profile (4.7 GHz P-core sustained, 3.6 GHz E-core
+# sustained):
+#   FP32: P-cluster 8c * 16 ops/clk * 4.7e9 + E-cluster 4c * 8 ops/clk
+#         * 3.6e9 = 601.6 + 115.2 = ~717 GFLOPS ~= 0.72 TFLOPS
+#   INT8: P 8c * 64 * 4.7e9 + E 4c * 32 * 3.6e9 = 2406 + 460.8
+#         = 2867 GOPS ~= 2.87 TOPS
+#   BF16: emulated, half-rate ~= 0.18 TFLOPS
+performance:
+  int8_tops: 2.87
+  bf16_tflops: 0.18
+  fp32_tflops: 0.72
+
+power:
+  tdp_watts: 125.0
+  max_power_watts: 190.0   # PL2 short-term boost ceiling
+  min_power_watts: 10.0    # C0 idle
+  idle_power_watts: 4.0
+  default_thermal_profile: 125W-PL1
+  # Chip-level KPUThermalProfile shape (v3 stays simple at the chip
+  # level; per-cluster ClockDomain DVFS lives inside CPUBlock via
+  # CPUThermalProfile if/when needed). 125W is PL1 long-term; PL2
+  # short-term boost goes to 190W but is not a sustained profile.
+  thermal_profiles:
+  - name: 125W-PL1
+    tdp_watts: 125.0
+    clock_mhz: 4700.0    # all-core sustained P-core clock
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      fp32: 0.40
+      fp16: 0.20  # emulated
+      int8: 0.50
+    vdd_v: 1.05
+
+market:
+  launch_date: '2021-11-04'
+  launch_msrp_usd: 409.0
+  target_market: desktop
+  product_family: Core i7
+  model_tier: high
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Intel Core i7-12700K -- first CPU SKU migrated to the v3 ComputeProduct
+  schema. 12th-gen Alder Lake, Intel 7 (10nm Enhanced SuperFin), hybrid
+  8 Golden Cove P-cores (SMT, 1.25 MB private L2) + 4 Gracemont E-cores
+  (no SMT, 2 MB shared L2 across the cluster), 25 MB shared L3 LLC,
+  DDR5-4800 dual-channel (76.8 GB/s peak). AVX2 + AVX-VNNI (AVX-512
+  fused off on retail Alder Lake). 125W PL1 long-term, 190W PL2
+  short-term boost. AMX is exclusive to server Sapphire Rapids; not
+  available here.
+
+  iGPU (Intel UHD 770) bundled in silicon_bin's igpu_uhd_770 entry
+  pending a GPUBlock for the iGPU; the v3 schema can carry both a
+  CPUBlock AND GPUBlock on this same Die when the iGPU model is
+  authored.
+
+  Hardware access (per CLAUDE.md): user has measured calibration data
+  on this exact SKU. The graphs hand-coded factory at
+  src/graphs/hardware/models/edge/intel_core_i7_12700k.py is the
+  ground truth this YAML mirrors; PR 4 (loader) will pin the parity.
+last_updated: '2026-05-15'
