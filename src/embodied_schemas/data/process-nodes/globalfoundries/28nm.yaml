@@ -1,0 +1,183 @@
+# GlobalFoundries 28nm SLP (Super Low Power) -- bulk planar HKMG.
+#
+# Precursor for the Coral Edge TPU YAML (branes-ai/graphs#192 / Coral
+# half). Coral ships on 28SLP per Anandtech's die-shot analysis. The
+# entry uses 28SLP as the canonical "GF 28nm" because that is the
+# variant in our SKU catalog; other 28nm variants (28HP, 28HPM, 28HPP,
+# 28LPS) can be added when the catalog grows to need them.
+#
+# Bulk planar HKMG (high-K metal gate), structurally older than the
+# FinFET generations (12LP / 16FF+) and FD-SOI (12FDX) already in the
+# catalog. Densities are ~2.5x lower than 12LP per equivalent library,
+# but the energy-per-op is only ~1.5-2x worse because 28SLP is the
+# super-low-power flavor designed for edge / mobile / IoT.
+
+id: gf_28nm
+foundry: globalfoundries
+node_name: 28SLP
+node_nm: 28
+transistor_topology: bulk_planar   # bulk CMOS HKMG; pre-FinFET
+body_bias_supported: false         # bulk planar has no body terminal
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 0.85                # 28SLP nominal; HP variant uses 1.0V
+
+# Per-library densities (Mtx/mm^2). 28nm is bulk planar, so densities
+# are dramatically lower than the FinFET nodes already in the catalog.
+# Cross-checked against Apple A7 (28nm Samsung HKMG, similar generation):
+# ~1.0 B transistors in 102 mm^2 = ~10 Mtx/mm^2 chip-wide average.
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 9.0
+    library_name: "28SLP HP"
+    confidence: theoretical
+    source: "Wikichip 28nm; cross-referenced GF 28SLP product brief"
+    notes: "High-performance cells; faster, lower density than balanced."
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 12.0
+    library_name: "28SLP HD"
+    confidence: theoretical
+    source: "Wikichip 28nm; GF 28SLP design kit references"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 14.0
+    library_name: "28SLP LP"
+    confidence: theoretical
+    source: "GF 28SLP low-power flow"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 28.0
+    library_name: "28SLP HD-SRAM (0.124 um^2 6T bitcell)"
+    confidence: theoretical
+    source: "TSMC 28HPL 0.124 um^2 6T bitcell (28nm industry standard); periphery overhead included"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 22.0
+    library_name: "28SLP HC-SRAM"
+    confidence: theoretical
+    source: "Estimated from 28nm HD-SRAM with HC bitcell margin"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 2.0
+    confidence: theoretical
+    source: "Estimated from typical analog overhead at 28nm planar"
+    notes: "Planar nodes have lower analog density than FD-SOI (no BOX layer)"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 0.5
+    confidence: theoretical
+    source: "Pad ring estimate at 28nm; varies with IO speed grade"
+
+# Leakage power densities (W/mm^2) at nominal Vdd, Tj=85C.
+# 28SLP is the low-leakage flavor; numbers reflect the SLP variant,
+# which sits ~30% below the 28HP equivalent leakage. Bulk planar is
+# fundamentally leakier than FinFET so these are still higher than
+# 12LP at the same circuit class.
+leakage_w_per_mm2:
+  hp_logic: 0.018
+  balanced_logic: 0.008
+  lp_logic: 0.0035    # SLP variant -- designed for ultra-low-leakage edge
+  sram_hd: 0.0035
+  sram_hc: 0.0050
+  analog: 0.0010
+  io: 0.0005
+
+# Energy per op (pJ), keyed "<class>:<precision>". 28nm planar runs
+# ~1.5-2x the per-op energy of 16FF+ in the same library, dominated by
+# the higher Vdd (0.85 V vs 0.8 V) and worse transistor switching
+# efficiency. INT8 is competitive because the datapath is small.
+# Cross-check: Coral Edge TPU at 4 TOPS / 2 W = ~0.5 pJ/INT8 op
+# including systolic-array reuse; raw balanced_logic int8 at 0.60 pJ
+# matches with ~20% systolic reuse advantage.
+energy_per_op_pj:
+  hp_logic:fp32: 6.5
+  hp_logic:bf16: 3.3
+  hp_logic:int8: 0.85
+  balanced_logic:fp32: 5.5
+  balanced_logic:bf16: 2.8
+  balanced_logic:int8: 0.60
+  balanced_logic:int4: 0.36
+  lp_logic:int8: 0.45
+  lp_logic:int4: 0.27
+
+# Per-byte SRAM access energy. 28nm planar SRAM is significantly
+# costlier per byte than 16FF+ due to longer bit/wordlines per array
+# and wider sense amplifiers. Sources: ITRS 28nm; CACTI 28nm
+# extrapolation.
+sram_access_pj_per_byte:
+  sram_hd: 0.55
+  sram_hc: 0.85
+
+# DRAM PHY energy (chip-side I/O, excludes the DRAM die's internal
+# cost). LPDDR3/LPDDR4 PHY at 28nm: ~10 pJ/byte (higher than 16FF+
+# because of wider drivers and slower signaling). Coral itself has no
+# external DRAM; this figure is for completeness / future 28nm SKUs.
+dram_io_pj_per_byte: 10.0
+
+# Per-flit-per-hop NoC traversal energy. Assumes 16-byte flit width,
+# 5-port mesh router. 28nm wires are thicker, higher per-flit capacitance
+# than 16FF+. Source: OCN literature scaled to 28nm.
+noc_pj_per_flit_per_hop:
+  hp_logic: 1.8
+  balanced_logic: 1.2
+
+# Electromigration current-density ceilings (A/cm^2). 28nm Mx layers
+# tolerate slightly higher J than 16FF+ (wider lines), but the SLP
+# variant uses the same EM ceilings as the HP variant per the GF
+# design rules.
+em_j_max_by_temp_c:
+  85: 1.6e6
+  105: 1.05e6
+  125: 6.8e5
+
+# Routing metal widths at the lowest layers. 28nm M0/M1 widths are
+# ~0.085 um, vs 16FF+ at 0.064 um. SRAM tracks are slightly tighter.
+routing_metal_width_um:
+  hp_logic: 0.085
+  balanced_logic: 0.085
+  lp_logic: 0.100
+  sram_hd: 0.070
+  sram_hc: 0.085
+
+m0_pitch_nm: 100
+m1_pitch_nm: 100
+
+# 28nm at edge TDPs (~2-5 W) is comfortable on passive cooling.
+# Coral Edge TPU is 2.0 W and ships with no heatsink at all on M.2;
+# the USB Type-A variant uses a tiny passive heatsink.
+cooling_compatible:
+  - passive_fanless
+  - passive_heatsink_small
+  - passive_heatsink_large
+  - active_fan
+
+source: "GlobalFoundries 28SLP product brief; Wikichip 28nm; Anandtech Coral Edge TPU die analysis"
+confidence: theoretical
+last_updated: "2026-05-16"
+notes: |
+  GF 28nm SLP (Super Low Power) is the bulk-planar HKMG flavor
+  targeted at edge / mobile / IoT. The Coral Edge TPU ships on this
+  variant per Anandtech's reverse-engineering analysis. Production
+  since 2012; mature, low NRE -- common edge / sensor target.
+
+  Key contrasts with the FinFET nodes already in the catalog:
+
+  - **Density**: ~2.5x lower Mtx/mm^2 than 12LP per equivalent library
+    (e.g. balanced_logic 12 vs 30) because bulk planar has no fin
+    fingers to increase per-cell density at the same lithographic
+    pitch.
+  - **Energy per op**: ~1.5-2x higher than 12LP for equivalent
+    precision; SLP variant clawed back ~20% vs 28HP via threshold-
+    voltage tuning and lower Vdd (0.85 V vs 1.0 V).
+  - **Leakage**: still higher than 12LP at the same circuit class
+    because bulk planar can't gate-control the channel as tightly
+    as FinFET. SLP is the lowest-leakage 28nm flavor available.
+  - **No body bias**: bulk planar has no body terminal accessible to
+    the designer (unlike FD-SOI 12FDX). DVFS knobs are Vdd + Vth-by-
+    library only.
+
+  Validates the ProcessNode schema's ``transistor_topology=bulk_planar``
+  path. Other 28nm variants (28HP, 28HPM, 28HPP, 28LPS) can be added
+  when the catalog grows to need them; a single canonical "GF 28nm"
+  entry suffices for the SKUs we have today (Coral Edge TPU only).
