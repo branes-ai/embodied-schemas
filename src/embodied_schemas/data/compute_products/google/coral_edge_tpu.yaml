@@ -1,0 +1,209 @@
+# Coral Edge TPU -- Google's ultra-low-power systolic NPU.
+#
+# Third NPU SKU in the data/compute_products/ catalog (after Hailo-8
+# and Hailo-10H). First Google SKU; first NPU SKU exercising the
+# ``NPUDataflowKind.SYSTOLIC`` enum value. Closes the Coral half of
+# branes-ai/graphs#192.
+#
+# Data sourced from:
+#   - Coral Edge TPU product brief + USB/M.2/PCIe variant datasheets
+#   - Anandtech reverse-engineering analysis (process node + die area)
+#   - graphs/src/graphs/hardware/models/edge/coral_edge_tpu.py
+#     (the well-validated graphs mapper, the migration source)
+#
+# Confidence: theoretical.
+#   - Process node attribution to GF 28nm SLP comes from Anandtech's
+#     reverse-engineering analysis. Some sources cite Samsung 14LPP;
+#     we follow the Anandtech analysis here (consistent with the
+#     precursor PDK in embodied-schemas#32). Energy figures are
+#     consistent with either interpretation -- 28nm planar at 0.5
+#     pJ/op with systolic reuse matches both the marketed 2 TOPS/W
+#     INT8 envelope and the published die-area / clock combination.
+#   - 64x64 systolic array dimension is the published architecture
+#     fact; the per-MAC transistor count is an estimate from typical
+#     INT8 MAC layouts at this node.
+#   - Unified buffer at 512 KiB is the published figure; the per-
+#     library overhead estimates round to ~50 Mtx.
+#
+# Out of scope for this YAML (separate concerns):
+#   - USB / PCIe host interface as a peer block (bundled in silicon_bin
+#     io_pads pending an IOBlock kind)
+#   - Coral Dev Board (whole-SoM SKU vs the bare TPU chip)
+#   - Future Coral SKUs (rumored next-gen with FP16 support; not in
+#     production)
+
+id: google_coral_edge_tpu
+name: Coral Edge TPU
+vendor: google
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: m_dot_2   # M.2 module form factor (also ships as USB Type-A and PCIe)
+
+lifecycle: production
+
+dies:
+- die_id: coral_edge_tpu_die
+  die_role: compute
+  process_node_id: gf_28nm   # GF 28nm SLP -- landed in embodied-schemas#32
+  die_size_mm2: 25.0       # estimate from Coral teardown analysis (small edge die)
+  transistors_billion: 0.25
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 64x64 systolic array of INT8 MAC cells. Each MAC = INT8 multiplier
+    # + small accumulator + datapath; ~35 ktx per cell at 28nm planar.
+    # 4096 MACs * 35 ktx = ~140 Mtx (~56% of die).
+    - name: systolic_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 140.0
+      notes: 64x64 systolic array, 4096 INT8 MAC cells @ ~35 ktx each
+    # -------------------------------------------------------------------
+    # On-chip unified buffer: 512 KiB SRAM. 6T cell density at 28nm
+    # gives ~25 Mtx for raw bitcells; with periphery (sense amps,
+    # decoders, control) ~50 Mtx total.
+    - name: on_chip_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: 512 KiB unified buffer (UB) -- L1+L2 staging combined per TPU convention
+    # -------------------------------------------------------------------
+    # I/O block: PCIe Gen2 x1 + USB 3.0 PHY + M.2 connector
+    # signaling + GPIO. ~30 Mtx for the multi-protocol PHY.
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 30.0
+      notes: PCIe Gen2 x1 + USB 3.0 PHY + M.2 connector + GPIO
+    # -------------------------------------------------------------------
+    # Control logic: instruction dispatch + systolic array scheduler +
+    # USB protocol handling + power management. ~20 Mtx.
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 20.0
+      notes: Instruction dispatch, systolic scheduler, USB protocol, PMC
+    # -------------------------------------------------------------------
+    # Clocks, power management, and miscellaneous glue. ~10 Mtx.
+    - name: clocks_and_glue
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 10.0
+      notes: Clock generation, PMU, miscellaneous glue logic
+  clocks:
+    base_clock_mhz: 500.0
+    boost_clock_mhz: 500.0   # no boost; fixed-frequency design
+  blocks:
+  - kind: npu
+    # The 64x64 systolic array is one dataflow unit by NPUBlock
+    # convention (the schema comment in embodied-schemas#25 spells this
+    # out explicitly: "Coral Edge TPU: 1, the systolic array is
+    # treated as a single 'unit' even though it has 4096 multipliers
+    # internally"). lanes_per_unit captures the 4096-wide MAC parallelism.
+    num_dataflow_units: 1
+    lanes_per_unit: 4096
+    multi_precision_alu:
+    - int8
+    compute_fabrics:
+    - dataflow_kind: systolic
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        int8: 8000   # 4096 MACs * 2 ops/MAC = 8000 ops per unit per clock
+      # Per-op INT8 energy: between the raw 28nm SLP balanced figure
+      # (0.60 pJ from the process node) and the chip-level marketed
+      # 0.50 pJ (4 TOPS / 2 W). Reflects systolic-reuse advantage at
+      # the fabric level without counting memory access energy.
+      energy_per_op_int8_pj: 0.45
+      energy_scaling: {}   # INT8-only fabric; no other precision multipliers
+    memory:
+      on_chip_bandwidth_gbps: 128.0   # UB-to-systolic direct connect
+      sram_kib_per_unit: 512          # 512 KiB unified buffer
+      shared_sram_kib: 0              # single dataflow unit -- nothing to share
+      shared_sram_layout: shared
+      has_external_dram: false
+      sram_access_energy_pj_per_byte: 0.5
+      coherence_protocol: none
+    noc:
+      # With a single dataflow unit, the NoC degenerates to a trivial
+      # crossbar between the systolic array and the unified buffer.
+      topology: crossbar
+      bisection_bandwidth_gbps: 128.0
+      unit_count: 1
+      flit_size_bytes: 16
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 3.0
+      routing_distance_factor: 1.0
+      confidence: theoretical
+    min_occupancy: 0.85   # systolic arrays sustain high occupancy on regular workloads
+    max_concurrent_models: 1
+    wave_quantization: 1
+    # No kv_cache: Coral is CNN-class (TensorFlow Lite INT8 quantized
+    # vision models); the schema's optional kv_cache field stays None.
+  interconnects: []
+
+# Chip-level performance roll-up at the 2W operating point:
+#   INT8: 1 unit * 8000 ops/clk * 500 MHz = 4 TOPS (the marketed number).
+# INT4 is NOT supported on the Edge TPU (unlike the Hailo SKUs); the
+# systolic array is hard-wired for INT8 only.
+performance:
+  int8_tops: 4.0
+  bf16_tflops: 0.0   # not supported
+  fp32_tflops: 0.0   # not supported
+  int4_tops: 0.0     # not supported (Edge TPU is INT8-only)
+
+power:
+  tdp_watts: 2.0
+  max_power_watts: 2.5
+  min_power_watts: 0.5
+  idle_power_watts: 0.5
+  default_thermal_profile: 2W
+  # Single thermal profile (no DVFS). Coral M.2 modules ship with no
+  # heatsink; the USB Type-A variant has a tiny passive heatsink.
+  # The 28SLP node's low-leakage characteristics enable the 0.5 W idle.
+  thermal_profiles:
+  - name: 2W
+    tdp_watts: 2.0
+    clock_mhz: 500.0
+    cooling_solution_id: passive_heatsink_small
+    efficiency_factor_by_precision:
+      int8: 0.85   # well-optimized systolic array sustains 85% on TFLite workloads
+    vdd_v: 0.85    # matches GF 28SLP nominal
+
+market:
+  launch_date: '2019-03-01'
+  launch_msrp_usd: 75.0   # M.2 module (USB Type-A is $59, PCIe is $34)
+  target_market: edge
+  product_family: Coral Edge TPU
+  model_tier: entry
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Coral Edge TPU -- third NPU SKU migrated to the v4 ComputeProduct
+  schema, first systolic-architecture NPU in the catalog
+  (NPUDataflowKind.SYSTOLIC). First Google vendor SKU.
+
+  Scaled-down systolic array derived from the datacenter Google TPU
+  family. 64x64 INT8 MAC array, 512 KiB on-chip unified buffer,
+  no external DRAM (uses host memory via USB/PCIe), GF 28nm SLP
+  process. Marketed at 4 TOPS INT8. Single fixed-frequency operating
+  point (2W TDP, passive cooling on most variants). 2 TOPS/W INT8
+  efficiency.
+
+  Form factors: M.2 ($75), USB Type-A ($59), PCIe ($34). Target
+  workloads: TensorFlow Lite INT8-quantized vision models on IoT
+  cameras, embedded systems, battery-powered devices. INT8-only by
+  hardware design (no FP, no INT4) -- requires full INT8 quantization
+  through TFLite.
+
+  Closes the Coral half of branes-ai/graphs#192 from the embodied-
+  schemas side; the graphs cleanup PR will swap the 359-LOC hand-
+  coded factory at coral_edge_tpu.py to a thin loader.
+last_updated: '2026-05-16'
