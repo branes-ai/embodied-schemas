@@ -419,11 +419,11 @@ def test_v4_does_not_break_existing_catalog():
     assert kpu_count == 12
     assert gpu_count == 2
     assert cpu_count == 1
-    # npu_count was 0 at the v4 schema PR (#25) baseline; first NPU
-    # YAML (Hailo-8, embodied-schemas#26) brought it to 1; Hailo-10H
-    # follow-up brings it to 2 (and is the first SKU to populate the
-    # KVCacheSpec extension from #30).
-    assert npu_count == 2
+    # NPU count history: 0 at the v4 schema PR (#25); Hailo-8 (#26)
+    # brought it to 1; Hailo-10H (#31, first KVCacheSpec user from #30)
+    # brought it to 2; Coral Edge TPU brings it to 3 (first systolic
+    # NPU; first google/ vendor SKU; uses gf_28nm from #32).
+    assert npu_count == 3
     assert kpu_count + gpu_count + cpu_count + npu_count == len(products)
 
 
