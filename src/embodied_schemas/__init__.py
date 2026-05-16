@@ -221,6 +221,17 @@ from embodied_schemas.cpu_block import (
     L2Layout,
     CPUNoCTopology,
 )
+from embodied_schemas.npu_block import (
+    NPUBlock,
+    NPUComputeFabric,
+    NPUMemorySubsystem,
+    NPUOnDieFabric,
+    NPUThermalProfile,
+    NPUTheoreticalPerformance,
+    NPUDataflowKind,
+    NPUNoCTopology,
+    NPUSramLayout,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -468,6 +479,16 @@ __all__ = [
     "CPUISAExtension",
     "L2Layout",
     "CPUNoCTopology",
+    # NPUBlock + supporting types (v4, additive)
+    "NPUBlock",
+    "NPUComputeFabric",
+    "NPUMemorySubsystem",
+    "NPUOnDieFabric",
+    "NPUThermalProfile",
+    "NPUTheoreticalPerformance",
+    "NPUDataflowKind",
+    "NPUNoCTopology",
+    "NPUSramLayout",
     # Version
     "__version__",
 ]

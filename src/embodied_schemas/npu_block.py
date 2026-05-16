@@ -1,0 +1,494 @@
+"""NPU compute block for ``ComputeProduct`` (v4 schema, additive).
+
+PR 2 of the NPU sprint scoped at ``graphs#187``. Adds the fourth
+member of the ``Block`` discriminated union after KPU (v1), GPU (v2),
+and CPU (v3). Modeled directly off the field set audited in
+``graphs/docs/designs/npu-compute-product-schema-extension.md``.
+
+Design choice: same per-architecture-types rule the prior sprints
+established -- ship NPU-specific sub-types (``NPUComputeFabric``,
+``NPUMemorySubsystem``, ``NPUOnDieFabric``, ``NPUThermalProfile``,
+``NPUTheoreticalPerformance``) rather than generalize. With only 4
+architectures the right unification shape isn't obvious yet; defer
+rename + unify to v5 (the design doc's "5th sprint" milestone).
+
+**Second cross-block-kind type reuse**: ``NPUOnDieFabric.confidence``
+reuses ``DataConfidence`` from ``process_node``. (The first cross-
+block-kind reuse was CPU's ``ClockDomain`` from ``gpu_block``.)
+These two data points justify carving out a vendor-neutral
+``compute_block_common`` module when the v5 unification sprint lands.
+
+Hailo-8 reference SKU specifics that shaped the design:
+
+  - **All on-chip memory** (no external DRAM). The optional DRAM
+    fields are gated by ``has_external_dram: bool``; a
+    ``model_validator`` enforces consistency. Hailo-10H (LPDDR4X) and
+    Coral Edge TPU (also SRAM-only) populate the same shape.
+  - **Single thermal profile, no DVFS**. ``NPUThermalProfile`` uses
+    a scalar ``clock_mhz`` plus ``dvfs_enabled`` flag (defaulting
+    False); ``ClockDomain`` is NOT required because most NPUs ship
+    one clock. (When an NPU does have DVFS, the schema can grow to
+    accept ``ClockDomain`` per the GPU/CPU pattern.)
+  - **Quantization-first precision support**. NPUs typically ship
+    INT4 / INT8 only; ``NPUComputeFabric`` validator enforces that
+    at least one of those is present (no FP-only fabrics).
+  - **No SIMD efficiency**. NPUs are pure dataflow; the
+    ``simd_efficiency_by_op_kind`` concept (CPU-only) doesn't apply
+    and isn't present on ``NPUBlock``.
+
+Future-deferred (v5+):
+
+  - ``KVCacheSpec`` for transformer-capable NPUs (Hailo-10H,
+    Tenstorrent inference, Groq). Pure addition when the Hailo-10H
+    YAML lands -- the schema can extend ``NPUBlock`` then without
+    touching the existing v4 surface.
+  - Integrated NPUs (Intel NPU, Qualcomm Hexagon, Apple ANE) with
+    shared LPDDR with the host CPU complex. Needs cross-block
+    memory link concepts -- v5 chiplet-style scope.
+  - Datacenter AI accelerators (Groq, Cerebras, Graphcore,
+    Tenstorrent) -- much larger surface area than edge NPUs.
+"""
+
+from __future__ import annotations
+
+from enum import Enum
+from typing import Literal
+
+from pydantic import BaseModel, Field, model_validator
+
+from embodied_schemas.gpu import MemoryType
+from embodied_schemas.process_node import CircuitClass, DataConfidence
+
+
+# ---------------------------------------------------------------------------
+# Helper enums
+# ---------------------------------------------------------------------------
+
+class NPUDataflowKind(str, Enum):
+    """The dataflow scheduling discipline a fabric implements.
+
+    Hailo's "structure-driven graph mapping" is STRUCTURE_DRIVEN.
+    Google Edge TPU's systolic array is SYSTOLIC. Spatial dataflow
+    machines (Cerebras, Wave Computing) are SPATIAL. KPUs (Stillwater)
+    use OUTPUT_STATIONARY by convention; some NPUs (Mythic, certain
+    embedded NPUs) use WEIGHT_STATIONARY or INPUT_STATIONARY for
+    matvec-heavy workloads.
+    """
+
+    STRUCTURE_DRIVEN = "structure_driven"
+    SYSTOLIC = "systolic"
+    SPATIAL = "spatial"
+    WEIGHT_STATIONARY = "weight_stationary"
+    OUTPUT_STATIONARY = "output_stationary"
+    INPUT_STATIONARY = "input_stationary"
+
+
+class NPUNoCTopology(str, Enum):
+    """On-die fabric topology for NPUs. Edge NPUs (Hailo, Coral) use
+    2D meshes of dataflow units. Systolic arrays have an implicit
+    DATAFLOW_RING. Crossbar is used for small accelerators with
+    few units."""
+
+    MESH_2D = "mesh_2d"
+    DATAFLOW_RING = "dataflow_ring"
+    SYSTOLIC = "systolic"
+    CROSSBAR = "crossbar"
+
+
+class NPUSramLayout(str, Enum):
+    """How shared on-chip SRAM is organized across dataflow units."""
+
+    SHARED = "shared"          # single shared SRAM bank visible to all units
+    PARTITIONED = "partitioned"  # banked, one slice per cluster of units
+
+
+# ---------------------------------------------------------------------------
+# Compute fabric (single dataflow fabric on most NPUs)
+# ---------------------------------------------------------------------------
+
+class NPUComputeFabric(BaseModel):
+    """One compute fabric on an NPU. Most NPUs ship a single fabric
+    (Hailo-8: 32 dataflow units, 500 INT8 ops/unit/clock). Multi-
+    fabric NPUs would carry multiple entries; not common today.
+
+    Mirrors ``GPUComputeFabric`` / ``CPUComputeFabric`` field-by-field
+    where possible. The shape difference is in the discriminator
+    (``dataflow_kind`` instead of ``fabric_kind`` / ``isa_extension``)
+    and the energy baseline (``energy_per_op_int8_pj`` instead of
+    ``energy_per_flop_fp32_pj`` -- NPUs don't ship FP32 so the FP32
+    baseline is meaningless).
+    """
+
+    dataflow_kind: NPUDataflowKind = Field(...)
+    circuit_class: CircuitClass = Field(
+        ..., description="Standard-cell library used for this fabric"
+    )
+    ops_per_unit_per_clock: dict[str, int] = Field(
+        ...,
+        description=(
+            "Ops per dataflow unit per clock keyed on precision name. "
+            "Hailo-8: {'int8': 500, 'int4': 1000}. Coral: {'int8': 64}. "
+            "Hailo-10H: {'int8': 500, 'int4': 1000} (same dataflow as "
+            "Hailo-8 plus KV cache extensions)."
+        ),
+    )
+    energy_per_op_int8_pj: float = Field(
+        ..., gt=0,
+        description=(
+            "Energy per INT8 op in picojoules at the fabric's nominal "
+            "operating point. NPUs are INT8-dominant; FP32 baseline "
+            "doesn't apply. Hailo-8 16nm dataflow: ~0.34 pJ per INT8 op."
+        ),
+    )
+    energy_scaling: dict[str, float] = Field(
+        default_factory=dict,
+        description=(
+            "Multiplier on ``energy_per_op_int8_pj`` for each precision. "
+            "Typical: {'int4': 0.5} since INT4 packs 2x into the same "
+            "datapath. INT8 baseline is 1.0 implicitly (omit from this "
+            "dict)."
+        ),
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_int_precision_required(self) -> "NPUComputeFabric":
+        """NPUs must ship at least one of INT4 / INT8 -- the dominant
+        inference precisions. Catches typo'd YAMLs that only declare
+        FP precisions (which would be wrong for a real NPU)."""
+        precisions = {k.lower() for k in self.ops_per_unit_per_clock}
+        if not ({"int4", "int8"} & precisions):
+            raise ValueError(
+                "NPUComputeFabric.ops_per_unit_per_clock must include at "
+                "least one of {'int4', 'int8'} (NPUs are inference "
+                f"accelerators dominated by integer quantization); got: "
+                f"{sorted(precisions)}"
+            )
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Memory subsystem (SRAM-dominant or SRAM-only)
+# ---------------------------------------------------------------------------
+
+class NPUMemorySubsystem(BaseModel):
+    """NPU memory hierarchy: SRAM-dominant. Hailo-8 and Coral Edge
+    TPU have no external DRAM at all; Hailo-10H has LPDDR4X for
+    transformer model weights + KV cache.
+
+    The chip-shared L3 / coherence concepts from GPU / CPU /
+    integrated CPUs don't apply -- NPUs are inference-only, run
+    compiler-routed dataflow, and have no cache coherence (compiler
+    handles all data movement explicitly)."""
+
+    # On-chip SRAM bandwidth -- replaces the GPU/CPU "DRAM bandwidth"
+    # field because most NPUs are SRAM-resident
+    on_chip_bandwidth_gbps: float = Field(..., gt=0)
+
+    # Per-dataflow-unit SRAM partition (software-managed scratchpad).
+    # Always private per-unit; the compiler statically allocates it.
+    sram_kib_per_unit: int = Field(..., gt=0)
+
+    # Inter-unit shared SRAM (the "LLC" of NPU-land). Acts above the
+    # per-unit SRAM partitions; smaller than CPU L3 in absolute terms
+    # but performs the same role.
+    shared_sram_kib: int = Field(..., ge=0)
+    shared_sram_layout: NPUSramLayout = Field(NPUSramLayout.SHARED)
+
+    # External DRAM. Gated by has_external_dram bool; when False all
+    # the dram_* fields must be None / 0 (validator enforces). Hailo-8:
+    # False. Coral: False. Hailo-10H: True with LPDDR4X / 4-8GB.
+    has_external_dram: bool = Field(False)
+    external_dram_type: MemoryType | None = Field(default=None)
+    external_dram_size_gb: float | None = Field(default=None, ge=0)
+    external_dram_bandwidth_gbps: float | None = Field(default=None, ge=0)
+
+    # Energy per byte for the dominant memory tier (on-chip SRAM).
+    # ~2 pJ/B for SRAM on 16nm; higher (~20 pJ/B) when DRAM is
+    # involved -- carried on external_dram_* fields when populated.
+    sram_access_energy_pj_per_byte: float = Field(..., gt=0)
+
+    # Cache coherence. NPU default is "none" since compiler-routed
+    # dataflow has no host-coherent cache. Free-form string in case
+    # future host-coherent NPUs (NVIDIA NVLink-C2C-style) show up.
+    coherence_protocol: str = Field(
+        "none",
+        description="Common: 'none' (NPU default), 'pcie' (host DMA), 'nvlink-c2c'",
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_external_dram_consistency(self) -> "NPUMemorySubsystem":
+        """When ``has_external_dram=True`` the external_dram_* fields
+        must all be populated; when False they must all be None / 0.
+        Catches typo'd YAMLs that toggled one field without the other.
+        Mirrors the L3/L4 consistency pattern from CPU sprint."""
+        if self.has_external_dram:
+            missing = []
+            if self.external_dram_type is None:
+                missing.append("external_dram_type")
+            if self.external_dram_size_gb is None or self.external_dram_size_gb <= 0:
+                missing.append("external_dram_size_gb")
+            if (self.external_dram_bandwidth_gbps is None
+                    or self.external_dram_bandwidth_gbps <= 0):
+                missing.append("external_dram_bandwidth_gbps")
+            if missing:
+                raise ValueError(
+                    f"has_external_dram=True requires all of "
+                    f"external_dram_type, external_dram_size_gb, "
+                    f"external_dram_bandwidth_gbps to be populated; "
+                    f"missing/zero: {missing}"
+                )
+        else:
+            extras = []
+            if self.external_dram_type is not None:
+                extras.append("external_dram_type")
+            if self.external_dram_size_gb is not None and self.external_dram_size_gb > 0:
+                extras.append("external_dram_size_gb")
+            if (self.external_dram_bandwidth_gbps is not None
+                    and self.external_dram_bandwidth_gbps > 0):
+                extras.append("external_dram_bandwidth_gbps")
+            if extras:
+                raise ValueError(
+                    f"has_external_dram=False requires external_dram_* "
+                    f"fields to be None / 0; got populated: {extras}"
+                )
+        return self
+
+
+# ---------------------------------------------------------------------------
+# On-die fabric (dataflow mesh, often low-confidence)
+# ---------------------------------------------------------------------------
+
+class NPUOnDieFabric(BaseModel):
+    """NPU on-die interconnect between dataflow units. Most edge NPUs
+    use 2D meshes of dataflow units (Hailo: 8x4, estimated; Coral:
+    unknown). NPU vendors typically don't publish NoC details, so
+    the ``confidence`` field defaults to THEORETICAL.
+
+    SECOND cross-block-kind type reuse: ``confidence`` field uses
+    ``DataConfidence`` from ``process_node`` rather than an NPU-
+    specific enum. (The first was CPU's ``ClockDomain`` reuse from
+    ``gpu_block``.)
+    """
+
+    topology: NPUNoCTopology = Field(...)
+    bisection_bandwidth_gbps: float = Field(..., gt=0)
+    unit_count: int = Field(
+        ..., gt=0,
+        description="Number of fabric endpoints (= num_dataflow_units typically)",
+    )
+    flit_size_bytes: int = Field(..., gt=0)
+
+    # Mesh-specific (optional; only populated when topology=MESH_2D)
+    mesh_rows: int | None = Field(default=None, gt=0)
+    mesh_cols: int | None = Field(default=None, gt=0)
+
+    hop_latency_ns: float = Field(..., ge=0)
+    pj_per_flit_per_hop: float = Field(..., ge=0)
+    routing_distance_factor: float = Field(1.0, gt=0)
+
+    confidence: DataConfidence = Field(
+        DataConfidence.THEORETICAL,
+        description=(
+            "Provenance of NoC numbers. NPU vendors rarely publish "
+            "fabric details so THEORETICAL is the dominant case."
+        ),
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_mesh_dims(self) -> "NPUOnDieFabric":
+        """When topology=MESH_2D both mesh_rows and mesh_cols should
+        be set (and their product should match unit_count); when
+        topology is anything else both should be None."""
+        is_mesh = self.topology == NPUNoCTopology.MESH_2D
+        if is_mesh:
+            if self.mesh_rows is None or self.mesh_cols is None:
+                raise ValueError(
+                    f"topology=MESH_2D requires both mesh_rows and "
+                    f"mesh_cols to be set; got rows={self.mesh_rows}, "
+                    f"cols={self.mesh_cols}"
+                )
+            if self.mesh_rows * self.mesh_cols != self.unit_count:
+                raise ValueError(
+                    f"topology=MESH_2D: mesh_rows * mesh_cols "
+                    f"({self.mesh_rows} * {self.mesh_cols} = "
+                    f"{self.mesh_rows * self.mesh_cols}) must equal "
+                    f"unit_count ({self.unit_count})"
+                )
+        else:
+            if self.mesh_rows is not None or self.mesh_cols is not None:
+                raise ValueError(
+                    f"topology={self.topology.value} requires mesh_rows "
+                    f"and mesh_cols to be None; got rows={self.mesh_rows}, "
+                    f"cols={self.mesh_cols}"
+                )
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Thermal profile (single operating point on most NPUs)
+# ---------------------------------------------------------------------------
+
+class NPUThermalProfile(BaseModel):
+    """One NPU operating point. Most edge NPUs ship a single profile
+    (Hailo-8: 2.5W passive, no DVFS); GPU-style multi-profile DVFS
+    is rare. The schema uses a scalar ``clock_mhz`` plus
+    ``dvfs_enabled`` flag instead of the GPU/CPU ``ClockDomain``
+    (base/boost/sustained) so the common case stays clean."""
+
+    name: str = Field(...)
+    tdp_watts: float = Field(..., gt=0)
+    cooling_solution_id: str = Field(...)
+
+    clock_mhz: float = Field(..., gt=0, description="Operating frequency")
+    dvfs_enabled: bool = Field(
+        False,
+        description=(
+            "False is the NPU default (single fixed operating point). "
+            "True only for the rare NPU with multiple thermal profiles "
+            "and frequency scaling between them."
+        ),
+    )
+
+    # Per-precision empirical numbers, same shape as GPU/CPU/KPU
+    efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
+    instruction_efficiency_by_precision: dict[str, float] = Field(default_factory=dict)
+    memory_bottleneck_factor_by_precision: dict[str, float] = Field(default_factory=dict)
+
+    vdd_v: float | None = Field(default=None, gt=0)
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_efficiency_ranges(self) -> "NPUThermalProfile":
+        for attr_name, label in (
+            ("efficiency_factor_by_precision", "efficiency_factor"),
+            ("instruction_efficiency_by_precision", "instruction_efficiency"),
+            ("memory_bottleneck_factor_by_precision", "memory_bottleneck_factor"),
+        ):
+            mapping = getattr(self, attr_name)
+            for precision, value in mapping.items():
+                if not 0.0 <= value <= 1.0:
+                    raise ValueError(
+                        f"{attr_name}[{precision!r}] = {value} is outside "
+                        f"[0, 1]; {label} is a unit fraction."
+                    )
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Theoretical performance roll-up
+# ---------------------------------------------------------------------------
+
+class NPUTheoreticalPerformance(BaseModel):
+    """Roll-up peak ops/sec per precision for the NPU. Same shape as
+    ``GPUTheoreticalPerformance`` and ``CPUTheoreticalPerformance``.
+    The empty-FP set is the NPU norm (most ship INT4/INT8 only)."""
+
+    peak_ops_per_sec_by_precision: dict[str, float] = Field(...)
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_positive(self) -> "NPUTheoreticalPerformance":
+        for prec, value in self.peak_ops_per_sec_by_precision.items():
+            if value < 0:
+                raise ValueError(
+                    f"peak_ops_per_sec_by_precision[{prec!r}] = {value} "
+                    f"must be >= 0"
+                )
+        return self
+
+
+# ---------------------------------------------------------------------------
+# NPUBlock (the discriminated union member)
+# ---------------------------------------------------------------------------
+
+class NPUBlock(BaseModel):
+    """NPU compute block. Carries the NPU-specific architectural
+    description: dataflow unit hierarchy, on-chip-SRAM-dominant
+    memory subsystem, dataflow on-die fabric, and NPU-only scheduler
+    attributes (high default occupancy, single concurrent model).
+
+    The discriminator value ``BlockKind.NPU`` is wired in
+    ``compute_product.py``. Imports are arranged so this module does
+    not import from ``compute_product`` (compute_product imports from
+    here). Same pattern as GPUBlock and CPUBlock.
+    """
+
+    kind: Literal["npu"] = Field(
+        "npu",
+        description="Discriminator -- always 'npu' for NPUBlock",
+    )
+
+    # Dataflow unit hierarchy
+    num_dataflow_units: int = Field(
+        ..., gt=0,
+        description=(
+            "Number of dataflow processing elements. Hailo-8: 32. "
+            "Coral Edge TPU: 1 (the systolic array is treated as a "
+            "single 'unit' even though it has 4096 multipliers internally). "
+            "Hailo-10H: 40."
+        ),
+    )
+    lanes_per_unit: int = Field(
+        1, gt=0,
+        description=(
+            "SIMD lane count per dataflow unit, or 1 for scalar dataflow. "
+            "Most NPUs are single-lane (the parallelism comes from the "
+            "unit count); some wider NPUs (Coral) have multi-lane units."
+        ),
+    )
+
+    # Single compute fabric in the common case (Hailo, Coral); could
+    # grow to multiple fabrics for an NPU with heterogeneous units.
+    compute_fabrics: list[NPUComputeFabric] = Field(..., min_length=1)
+
+    # Precisions supported chip-wide -- union of compute_fabrics[*].ops_per_unit_per_clock
+    multi_precision_alu: list[str] = Field(default_factory=list)
+
+    memory: NPUMemorySubsystem = Field(...)
+    noc: NPUOnDieFabric = Field(...)
+
+    # NPU-only scheduler / mapper attributes
+    min_occupancy: float = Field(
+        0.8, ge=0.0, le=1.0,
+        description=(
+            "Higher default (0.8) than GPU (0.3) or CPU (0.4) because "
+            "the dataflow compiler statically allocates resources. "
+            "Real NPU deployments routinely hit 0.85-0.95 occupancy "
+            "because the compiler pre-maps the entire model graph."
+        ),
+    )
+    max_concurrent_models: int = Field(
+        1, gt=0,
+        description=(
+            "Maximum number of distinct compiled models the NPU can "
+            "switch between without recompilation. Most edge NPUs run "
+            "a single compiled model at a time (max_concurrent_models=1); "
+            "datacenter NPUs may support more."
+        ),
+    )
+    wave_quantization: int = Field(
+        1, gt=0,
+        description="NPUs don't wave-quantize; default 1 keeps shape consistent",
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_noc_unit_count_matches(self) -> "NPUBlock":
+        """noc.unit_count should equal num_dataflow_units. Catches
+        YAMLs where the NoC was authored against a different unit
+        count than the block declared."""
+        if self.noc.unit_count != self.num_dataflow_units:
+            raise ValueError(
+                f"noc.unit_count ({self.noc.unit_count}) must equal "
+                f"num_dataflow_units ({self.num_dataflow_units})"
+            )
+        return self
