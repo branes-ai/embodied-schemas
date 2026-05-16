@@ -417,6 +417,7 @@ def test_v4_does_not_break_existing_catalog():
     assert kpu_count == 12
     assert gpu_count == 2
     assert cpu_count == 1
-    # First NPU SKU lands in the v4 data PR (next sprint PR)
-    assert npu_count == 0
+    # npu_count was 0 at the v4 schema PR (#25) baseline; v4 data PR
+    # adds hailo_hailo_8 as the first NPU SKU.
+    assert npu_count == 1
     assert kpu_count + gpu_count + cpu_count + npu_count == len(products)
