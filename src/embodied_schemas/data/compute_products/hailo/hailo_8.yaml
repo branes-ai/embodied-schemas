@@ -1,0 +1,194 @@
+# Hailo-8 -- computer vision AI accelerator (discrete edge NPU).
+#
+# First NPU SKU in the data/compute_products/ catalog. Proof point
+# that the v4 ComputeProduct schema (NPUBlock + supporting types,
+# landed in embodied-schemas#25) actually works end-to-end on a
+# dataflow architecture. NPU sprint #187 PR 3.
+#
+# Data sourced from:
+#   - Hailo-8 Architecture Brief + product datasheet
+#   - graphs/src/graphs/hardware/models/edge/hailo8.py (well-validated
+#     graphs mapper, the migration source)
+#
+# Confidence: theoretical.
+#   - Per-block transistor counts are estimates based on Hailo's
+#     published architecture brief (dataflow units + on-chip SRAM
+#     dominate) scaled to the 16nm TSMC envelope.
+#   - The NoC topology is "low confidence" per the design doc -- Hailo
+#     does not publish per-hop fabric details. The 8x4 mesh of 32
+#     dataflow units is an estimate from the unit-count layout.
+#   - Efficiency factors come from Hailo's published benchmarks
+#     (~85% sustained for CNN workloads).
+#
+# Out of scope for this YAML (separate concerns):
+#   - PCIe / M.2 host interface as a peer block (bundled in silicon_bin
+#     io_pads entry pending an IOBlock kind)
+#   - Hailo's runtime compiler / model zoo metadata (software, not
+#     hardware)
+#   - Coral Edge TPU (separate vendor; uses GF 28nm not yet in catalog)
+#   - Hailo-10H (transformer-capable variant with LPDDR4X + KV cache;
+#     follow-up YAML; v5 schema adds KVCacheSpec)
+
+id: hailo_hailo_8
+name: Hailo-8
+vendor: hailo
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: m_dot_2   # M.2 module form factor
+
+lifecycle: production
+
+dies:
+- die_id: hailo_8_die
+  die_role: compute
+  process_node_id: tsmc_n16
+  die_size_mm2: 30.0      # estimate from Hailo-8 die-shot analysis
+  transistors_billion: 2.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 32 dataflow processing elements. Per-unit ~25 Mtx for the
+    # dataflow datapath + local scheduler + interconnect ports.
+    # Total 800 Mtx (~40% of die).
+    - name: dataflow_units
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: 32 dataflow processing elements @ ~25 Mtx each
+    # -------------------------------------------------------------------
+    # On-chip SRAM: 32 units * 512 KiB per-unit private + 8 MiB
+    # shared = 24 MiB total = 24576 KiB. SRAM_HD on N16 = ~250
+    # Mtx/mm^2; with 6-transistor bitcell + overhead this works out
+    # to ~0.04 Mtx/KiB. 24576 * 0.04 ~= 985 Mtx.
+    - name: on_chip_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 985.0
+      notes: 32 * 512 KiB per-unit + 8 MiB shared = 24 MiB total on-chip SRAM
+    # -------------------------------------------------------------------
+    # 8x4 mesh NoC routers: 32 routers * ~3.5 Mtx each = 112 Mtx.
+    # Low confidence per the design doc -- Hailo does not publish
+    # NoC details.
+    - name: noc_routers
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 112.0
+      notes: 32 mesh routers (8x4 layout, low_confidence -- estimated)
+    # -------------------------------------------------------------------
+    # PCIe Gen3 x2 (M.2 Key M form factor) host interface + M.2
+    # connector PHY + power management. ~50 Mtx.
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: PCIe Gen3 x2 + M.2 connector PHY + GPIO
+    # -------------------------------------------------------------------
+    # Control logic: dataflow compiler-emitted instruction memory +
+    # graph scheduler + power management. ~53 Mtx.
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 53.0
+      notes: Compiler-emitted instruction store, graph scheduler, PMC
+  clocks:
+    base_clock_mhz: 1600.0
+    boost_clock_mhz: 1600.0   # no boost; fixed-frequency design
+  blocks:
+  - kind: npu
+    num_dataflow_units: 32
+    lanes_per_unit: 1   # scalar dataflow (parallelism from unit count, not SIMD)
+    multi_precision_alu:
+    - int8
+    - int4
+    compute_fabrics:
+    - dataflow_kind: structure_driven
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        int8: 500
+        int4: 1000   # 2x for INT4 (packed datapath)
+      energy_per_op_int8_pj: 0.34
+      energy_scaling:
+        int4: 0.5   # INT4 packs 2x into the same datapath
+    memory:
+      on_chip_bandwidth_gbps: 200.0
+      sram_kib_per_unit: 512
+      shared_sram_kib: 8192   # 8 MiB inter-unit shared
+      shared_sram_layout: shared
+      has_external_dram: false
+      sram_access_energy_pj_per_byte: 2.0
+      coherence_protocol: none
+    noc:
+      topology: mesh_2d
+      bisection_bandwidth_gbps: 64.0
+      unit_count: 32
+      flit_size_bytes: 16
+      mesh_rows: 8
+      mesh_cols: 4
+      hop_latency_ns: 1.5
+      pj_per_flit_per_hop: 1.5
+      routing_distance_factor: 1.1
+      confidence: theoretical   # Hailo does not publish NoC details
+    min_occupancy: 0.85   # dataflow compiler statically allocates
+    max_concurrent_models: 1   # single compiled model
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 2.5W operating point:
+#   INT8: 32 units * 500 ops/clk * 1.6e9 = 25.6 TOPS -> rounded to 26 TOPS
+#         (Hailo's marketed number)
+#   INT4: 32 units * 1000 ops/clk * 1.6e9 = 51.2 TOPS -> rounded to 52 TOPS
+# No FP support on Hailo-8 (inference-only quantization-first NPU).
+performance:
+  int8_tops: 26.0
+  bf16_tflops: 0.0   # not supported
+  fp32_tflops: 0.0   # not supported
+  int4_tops: 52.0
+
+power:
+  tdp_watts: 2.5
+  max_power_watts: 3.0
+  min_power_watts: 2.0
+  idle_power_watts: 0.5
+  default_thermal_profile: 2.5W
+  # Single thermal profile (no DVFS). Hailo-8 has excellent thermal
+  # design and runs at a fixed 1.6 GHz across its operating range.
+  thermal_profiles:
+  - name: 2.5W
+    tdp_watts: 2.5
+    clock_mhz: 1600.0
+    cooling_solution_id: passive_heatsink_small
+    efficiency_factor_by_precision:
+      int8: 0.85   # excellent dataflow architecture
+      int4: 0.80
+    vdd_v: 0.8
+
+market:
+  launch_date: '2019-05-01'
+  launch_msrp_usd: 160.0
+  target_market: edge
+  product_family: Hailo-8
+  model_tier: entry
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Hailo-8 -- first NPU SKU migrated to the v4 ComputeProduct schema.
+  Structure-driven dataflow architecture with 32 dataflow units, 24 MiB
+  on-chip SRAM, no external DRAM, TSMC N16 process. Marketed at 26
+  TOPS INT8 / 52 TOPS INT4. Single fixed-frequency operating point
+  (2.5W TDP, passive cooling). 10.4 TOPS/W INT8 efficiency -- among
+  the highest in the edge-AI accelerator class. Discrete M.2 module
+  form factor. Target: edge AI cameras (YOLOv5/v8), drones, industrial
+  vision, automotive ADAS.
+
+  Follow-up YAMLs in this sprint will add Hailo-10H (transformer-
+  capable variant; deferred for KVCacheSpec schema work) and Google
+  Coral Edge TPU (requires GF 28nm process node YAML as a precursor).
+last_updated: '2026-05-16'
