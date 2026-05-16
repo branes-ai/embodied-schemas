@@ -1,0 +1,223 @@
+# Hailo-10H -- generative AI edge accelerator (transformer-capable NPU).
+#
+# Second NPU SKU in the data/compute_products/ catalog (after Hailo-8).
+# First user of the v4+ KVCacheSpec extension landed in
+# embodied-schemas#30. Same TSMC N16 process as Hailo-8 but with 40
+# dataflow units (vs 32), 12 MiB shared L2 sized for transformer KV
+# cache, and 8 GiB external LPDDR4X for model weights + KV-cache spill.
+#
+# Data sourced from:
+#   - Hailo-10H Technical Brief (April 2024 launch)
+#   - graphs/src/graphs/hardware/models/edge/hailo10h.py (the well-
+#     validated graphs mapper, the migration source)
+#
+# Confidence: theoretical.
+#   - Per-block transistor counts scaled from the Hailo-8 layout for
+#     the extra 8 dataflow units, expanded shared SRAM, and LPDDR4X
+#     PHY.
+#   - The NoC topology is "low confidence" per the design doc -- Hailo
+#     does not publish per-hop fabric details. 8x5 mesh of 40 dataflow
+#     units is an estimate from the unit-count layout.
+#   - KVCacheSpec values target the Phi-2 / TinyLLaMA class (2B
+#     parameters at 8K context), the published Hailo-10H reference
+#     workload. ``kv_cache_kib_per_layer`` is the architectural per-
+#     layer footprint at the chip's native asymmetric K=INT8/V=INT4
+#     quantization; the layer lives in shared SRAM with overflow to
+#     LPDDR4X.
+#   - Efficiency factors come from Hailo's published transformer
+#     benchmarks (~80% INT4 sustained, ~85% INT8 sustained).
+#
+# Out of scope for this YAML (separate concerns):
+#   - PCIe / M.2 host interface as a peer block (bundled in silicon_bin
+#     io_pads entry pending an IOBlock kind)
+#   - Per-model KV cache configurations (the YAML carries the
+#     architectural surface; per-deployment is a runtime concern)
+#   - Coral Edge TPU (separate vendor; needs GF 28nm process node
+#     YAML as precursor; tracked at embodied-schemas#28)
+
+id: hailo_hailo_10h
+name: Hailo-10H
+vendor: hailo
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: m_dot_2   # M.2 module form factor (same as Hailo-8)
+
+lifecycle: production
+
+dies:
+- die_id: hailo_10h_die
+  die_role: compute
+  process_node_id: tsmc_n16
+  die_size_mm2: 38.0      # ~27% larger than Hailo-8 (more units + larger SRAM + LPDDR4X PHY)
+  transistors_billion: 2.8
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 40 dataflow processing elements (vs 32 on Hailo-8). Per-unit
+    # ~25 Mtx for the dataflow datapath + local scheduler +
+    # interconnect ports. Total 1000 Mtx (~36% of die).
+    - name: dataflow_units
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: 40 dataflow processing elements @ ~25 Mtx each
+    # -------------------------------------------------------------------
+    # On-chip SRAM: 40 units * 512 KiB per-unit private + 12 MiB
+    # shared L2 = 32 MiB total = 32768 KiB. The 12 MiB shared L2 is
+    # transformer-sized to hold the active KV cache layer.
+    # SRAM_HD on N16 = ~250 Mtx/mm^2; with 6-transistor bitcell +
+    # overhead this works out to ~0.04 Mtx/KiB. 32768 * 0.04 ~= 1311 Mtx.
+    - name: on_chip_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 1311.0
+      notes: 40 * 512 KiB per-unit + 12 MiB shared L2 = 32 MiB total on-chip SRAM
+    # -------------------------------------------------------------------
+    # 8x5 mesh NoC routers: 40 routers * ~3.5 Mtx each = 140 Mtx.
+    # Low confidence per the design doc -- Hailo does not publish
+    # NoC details.
+    - name: noc_routers
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 140.0
+      notes: 40 mesh routers (8x5 layout, low_confidence -- estimated)
+    # -------------------------------------------------------------------
+    # PCIe Gen3 x4 (M.2 Key M form factor) host interface + M.2
+    # connector PHY + LPDDR4X PHY (the big addition vs Hailo-8) +
+    # power management. ~250 Mtx total.
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 250.0
+      notes: PCIe Gen3 x4 + M.2 connector PHY + LPDDR4X PHY + GPIO
+    # -------------------------------------------------------------------
+    # Control logic: dataflow compiler-emitted instruction memory +
+    # graph scheduler + KV cache controller (the transformer-specific
+    # additions vs Hailo-8) + power management. ~120 Mtx.
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 120.0
+      notes: Instruction store, graph scheduler, KV cache controller, PMC
+  clocks:
+    base_clock_mhz: 1000.0
+    boost_clock_mhz: 1000.0   # no boost; fixed-frequency design
+  blocks:
+  - kind: npu
+    num_dataflow_units: 40
+    lanes_per_unit: 1   # scalar dataflow (parallelism from unit count, not SIMD)
+    multi_precision_alu:
+    - int8
+    - int4
+    compute_fabrics:
+    - dataflow_kind: structure_driven
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        int8: 500
+        int4: 1000   # 2x for INT4 (packed datapath)
+      energy_per_op_int8_pj: 0.34   # same N16 dataflow as Hailo-8
+      energy_scaling:
+        int4: 0.5   # INT4 packs 2x into the same datapath
+    memory:
+      on_chip_bandwidth_gbps: 250.0   # ~25% higher than Hailo-8 (more units + larger L2)
+      sram_kib_per_unit: 512
+      shared_sram_kib: 12288   # 12 MiB inter-unit shared L2 (KV-cache-sized)
+      shared_sram_layout: shared
+      has_external_dram: true
+      external_dram_type: lpddr4x
+      external_dram_size_gb: 8.0          # 4-8 GiB available; YAML targets the 8 GiB variant
+      external_dram_bandwidth_gbps: 40.0  # LPDDR4X-4266, 64-bit interface
+      sram_access_energy_pj_per_byte: 2.0
+      coherence_protocol: none
+    noc:
+      topology: mesh_2d
+      bisection_bandwidth_gbps: 80.0   # 8x5 mesh, slightly wider than Hailo-8's 8x4
+      unit_count: 40
+      flit_size_bytes: 16
+      mesh_rows: 8
+      mesh_cols: 5
+      hop_latency_ns: 1.5
+      pj_per_flit_per_hop: 1.5
+      routing_distance_factor: 1.1
+      confidence: theoretical   # Hailo does not publish NoC details
+    min_occupancy: 0.75   # transformer workloads vary more than CNN (vs Hailo-8's 0.85)
+    max_concurrent_models: 1   # single compiled model
+    wave_quantization: 1
+    # Transformer KV cache surface (new in embodied-schemas#30):
+    kv_cache:
+      max_context_length: 8192          # targets Phi-2 / TinyLLaMA 2B-class workloads
+      kv_cache_kib_per_layer: 256       # per-layer footprint at K=INT8 / V=INT4
+      num_layers_supported: 32          # typical 7B/2B-class transformer depth
+      quantization:
+        k: int8
+        v: int4
+      streaming_strategy: ring_buffer   # autoregressive decode default
+      has_offload_to_dram: true         # LPDDR4X holds overflow
+  interconnects: []
+
+# Chip-level performance roll-up at the 2.5W operating point:
+#   INT4: 40 units * 1000 ops/clk * 1.0e9 = 40 TOPS (primary GenAI use case)
+#   INT8: 40 units * 500 ops/clk * 1.0e9 = 20 TOPS (CV use case)
+# No FP support (inference-only quantization-first NPU).
+performance:
+  int8_tops: 20.0
+  bf16_tflops: 0.0   # not supported
+  fp32_tflops: 0.0   # not supported
+  int4_tops: 40.0
+
+power:
+  tdp_watts: 2.5
+  max_power_watts: 3.5
+  min_power_watts: 2.0
+  idle_power_watts: 0.6
+  default_thermal_profile: 2.5W
+  # Single thermal profile (no DVFS). Same excellent passive thermal as
+  # Hailo-8; the lower 1.0 GHz clock + 40 units balances the higher
+  # compute against the 2.5W envelope.
+  thermal_profiles:
+  - name: 2.5W
+    tdp_watts: 2.5
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_heatsink_small
+    efficiency_factor_by_precision:
+      int4: 0.80   # transformer-optimized dataflow
+      int8: 0.85
+    vdd_v: 0.8
+
+market:
+  launch_date: '2024-04-01'
+  launch_msrp_usd: 240.0
+  target_market: edge
+  product_family: Hailo-10H
+  model_tier: mid    # higher than Hailo-8 (entry) due to GenAI capability
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Hailo-10H -- second NPU SKU migrated to the v4 ComputeProduct schema,
+  first user of the v4+ KVCacheSpec extension (embodied-schemas#30).
+  Transformer-capable structure-driven dataflow architecture with 40
+  dataflow units, 32 MiB total on-chip SRAM (12 MiB KV-cache-sized
+  shared L2 + 20 MiB per-unit private), 8 GiB LPDDR4X external DRAM,
+  TSMC N16 process. Marketed at 40 TOPS INT4 / 20 TOPS INT8. Single
+  fixed-frequency operating point (2.5W TDP, passive cooling). 16
+  TOPS/W INT4 efficiency -- best in class for edge generative AI.
+  Discrete M.2 module form factor.
+
+  Target workloads: on-device LLMs (2B param: Phi-2, TinyLLaMA),
+  vision-language models (LLaVA, CLIP), Stable Diffusion image
+  generation (<5 seconds per image), multimodal AI assistants.
+  Real-world: <1s first token, 10 tokens/sec sustained on 2B models.
+
+  Production scheduled for 2026 for automotive (AEC-Q100 Grade 2).
+
+  Next NPU in this catalog will be Google Coral Edge TPU; requires GF
+  28nm process node YAML as precursor (embodied-schemas#28).
+last_updated: '2026-05-16'
