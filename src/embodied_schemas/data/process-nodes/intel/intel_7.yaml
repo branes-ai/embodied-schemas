@@ -1,0 +1,130 @@
+# Intel 7 -- Intel's rebrand of their 10nm Enhanced SuperFin (10ESF)
+# node. Despite the "7" in the name this is NOT comparable to TSMC N7
+# on density; it sits between TSMC N7 and N5 (~100 Mtx/mm^2 logic
+# density vs N7's ~90 Mtx/mm^2 and N5's ~145 Mtx/mm^2). The naming was
+# Intel's 2021 marketing alignment with foundry node numbers.
+#
+# Hosts: Alder Lake (12th-gen Core), Raptor Lake (13th/14th-gen Core),
+# Sapphire Rapids (4th-gen Xeon), Emerald Rapids (5th-gen Xeon).
+# First entry in the new ``data/process-nodes/intel/`` foundry
+# directory (CPU sprint #182 PR 3).
+#
+# Densities from Wikichip + Anandtech die-shot analyses of Alder Lake
+# Golden Cove + Gracemont silicon. SRAM cell area is 0.0312 um^2 (HD)
+# -- slightly behind TSMC N5's 0.021 um^2 but in line with the 10ESF
+# generation.
+
+id: intel_7
+foundry: intel
+node_name: Intel 7
+node_nm: 10
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [ULVT, LVT, SVT, HVT]
+nominal_vdd_v: 0.75
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 100.0
+    library_name: "Intel 7 HPC (Golden Cove datapath)"
+    confidence: theoretical
+    source: "Wikichip; Anandtech Alder Lake Golden Cove die-shot analysis"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 120.0
+    library_name: "Intel 7 6T HD"
+    confidence: theoretical
+    source: "Intel 7 process brief; scaled from 10nm SuperFin density"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 135.0
+    library_name: "Intel 7 ULP (Gracemont datapath)"
+    confidence: theoretical
+    source: "Anandtech Gracemont die-shot; LP variant for atom-class cores"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 260.0
+    library_name: "Intel 7 HD-SRAM (0.0312 um^2 bitcell)"
+    confidence: theoretical
+    source: "Intel ISSCC 2021; Alder Lake L1/L2 cache cell"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 210.0
+    library_name: "Intel 7 HC-SRAM"
+    confidence: theoretical
+    source: "Estimated; HC variant for L3 slices"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 160.0
+    library_name: "Intel 7 HP-SRAM (dual-port, for register files)"
+    confidence: theoretical
+    source: "Estimated"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 8.0
+    confidence: theoretical
+    source: "Analog scales poorly with node; conservative estimate"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 2.0
+    confidence: theoretical
+    source: "Pad ring estimate; DDR5 / PCIe Gen5 IO"
+
+leakage_w_per_mm2:
+  hp_logic: 0.075
+  balanced_logic: 0.035
+  lp_logic: 0.014
+  sram_hd: 0.009
+  sram_hc: 0.012
+  sram_hp: 0.020
+  analog: 0.0030
+  io: 0.0012
+
+energy_per_op_pj:
+  hp_logic:fp32: 1.05
+  hp_logic:bf16: 0.55
+  hp_logic:int8: 0.14
+  balanced_logic:fp32: 0.80
+  balanced_logic:bf16: 0.42
+  balanced_logic:int8: 0.10
+  balanced_logic:int4: 0.060
+  lp_logic:int8: 0.075
+
+em_j_max_by_temp_c:
+  85: 2.2e6
+  105: 1.4e6
+  125: 0.85e6
+
+routing_metal_width_um:
+  hp_logic: 0.036
+  balanced_logic: 0.036
+  sram_hd: 0.024
+
+m0_pitch_nm: 36
+m1_pitch_nm: 36
+
+cooling_compatible:
+  - active_fan
+  - vapor_chamber
+  - liquid_cooled
+  - datacenter_direct_to_chip
+
+source: "Intel 7 process brief (2021 rebrand of 10ESF); Wikichip; Anandtech Alder Lake die-shot analyses"
+confidence: theoretical
+last_updated: "2026-05-15"
+notes: |
+  Intel's marketing-renamed 10nm Enhanced SuperFin (10ESF). Despite the
+  "7" suffix this is the 10nm-class node; density sits between TSMC N7
+  and N5. SRAM scaling is comparable to TSMC N7 (0.0312 um^2 6T cell
+  vs TSMC N7's 0.027 um^2). Logic density is ~100 Mtx/mm^2 HP and
+  ~120 Mtx/mm^2 balanced -- worse than TSMC N5 but better than TSMC N7.
+
+  Hosts: Alder Lake (12th-gen Core), Raptor Lake (13th/14th-gen Core),
+  Sapphire Rapids (4th-gen Xeon w/ AMX), Emerald Rapids (5th-gen Xeon).
+  Successor nodes: Intel 4 (Meteor Lake / Lunar Lake), Intel 3 (Granite
+  Rapids).
+
+  First entry in data/process-nodes/intel/. Future Intel SKUs (Meteor
+  Lake on Intel 4, Granite Rapids on Intel 3, etc.) will need their
+  own YAML entries in this directory.
