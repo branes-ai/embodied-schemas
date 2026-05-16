@@ -36,12 +36,13 @@ Hailo-8 reference SKU specifics that shaped the design:
     ``simd_efficiency_by_op_kind`` concept (CPU-only) doesn't apply
     and isn't present on ``NPUBlock``.
 
+``KVCacheSpec`` (issue #27) adds the transformer-specific KV cache
+description as an optional ``NPUBlock.kv_cache`` field. Hailo-8 leaves
+it None (CNN-class NPU, no KV cache); Hailo-10H populates it for
+generative inference (LPDDR4X-backed cache with ring-buffer streaming).
+
 Future-deferred (v5+):
 
-  - ``KVCacheSpec`` for transformer-capable NPUs (Hailo-10H,
-    Tenstorrent inference, Groq). Pure addition when the Hailo-10H
-    YAML lands -- the schema can extend ``NPUBlock`` then without
-    touching the existing v4 surface.
   - Integrated NPUs (Intel NPU, Qualcomm Hexagon, Apple ANE) with
     shared LPDDR with the host CPU complex. Needs cross-block
     memory link concepts -- v5 chiplet-style scope.
@@ -100,6 +101,22 @@ class NPUSramLayout(str, Enum):
 
     SHARED = "shared"          # single shared SRAM bank visible to all units
     PARTITIONED = "partitioned"  # banked, one slice per cluster of units
+
+
+class KVCacheStreamingKind(str, Enum):
+    """How a transformer NPU streams its KV cache through the dataflow.
+
+    Hailo-10H uses RING_BUFFER (rolling overwrite as context advances).
+    Sliding-window attention models (Mistral-style) use SLIDING_WINDOW.
+    PagedAttention-style runtimes (vLLM influence on hardware) use
+    PAGE_BASED. PRECOMPUTED is the rare static-context case (prompt-
+    pinned NPUs that never roll the cache).
+    """
+
+    RING_BUFFER = "ring_buffer"
+    SLIDING_WINDOW = "sliding_window"
+    PAGE_BASED = "page_based"
+    PRECOMPUTED = "precomputed"
 
 
 # ---------------------------------------------------------------------------
@@ -406,6 +423,95 @@ class NPUTheoreticalPerformance(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# KV cache (transformer-capable NPUs only; issue #27)
+# ---------------------------------------------------------------------------
+
+class KVCacheSpec(BaseModel):
+    """Describes the KV cache management surface of a transformer-
+    capable NPU.
+
+    Carried as an optional ``NPUBlock.kv_cache`` field. CNN-class NPUs
+    (Hailo-8, Coral Edge TPU) leave it None. Transformer NPUs (Hailo-
+    10H, future Tenstorrent / Groq inference SKUs) populate it.
+
+    The fields describe the architectural KV cache capability, not the
+    per-deployment configuration: ``max_context_length`` is the chip's
+    upper bound, not what a particular model will use.
+    """
+
+    max_context_length: int = Field(
+        ..., gt=0,
+        description=(
+            "Maximum sequence length (in tokens) the KV cache can hold. "
+            "Architectural upper bound, not a deployment knob. "
+            "Hailo-10H targets ~8192 tokens; future LLM NPUs reach 32K+."
+        ),
+    )
+    kv_cache_kib_per_layer: int = Field(
+        ..., gt=0,
+        description=(
+            "Per-transformer-layer KV cache footprint in KiB at the "
+            "chip's native quantization. Derived from model class * "
+            "max_context_length * head_dim, but published as a chip-"
+            "level attribute so the SKU YAML can be authored without "
+            "pinning to one model."
+        ),
+    )
+    num_layers_supported: int = Field(
+        ..., gt=0,
+        description=(
+            "Number of transformer layers whose KV cache the NPU can "
+            "hold simultaneously (SRAM-resident + DRAM-offloaded "
+            "combined). Hailo-10H: ~32 layers for the targeted 7B-class "
+            "models."
+        ),
+    )
+    quantization: dict[str, str] = Field(
+        ...,
+        description=(
+            "Per-tier quantization for the K and V projections. Common "
+            "values: {'k': 'int8', 'v': 'int8'} for symmetric, "
+            "{'k': 'int8', 'v': 'int4'} for V-asymmetric (Hailo-10H "
+            "style). Keys must be 'k' and 'v'."
+        ),
+    )
+    streaming_strategy: KVCacheStreamingKind = Field(
+        ...,
+        description=(
+            "How the cache rolls as new tokens arrive. RING_BUFFER is "
+            "the common case for autoregressive decode; SLIDING_WINDOW "
+            "for windowed attention; PAGE_BASED for runtimes that map "
+            "KV blocks to pages."
+        ),
+    )
+    has_offload_to_dram: bool = Field(
+        ...,
+        description=(
+            "True when KV entries that don't fit in on-chip SRAM spill "
+            "to external DRAM. Hailo-10H: True (LPDDR4X holds the "
+            "overflow). Groq LPU: False (huge on-chip SRAM, no DRAM). "
+            "When True, ``NPUMemorySubsystem.has_external_dram`` must "
+            "also be True -- enforced by NPUBlock validator."
+        ),
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_quantization_keys(self) -> "KVCacheSpec":
+        """``quantization`` must contain both 'k' and 'v' entries and
+        no others. Catches typo'd YAMLs that named the tiers 'key' /
+        'value' or omitted one tier."""
+        keys = set(self.quantization)
+        if keys != {"k", "v"}:
+            raise ValueError(
+                f"KVCacheSpec.quantization must have exactly keys "
+                f"{{'k', 'v'}}; got {sorted(keys)}"
+            )
+        return self
+
+
+# ---------------------------------------------------------------------------
 # NPUBlock (the discriminated union member)
 # ---------------------------------------------------------------------------
 
@@ -479,6 +585,17 @@ class NPUBlock(BaseModel):
         description="NPUs don't wave-quantize; default 1 keeps shape consistent",
     )
 
+    # Transformer-specific KV cache surface. Optional: CNN-class NPUs
+    # (Hailo-8, Coral) leave it None; transformer NPUs (Hailo-10H,
+    # future Tenstorrent / Groq inference SKUs) populate it.
+    kv_cache: KVCacheSpec | None = Field(
+        default=None,
+        description=(
+            "Optional KV cache description for transformer-capable NPUs. "
+            "None for CNN-class NPUs."
+        ),
+    )
+
     model_config = {"extra": "forbid"}
 
     @model_validator(mode="after")
@@ -490,5 +607,21 @@ class NPUBlock(BaseModel):
             raise ValueError(
                 f"noc.unit_count ({self.noc.unit_count}) must equal "
                 f"num_dataflow_units ({self.num_dataflow_units})"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_kv_cache_dram_consistency(self) -> "NPUBlock":
+        """When ``kv_cache.has_offload_to_dram=True`` the memory
+        subsystem must have ``has_external_dram=True`` -- a KV cache
+        that overflows to nowhere doesn't make sense. Catches mismatched
+        YAMLs that declared DRAM-offloaded KV cache on an SRAM-only NPU."""
+        if (self.kv_cache is not None
+                and self.kv_cache.has_offload_to_dram
+                and not self.memory.has_external_dram):
+            raise ValueError(
+                "kv_cache.has_offload_to_dram=True requires "
+                "memory.has_external_dram=True (KV cache cannot offload "
+                "to nonexistent external DRAM)"
             )
         return self

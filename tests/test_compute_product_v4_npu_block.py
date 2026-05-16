@@ -27,6 +27,8 @@ from embodied_schemas import (
     DieRole,
     GPUBlock,
     KPUBlock,
+    KVCacheSpec,
+    KVCacheStreamingKind,
     LifecycleStatus,
     Market,
     NPUBlock,
@@ -421,3 +423,189 @@ def test_v4_does_not_break_existing_catalog():
     # adds hailo_hailo_8 as the first NPU SKU.
     assert npu_count == 1
     assert kpu_count + gpu_count + cpu_count + npu_count == len(products)
+
+
+# ---------------------------------------------------------------------------
+# 6. KVCacheSpec (issue #27) -- transformer-capable NPU surface
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def hailo10h_kv_cache() -> KVCacheSpec:
+    """Hailo-10H-shaped KV cache: ring-buffer streaming with LPDDR4X
+    offload, INT8/INT4 asymmetric per-tier quantization."""
+    return KVCacheSpec(
+        max_context_length=8192,
+        kv_cache_kib_per_layer=256,
+        num_layers_supported=32,
+        quantization={"k": "int8", "v": "int4"},
+        streaming_strategy=KVCacheStreamingKind.RING_BUFFER,
+        has_offload_to_dram=True,
+    )
+
+
+def test_kv_cache_spec_constructs(hailo10h_kv_cache):
+    assert hailo10h_kv_cache.max_context_length == 8192
+    assert hailo10h_kv_cache.streaming_strategy == KVCacheStreamingKind.RING_BUFFER
+    assert hailo10h_kv_cache.quantization == {"k": "int8", "v": "int4"}
+    assert hailo10h_kv_cache.has_offload_to_dram is True
+
+
+def test_kv_cache_spec_quantization_keys_validator():
+    """quantization must have exactly keys {'k', 'v'} -- catches typo'd
+    YAMLs that named the tiers 'key'/'value' or omitted one tier."""
+    with pytest.raises(ValidationError, match="must have exactly keys"):
+        KVCacheSpec(
+            max_context_length=8192,
+            kv_cache_kib_per_layer=256,
+            num_layers_supported=32,
+            quantization={"key": "int8", "value": "int8"},   # wrong tier names
+            streaming_strategy=KVCacheStreamingKind.RING_BUFFER,
+            has_offload_to_dram=True,
+        )
+
+    with pytest.raises(ValidationError, match="must have exactly keys"):
+        KVCacheSpec(
+            max_context_length=8192,
+            kv_cache_kib_per_layer=256,
+            num_layers_supported=32,
+            quantization={"k": "int8"},   # missing 'v'
+            streaming_strategy=KVCacheStreamingKind.RING_BUFFER,
+            has_offload_to_dram=True,
+        )
+
+
+def test_kv_cache_spec_extra_fields_forbidden(hailo10h_kv_cache):
+    with pytest.raises(ValidationError):
+        KVCacheSpec(**hailo10h_kv_cache.model_dump(), unknown_field=1)
+
+
+def test_kv_cache_streaming_kinds_present():
+    kinds = {k.value for k in KVCacheStreamingKind}
+    assert kinds == {"ring_buffer", "sliding_window", "page_based", "precomputed"}
+
+
+def test_npu_block_kv_cache_defaults_to_none(npu_block):
+    """Hailo-8 (CNN-class) NPUBlock leaves kv_cache None -- the additive
+    field must not break existing-shape construction."""
+    assert npu_block.kv_cache is None
+
+
+def test_npu_block_accepts_kv_cache_when_dram_present(
+    hailo8_fabric, hailo8_noc, hailo10h_kv_cache
+):
+    """KV cache with offload=True is valid when memory.has_external_dram=True
+    (Hailo-10H shape)."""
+    hailo10h_memory = NPUMemorySubsystem(
+        on_chip_bandwidth_gbps=200.0,
+        sram_kib_per_unit=512,
+        shared_sram_kib=12 * 1024,
+        shared_sram_layout=NPUSramLayout.SHARED,
+        has_external_dram=True,
+        external_dram_type=MemoryType.LPDDR4X,
+        external_dram_size_gb=4.0,
+        external_dram_bandwidth_gbps=12.8,
+        sram_access_energy_pj_per_byte=2.0,
+        coherence_protocol="none",
+    )
+    block = NPUBlock(
+        num_dataflow_units=32,
+        lanes_per_unit=1,
+        compute_fabrics=[hailo8_fabric],
+        multi_precision_alu=["int8", "int4"],
+        memory=hailo10h_memory,
+        noc=hailo8_noc,
+        min_occupancy=0.85,
+        max_concurrent_models=1,
+        wave_quantization=1,
+        kv_cache=hailo10h_kv_cache,
+    )
+    assert block.kv_cache is not None
+    assert block.kv_cache.has_offload_to_dram is True
+    assert block.memory.has_external_dram is True
+
+
+def test_npu_block_rejects_dram_offload_without_external_dram(
+    hailo8_fabric, hailo8_memory, hailo8_noc, hailo10h_kv_cache
+):
+    """KV cache with offload=True on an SRAM-only NPU must fail --
+    the cache cannot offload to nonexistent external DRAM."""
+    with pytest.raises(ValidationError, match="cannot offload to nonexistent external DRAM"):
+        NPUBlock(
+            num_dataflow_units=32,
+            lanes_per_unit=1,
+            compute_fabrics=[hailo8_fabric],
+            multi_precision_alu=["int8", "int4"],
+            memory=hailo8_memory,        # has_external_dram=False
+            noc=hailo8_noc,
+            min_occupancy=0.85,
+            max_concurrent_models=1,
+            wave_quantization=1,
+            kv_cache=hailo10h_kv_cache,  # has_offload_to_dram=True
+        )
+
+
+def test_npu_block_accepts_in_sram_kv_cache_without_dram(
+    hailo8_fabric, hailo8_memory, hailo8_noc
+):
+    """Groq-LPU shape: KV cache lives entirely in on-chip SRAM
+    (has_offload_to_dram=False), so SRAM-only NPU memory is OK."""
+    in_sram_cache = KVCacheSpec(
+        max_context_length=2048,
+        kv_cache_kib_per_layer=128,
+        num_layers_supported=12,
+        quantization={"k": "int8", "v": "int8"},
+        streaming_strategy=KVCacheStreamingKind.SLIDING_WINDOW,
+        has_offload_to_dram=False,
+    )
+    block = NPUBlock(
+        num_dataflow_units=32,
+        lanes_per_unit=1,
+        compute_fabrics=[hailo8_fabric],
+        multi_precision_alu=["int8", "int4"],
+        memory=hailo8_memory,    # no external DRAM
+        noc=hailo8_noc,
+        min_occupancy=0.85,
+        max_concurrent_models=1,
+        wave_quantization=1,
+        kv_cache=in_sram_cache,
+    )
+    assert block.kv_cache.has_offload_to_dram is False
+
+
+def test_npu_block_with_kv_cache_round_trips_through_anyblock(
+    hailo8_fabric, hailo8_noc, hailo10h_kv_cache
+):
+    """AnyBlock dispatch + KVCacheSpec round-trip through JSON."""
+    from pydantic import TypeAdapter
+    hailo10h_memory = NPUMemorySubsystem(
+        on_chip_bandwidth_gbps=200.0,
+        sram_kib_per_unit=512,
+        shared_sram_kib=12 * 1024,
+        shared_sram_layout=NPUSramLayout.SHARED,
+        has_external_dram=True,
+        external_dram_type=MemoryType.LPDDR4X,
+        external_dram_size_gb=4.0,
+        external_dram_bandwidth_gbps=12.8,
+        sram_access_energy_pj_per_byte=2.0,
+        coherence_protocol="none",
+    )
+    block = NPUBlock(
+        num_dataflow_units=32,
+        lanes_per_unit=1,
+        compute_fabrics=[hailo8_fabric],
+        multi_precision_alu=["int8", "int4"],
+        memory=hailo10h_memory,
+        noc=hailo8_noc,
+        min_occupancy=0.85,
+        max_concurrent_models=1,
+        wave_quantization=1,
+        kv_cache=hailo10h_kv_cache,
+    )
+
+    adapter = TypeAdapter(AnyBlock)
+    payload = block.model_dump(mode="json")
+    parsed = adapter.validate_python(payload)
+    assert isinstance(parsed, NPUBlock)
+    assert parsed.kv_cache is not None
+    assert parsed.kv_cache.streaming_strategy == KVCacheStreamingKind.RING_BUFFER
+    assert parsed.kv_cache.quantization == {"k": "int8", "v": "int4"}

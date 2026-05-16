@@ -231,6 +231,8 @@ from embodied_schemas.npu_block import (
     NPUDataflowKind,
     NPUNoCTopology,
     NPUSramLayout,
+    KVCacheSpec,
+    KVCacheStreamingKind,
 )
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
@@ -489,6 +491,8 @@ __all__ = [
     "NPUDataflowKind",
     "NPUNoCTopology",
     "NPUSramLayout",
+    "KVCacheSpec",
+    "KVCacheStreamingKind",
     # Version
     "__version__",
 ]
