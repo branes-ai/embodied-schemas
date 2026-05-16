@@ -534,4 +534,6 @@ def test_v3_does_not_break_existing_catalog():
     # cpu_count was 0 at the v3 schema PR (#22) baseline; v3 data
     # PR adds intel_core_i7_12700k as the first CPU SKU.
     assert cpu_count == 1
-    assert kpu_count + gpu_count + cpu_count == len(products)
+    # The catalog also has 1 NPU (hailo_hailo_8) added in v4 data PR.
+    # We only count KPU/GPU/CPU here; the leftover are other block kinds.
+    assert kpu_count + gpu_count + cpu_count <= len(products)

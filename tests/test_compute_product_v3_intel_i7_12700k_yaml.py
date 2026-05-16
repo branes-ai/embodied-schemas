@@ -110,7 +110,12 @@ def test_catalog_has_15_total_products(all_products):
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts_by_kind[kind] = counts_by_kind.get(kind, 0) + 1
-    assert counts_by_kind == {"kpu": 12, "gpu": 2, "cpu": 1}, (
+    # v4 data PR (#26-pending) adds hailo_hailo_8 as the first NPU SKU;
+    # the catalog total grew from 15 to 16 then. This assertion
+    # tolerates that addition while still pinning the KPU/GPU/CPU counts.
+    expected_subset = {"kpu": 12, "gpu": 2, "cpu": 1}
+    for kind, count in expected_subset.items():
+        assert counts_by_kind.get(kind, 0) == count, (
         f"unexpected catalog composition: {counts_by_kind}"
     )
 
