@@ -234,6 +234,16 @@ from embodied_schemas.npu_block import (
     KVCacheSpec,
     KVCacheStreamingKind,
 )
+from embodied_schemas.cgra_block import (
+    CGRABlock,
+    CGRAComputeFabric,
+    CGRAMemorySubsystem,
+    CGRAOnDieFabric,
+    CGRAThermalProfile,
+    CGRATheoreticalPerformance,
+    CGRAFabricKind,
+    CGRANoCTopology,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -493,6 +503,14 @@ __all__ = [
     "NPUSramLayout",
     "KVCacheSpec",
     "KVCacheStreamingKind",
+    "CGRABlock",
+    "CGRAComputeFabric",
+    "CGRAMemorySubsystem",
+    "CGRAOnDieFabric",
+    "CGRAThermalProfile",
+    "CGRATheoreticalPerformance",
+    "CGRAFabricKind",
+    "CGRANoCTopology",
     # Version
     "__version__",
 ]
