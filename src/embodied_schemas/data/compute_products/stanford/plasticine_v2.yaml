@@ -1,0 +1,254 @@
+# Stanford Plasticine v2 -- academic coarse-grained reconfigurable
+# architecture (CGRA).
+#
+# First CGRA SKU in the data/compute_products/ catalog. First user of
+# the v5 ComputeProduct schema (CGRABlock + supporting types, landed
+# in embodied-schemas#34). First ``stanford`` vendor SKU. Closes the
+# CGRA half of branes-ai/graphs#196 from the embodied-schemas side.
+#
+# Plasticine v2 is a hypothetical larger variant of the Stanford
+# Plasticine academic prototype (ISCA 2017 -- Prabhakar et al.).
+# v1 was 16 PCUs; v2 scales to 32 PCUs at the same 28nm process and
+# 1 GHz clock. Used here as a defensible reference SKU for the CGRA
+# schema; future CGRA YAMLs (SambaNova RDU, Wave Computing DPU,
+# Cerebras WSE) would add as pure data PRs.
+#
+# Data sourced from:
+#   - "Plasticine: A Reconfigurable Architecture for Parallel
+#     Patterns" (Prabhakar et al., ISCA 2017)
+#   - graphs/src/graphs/hardware/models/accelerators/stanford_plasticine_cgra.py
+#     (the well-validated graphs mapper, the migration source)
+#   - graphs/docs/designs/cgra-compute-product-schema-extension.md
+#     (the paper exercise / sprint design doc)
+#
+# Confidence: theoretical (research SKU).
+#   - All per-block transistor counts are estimates from the Plasticine
+#     paper's described architecture (32 PCUs * 8 MACs, 4 MB on-chip SRAM,
+#     mesh NoC) scaled to the 28nm SLP envelope.
+#   - The NoC topology is "low confidence" per the design doc -- the
+#     Plasticine paper describes a mesh but does not publish per-hop
+#     fabric details. 4x8 mesh of 32 PCUs is an estimate.
+#   - Reconfig overhead (1000 cycles) is the paper's reported figure
+#     for full-fabric remap.
+#   - Energy figures derived from the GF 28nm SLP process node
+#     (embodied-schemas#32) with systolic-like reuse efficiency.
+#
+# Out of scope for this YAML (separate concerns):
+#   - Other CGRA architectures (Wave Computing, Cerebras WSE,
+#     SambaNova RDU, Tenstorrent Grayskull) -- separate follow-up
+#     YAMLs once this lands.
+#   - Partial reconfiguration scheduling -- runtime concern; the
+#     schema's supports_partial_reconfig flag stays False for v2.
+
+id: stanford_plasticine_v2
+name: Stanford Plasticine v2
+vendor: stanford
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: bare_die   # academic prototype; no commercial packaging
+
+# Research / academic prototype -- not commercial production. Closest
+# lifecycle value is engineering_sample (the chip was fabbed and
+# characterized but never productized).
+lifecycle: engineering_sample
+
+dies:
+- die_id: plasticine_v2_die
+  die_role: compute
+  process_node_id: gf_28nm   # landed in embodied-schemas#32
+  die_size_mm2: 45.0       # paper exercise estimate (~12 Mtx/mm^2 average)
+  transistors_billion: 0.52
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 32 Pattern Compute Units. Each PCU contains an 8-MAC datapath +
+    # configurable interconnect + local scheduler. ~5 Mtx per PCU =
+    # 160 Mtx total (~31% of die).
+    - name: pcu_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 160.0
+      notes: 32 Pattern Compute Units @ ~5 Mtx each (8 MACs + interconnect + scheduler)
+    # -------------------------------------------------------------------
+    # 32 Pattern Memory Units: per-PCU 64 KiB scratchpad. ~2.5 Mtx per
+    # PMU (compiler-managed SRAM, no cache logic overhead) = 80 Mtx
+    # total. 32 * 64 KiB = 2 MiB total PMU SRAM.
+    - name: pmu_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 80.0
+      notes: 32 PMUs * 64 KiB each = 2 MiB per-PCU compiler-managed scratchpad
+    # -------------------------------------------------------------------
+    # 2 MiB shared L2 SRAM (inter-PCU LLC). At 28nm SRAM density
+    # (~28 Mtx/mm^2 with periphery), 2 MiB = ~80 Mtx.
+    - name: shared_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 80.0
+      notes: 2 MiB shared L2 -- inter-PCU staging buffer
+    # -------------------------------------------------------------------
+    # PCU mesh NoC: 4x8 layout, 32 routers + links + arbitration logic.
+    # ~3 Mtx per router = 100 Mtx total.
+    - name: noc_routers
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 100.0
+      notes: 4x8 mesh of 32 routers + links (low_confidence -- estimated)
+    # -------------------------------------------------------------------
+    # Fabric reconfiguration control: bitstream storage + reconfig
+    # sequencer. CGRA-specific cost (no NPU has this). ~30 Mtx.
+    - name: config_fabric
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 30.0
+      notes: Reconfiguration bitstream storage + sequencer (CGRA-specific cost)
+    # -------------------------------------------------------------------
+    # Host interface: DDR4 PHY + PCIe Gen3 x4 + GPIO. ~50 Mtx at 28nm.
+    - name: host_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: DDR4 PHY + PCIe Gen3 x4 + GPIO
+    # -------------------------------------------------------------------
+    # Control logic: compiler-emitted instruction memory + power
+    # management. ~20 Mtx.
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 20.0
+      notes: Compiler-emitted instruction store + PMC
+  clocks:
+    base_clock_mhz: 1000.0
+    boost_clock_mhz: 1000.0   # no boost; fixed-frequency design
+  blocks:
+  - kind: cgra
+    num_pcus: 32
+    macs_per_pcu: 8
+    # Plasticine paper reports ~1000 cycles for full-fabric reconfiguration.
+    # The Achilles heel of CGRAs vs fixed-function NPUs -- downstream
+    # estimators should penalize workloads with high kernel-switching
+    # frequency.
+    reconfig_overhead_cycles: 1000
+    # Plasticine v2 is whole-fabric reconfiguration only. Future CGRAs
+    # (or partial-reconfig FPGAs migrated to this schema) would set True.
+    supports_partial_reconfig: false
+    multi_precision_alu:
+    - int8
+    - fp16
+    - fp32
+    compute_fabrics:
+    - fabric_kind: pcu_spatial_dataflow
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        int8: 320    # 8 MACs * 2 ops/MAC * 20 (PCU dual-issue / etc.)
+        fp16: 80     # 1/4 of INT8 (Plasticine FP16 is emulated; lower throughput)
+      energy_per_op_int8_pj: 0.6   # GF 28nm SLP balanced_logic int8 (from #32)
+      energy_scaling:
+        fp16: 3.3   # FP16 emulated via 4 INT8 + control overhead
+        fp32: 6.7   # FP32 emulated; even higher overhead
+    memory:
+      on_chip_bandwidth_gbps: 40.0   # PCU mesh bisection BW
+      pmu_kib_per_pcu: 64            # 64 KiB compiler-managed scratchpad per PCU
+      shared_sram_kib: 2048          # 2 MiB shared L2
+      shared_sram_layout: shared
+      has_host_dram: true            # Plasticine reaches DRAM via host bus
+      host_dram_type: ddr4
+      host_dram_size_gb: 4.0
+      host_dram_bandwidth_gbps: 12.8  # DDR4-3200 dual-channel
+      pmu_access_energy_pj_per_byte: 12.0   # on-chip SRAM at 28nm
+      host_dram_access_energy_pj_per_byte: 20.0   # DDR4 via host bus
+      coherence_protocol: none
+    noc:
+      topology: mesh_2d
+      bisection_bandwidth_gbps: 40.0
+      unit_count: 32
+      flit_size_bytes: 16
+      mesh_rows: 4
+      mesh_cols: 8
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 1.2
+      routing_distance_factor: 1.1
+      confidence: theoretical   # Plasticine paper does not publish NoC details
+    # Lower default occupancy than NPU (0.8) -- reconfig overhead
+    # amortizes only on long-running kernels; PCU utilization varies
+    # more than fixed-function dataflow.
+    min_occupancy: 0.3
+    max_concurrent_models: 1   # single mapped program at a time
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 15W operating point:
+#   INT8: 32 PCUs * 320 ops/clk * 1.0e9 = 10.24 TOPS (theoretical)
+#   FP16: 32 PCUs * 80 ops/clk * 1.0e9 = 2.56 TFLOPS (emulated)
+#   FP32: ~1.28 TFLOPS (emulated, ~1/2 FP16 rate)
+# Realistic at 60% efficiency (CGRA fabric overhead):
+#   INT8: ~6 TOPS sustained
+performance:
+  int8_tops: 10.24
+  bf16_tflops: 0.0   # not supported (Plasticine targets INT + emulated FP)
+  fp32_tflops: 1.28
+  int4_tops: 0.0     # not supported (Plasticine is INT8-minimum)
+
+power:
+  tdp_watts: 15.0
+  max_power_watts: 18.0
+  min_power_watts: 2.0
+  idle_power_watts: 2.0
+  default_thermal_profile: default
+  # Single thermal profile (no DVFS). 15W passive air cooling fits the
+  # embodied-AI 10-25W envelope (drones, edge robots, prototype boards).
+  thermal_profiles:
+  - name: default
+    tdp_watts: 15.0
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_heatsink_large
+    efficiency_factor_by_precision:
+      int8: 0.60   # 60% efficiency -- CGRA fabric overhead vs fixed-function NPU
+      fp16: 0.55
+      fp32: 0.50
+    vdd_v: 0.85    # GF 28SLP nominal
+
+market:
+  launch_date: '2019-01-01'   # hypothetical v2 publication date (v1 was ISCA 2017)
+  target_market: research
+  product_family: Plasticine
+  model_tier: research
+  is_available: false   # academic prototype; not commercially available
+
+confidence: theoretical
+notes: >
+  Stanford Plasticine v2 -- first CGRA SKU migrated to the v5
+  ComputeProduct schema (CGRABlock landed in embodied-schemas#34).
+  First systolic-or-spatial-dataflow CGRA in the catalog (vs Coral's
+  systolic NPU). First ``stanford`` vendor SKU.
+
+  Hypothetical larger variant of the academic Plasticine prototype
+  (ISCA 2017 -- Prabhakar et al.). 32 PCUs * 8 MACs at 1 GHz on
+  GF 28nm SLP. Multi-precision INT8 (10 TOPS theoretical, ~6 TOPS
+  sustained at 60% efficiency) + emulated FP16/FP32. Single 15W
+  operating point, passive air cooling. 4 GB host-DDR4 main memory
+  reached via host bus (no chip-attached external DRAM).
+
+  Defining CGRA characteristic captured: reconfig_overhead_cycles=1000.
+  The Achilles heel vs fixed-function NPUs -- downstream estimators
+  should penalize workloads with high kernel-switching frequency.
+  Plasticine v2 is whole-fabric reconfiguration only
+  (supports_partial_reconfig=false); future CGRAs may extend.
+
+  Not commercially available (academic prototype). Used as a defensible
+  reference SKU for the v5 CGRABlock schema; future commercial CGRAs
+  (SambaNova RDU, Wave Computing DPU, Cerebras WSE) would warrant
+  calibrated YAML entries.
+
+  Closes branes-ai/embodied-schemas precursor for CGRA factory swap
+  tracked at branes-ai/graphs#196 (PR 3/5 of the sprint).
+last_updated: '2026-05-16'

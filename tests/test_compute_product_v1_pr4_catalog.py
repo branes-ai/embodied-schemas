@@ -198,9 +198,10 @@ def test_process_node_coverage(cps):
 
 
 def test_model_tier_coverage(cps):
-    """Every SKU has a model_tier from the agreed vocabulary
-    (entry / mid / high / enthusiast / datacenter)."""
-    expected_tiers = {"entry", "mid", "high", "enthusiast", "datacenter"}
+    """Every SKU has a model_tier from the agreed vocabulary. The
+    ``research`` tier was added with Plasticine v2 (first academic
+    prototype in the catalog; v5 CGRA sprint)."""
+    expected_tiers = {"entry", "mid", "high", "enthusiast", "datacenter", "research"}
     tiers = {cp.market.model_tier for cp in cps.values()}
     assert tiers.issubset(expected_tiers), (
         f"unexpected model_tier(s): {tiers - expected_tiers}"
