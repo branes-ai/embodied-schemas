@@ -449,24 +449,16 @@ class TPUThermalProfile(BaseModel):
 # Theoretical performance roll-up
 # ---------------------------------------------------------------------------
 
-class TPUTheoreticalPerformance(BaseModel):
-    """Roll-up peak ops/sec per precision for the TPU. Same shape as
-    GPU/CPU/NPU/CGRA/DPU. TPU's distinctive pattern is **BF16-dominant
-    + INT8 at 2x BF16 + emulated FP32** (training-first design)."""
-
-    peak_ops_per_sec_by_precision: dict[str, float] = Field(...)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_positive(self) -> "TPUTheoreticalPerformance":
-        for prec, value in self.peak_ops_per_sec_by_precision.items():
-            if value < 0:
-                raise ValueError(
-                    f"peak_ops_per_sec_by_precision[{prec!r}] = {value} "
-                    f"must be >= 0"
-                )
-        return self
+# TPUTheoreticalPerformance is now an alias of the unified
+# ``TheoreticalPerformance`` from ``compute_block_common`` (v8 follow-up
+# -- branes-ai/graphs#210). The class body was byte-identical to 4
+# other per-block-kind classes (NPU/CPU/CGRA/DPU); the unified type
+# accepts the same data shape. TPU's distinctive pattern is **BF16-
+# dominant + INT8 at 2x BF16 + emulated FP32** (training-first design);
+# the unified type's flexible dict carries whichever precisions the
+# SKU YAML reports.
+from embodied_schemas.compute_block_common import TheoreticalPerformance
+TPUTheoreticalPerformance = TheoreticalPerformance
 
 
 # ---------------------------------------------------------------------------
