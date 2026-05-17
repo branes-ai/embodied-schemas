@@ -360,51 +360,15 @@ class DPUOnDieFabric(BaseModel):
 # Thermal profile (single operating point on most edge DPUs)
 # ---------------------------------------------------------------------------
 
-class DPUThermalProfile(BaseModel):
-    """One DPU operating point. Edge-class DPUs typically ship a single
-    profile (Vitis AI VE2302: 20W active-fan); datacenter Versal SKUs
-    may have DVFS. The schema uses a scalar ``clock_mhz`` +
-    ``dvfs_enabled`` flag instead of the GPU/CPU ``ClockDomain``
-    (base/boost/sustained) so the common case stays clean. Mirrors
-    ``NPUThermalProfile`` / ``CGRAThermalProfile`` field-by-field."""
-
-    name: str = Field(...)
-    tdp_watts: float = Field(..., gt=0)
-    cooling_solution_id: str = Field(...)
-
-    clock_mhz: float = Field(..., gt=0, description="Operating frequency")
-    dvfs_enabled: bool = Field(
-        False,
-        description=(
-            "False is the edge-DPU default (single fixed operating point). "
-            "True only for the rare DPU with multiple thermal profiles."
-        ),
-    )
-
-    # Per-precision empirical numbers, same shape as GPU/CPU/KPU/NPU/CGRA
-    efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-    instruction_efficiency_by_precision: dict[str, float] = Field(default_factory=dict)
-    memory_bottleneck_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-
-    vdd_v: float | None = Field(default=None, gt=0)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_efficiency_ranges(self) -> "DPUThermalProfile":
-        for attr_name, label in (
-            ("efficiency_factor_by_precision", "efficiency_factor"),
-            ("instruction_efficiency_by_precision", "instruction_efficiency"),
-            ("memory_bottleneck_factor_by_precision", "memory_bottleneck_factor"),
-        ):
-            mapping = getattr(self, attr_name)
-            for precision, value in mapping.items():
-                if not 0.0 <= value <= 1.0:
-                    raise ValueError(
-                        f"{attr_name}[{precision!r}] = {value} is outside "
-                        f"[0, 1]; {label} is a unit fraction."
-                    )
-        return self
+# DPUThermalProfile is now an alias of the unified ``ThermalProfile``
+# from ``compute_block_common`` (v9 sprint PR 3 -- branes-ai/graphs#215).
+# The class body was byte-identical to 4 other per-block-kind classes
+# (NPU/CGRA/TPU/DSP); the unified type accepts the same data shape.
+#
+# Backward-compat: ``isinstance(x, DPUThermalProfile)`` AND
+# ``isinstance(x, ThermalProfile)`` both work (same class object).
+from embodied_schemas.compute_block_common import ThermalProfile
+DPUThermalProfile = ThermalProfile
 
 
 # ---------------------------------------------------------------------------

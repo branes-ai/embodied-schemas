@@ -343,52 +343,15 @@ class CGRAOnDieFabric(BaseModel):
 # Thermal profile (single operating point on most research CGRAs)
 # ---------------------------------------------------------------------------
 
-class CGRAThermalProfile(BaseModel):
-    """One CGRA operating point. Research-class CGRAs typically ship
-    a single profile (Plasticine v2: 15W passive air, no DVFS); GPU-
-    style multi-profile DVFS is rare. The schema uses a scalar
-    ``clock_mhz`` plus ``dvfs_enabled`` flag instead of the GPU/CPU
-    ``ClockDomain`` (base/boost/sustained) so the common case stays
-    clean. Mirrors ``NPUThermalProfile`` field-by-field."""
-
-    name: str = Field(...)
-    tdp_watts: float = Field(..., gt=0)
-    cooling_solution_id: str = Field(...)
-
-    clock_mhz: float = Field(..., gt=0, description="Operating frequency")
-    dvfs_enabled: bool = Field(
-        False,
-        description=(
-            "False is the CGRA default (single fixed operating point). "
-            "True only for the rare CGRA with multiple thermal profiles "
-            "and frequency scaling between them."
-        ),
-    )
-
-    # Per-precision empirical numbers, same shape as GPU/CPU/KPU/NPU
-    efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-    instruction_efficiency_by_precision: dict[str, float] = Field(default_factory=dict)
-    memory_bottleneck_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-
-    vdd_v: float | None = Field(default=None, gt=0)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_efficiency_ranges(self) -> "CGRAThermalProfile":
-        for attr_name, label in (
-            ("efficiency_factor_by_precision", "efficiency_factor"),
-            ("instruction_efficiency_by_precision", "instruction_efficiency"),
-            ("memory_bottleneck_factor_by_precision", "memory_bottleneck_factor"),
-        ):
-            mapping = getattr(self, attr_name)
-            for precision, value in mapping.items():
-                if not 0.0 <= value <= 1.0:
-                    raise ValueError(
-                        f"{attr_name}[{precision!r}] = {value} is outside "
-                        f"[0, 1]; {label} is a unit fraction."
-                    )
-        return self
+# CGRAThermalProfile is now an alias of the unified ``ThermalProfile``
+# from ``compute_block_common`` (v9 sprint PR 3 -- branes-ai/graphs#215).
+# The class body was byte-identical to 4 other per-block-kind classes
+# (NPU/DPU/TPU/DSP); the unified type accepts the same data shape.
+#
+# Backward-compat: ``isinstance(x, CGRAThermalProfile)`` AND
+# ``isinstance(x, ThermalProfile)`` both work (same class object).
+from embodied_schemas.compute_block_common import ThermalProfile
+CGRAThermalProfile = ThermalProfile
 
 
 # ---------------------------------------------------------------------------

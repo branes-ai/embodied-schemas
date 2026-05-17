@@ -351,51 +351,17 @@ class NPUOnDieFabric(BaseModel):
 # Thermal profile (single operating point on most NPUs)
 # ---------------------------------------------------------------------------
 
-class NPUThermalProfile(BaseModel):
-    """One NPU operating point. Most edge NPUs ship a single profile
-    (Hailo-8: 2.5W passive, no DVFS); GPU-style multi-profile DVFS
-    is rare. The schema uses a scalar ``clock_mhz`` plus
-    ``dvfs_enabled`` flag instead of the GPU/CPU ``ClockDomain``
-    (base/boost/sustained) so the common case stays clean."""
-
-    name: str = Field(...)
-    tdp_watts: float = Field(..., gt=0)
-    cooling_solution_id: str = Field(...)
-
-    clock_mhz: float = Field(..., gt=0, description="Operating frequency")
-    dvfs_enabled: bool = Field(
-        False,
-        description=(
-            "False is the NPU default (single fixed operating point). "
-            "True only for the rare NPU with multiple thermal profiles "
-            "and frequency scaling between them."
-        ),
-    )
-
-    # Per-precision empirical numbers, same shape as GPU/CPU/KPU
-    efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-    instruction_efficiency_by_precision: dict[str, float] = Field(default_factory=dict)
-    memory_bottleneck_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-
-    vdd_v: float | None = Field(default=None, gt=0)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_efficiency_ranges(self) -> "NPUThermalProfile":
-        for attr_name, label in (
-            ("efficiency_factor_by_precision", "efficiency_factor"),
-            ("instruction_efficiency_by_precision", "instruction_efficiency"),
-            ("memory_bottleneck_factor_by_precision", "memory_bottleneck_factor"),
-        ):
-            mapping = getattr(self, attr_name)
-            for precision, value in mapping.items():
-                if not 0.0 <= value <= 1.0:
-                    raise ValueError(
-                        f"{attr_name}[{precision!r}] = {value} is outside "
-                        f"[0, 1]; {label} is a unit fraction."
-                    )
-        return self
+# NPUThermalProfile is now an alias of the unified ``ThermalProfile``
+# from ``compute_block_common`` (v9 sprint PR 3 -- branes-ai/graphs#215).
+# The class body was byte-identical to 4 other per-block-kind classes
+# (CGRA/DPU/TPU/DSP); the unified type accepts the same data shape.
+#
+# This alias preserves backward compat for callers that import
+# ``NPUThermalProfile`` -- ``isinstance(x, NPUThermalProfile)``
+# AND ``isinstance(x, ThermalProfile)`` are both True because
+# they refer to the same class object.
+from embodied_schemas.compute_block_common import ThermalProfile
+NPUThermalProfile = ThermalProfile
 
 
 # ---------------------------------------------------------------------------
