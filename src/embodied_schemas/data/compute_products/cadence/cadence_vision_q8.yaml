@@ -1,0 +1,232 @@
+# Cadence Tensilica Vision Q8 -- licensable vision DSP IP core.
+#
+# First DSP SKU in the data/compute_products/ catalog. First user of
+# the v9 ComputeProduct schema (DSPBlock + supporting types, landed
+# in embodied-schemas#43). New ``cadence/`` vendor directory. Closes
+# the YAML half of branes-ai/graphs#211 (DSP mini-sprint PR 3 of 5).
+#
+# Vision Q8 is the 7th-generation Cadence Tensilica vision DSP IP
+# core (flagship of the family). Licensable IP designed for SoC
+# integration; the "system" around it (DDR, NPU, ISP, CPU) is
+# chosen by the SoC integrator. The bandwidth + thermal numbers in
+# this YAML are therefore the **typical SoC integration** case,
+# not measured silicon.
+#
+# Data sourced from:
+#   - Cadence Tensilica Vision Q8 Product Brief (2021)
+#   - Tensilica Vision DSP Family architecture specifications
+#   - graphs/src/graphs/hardware/models/ip_cores/cadence_vision_q8.py
+#     (the well-validated graphs mapper, the migration source)
+#   - graphs/docs/designs/dsp-compute-product-schema-extension.md
+#     (the paper exercise / sprint design doc)
+#
+# Confidence: theoretical.
+#   - Peak performance (3.8 TOPS INT8 / 129 GFLOPS FP32) is from
+#     Cadence's product brief.
+#   - 1024-bit SIMD width + 32-unit equivalent decomposition matches
+#     the graphs hand-coded factory.
+#   - 16nm TSMC is the typical integration node for this generation.
+#   - Energy coefficients estimated from 16nm SIMD packed cells.
+#   - Per-block transistor counts estimated (Cadence does not publish
+#     gate counts for licensable IP).
+#
+# Out of scope for this YAML (separate concerns):
+#   - Per-customer SoC integration details (DDR sizing, NPU pairing,
+#     ISP linkage) -- belongs in the SoC's own ComputeProduct, not
+#     in this IP-core YAML
+#   - Cadence Tensilica HiFi DSP (audio) -- separate IP product line
+#   - Other Tensilica Vision DSP generations (Q6, Q7, P6) -- separate
+#     data PRs if they enter the catalog
+
+id: cadence_tensilica_vision_q8
+name: Cadence Tensilica Vision Q8
+vendor: cadence
+kind: chip   # IP core modeled as a single-die chip for catalog uniformity
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: ip_core   # licensable IP, not a physical package
+
+lifecycle: production
+
+dies:
+- die_id: vision_q8_die
+  die_role: compute
+  process_node_id: tsmc_n16   # already in catalog (typical integration)
+  die_size_mm2: 5.0    # estimate for the IP core's silicon footprint
+  transistors_billion: 0.1   # ~100M gates for the DSP core
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 1024-bit SIMD engine (32 units * 32-bit lanes). The Vision Q8's
+    # core compute fabric. At 16nm BALANCED_LOGIC density.
+    - name: simd_engine
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 60.0
+      notes: 1024-bit SIMD engine (32-unit equivalent decomposition)
+    # -------------------------------------------------------------------
+    # L1 data cache + scratchpad SRAM. 32 KiB per unit * 32 units =
+    # 1 MiB total (modeled as 'data_l1' here for silicon-bin clarity).
+    - name: l1_data_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 20.0
+      notes: 32 KiB per SIMD unit (1 MiB total)
+    # -------------------------------------------------------------------
+    # L2 shared cache (1 MiB). Cadence-published default; SoC
+    # integrator may resize.
+    - name: l2_shared_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 15.0
+      notes: 1 MiB shared L2 cache
+    # -------------------------------------------------------------------
+    # Scalar control + VLIW slot dispatch (Vision Q8 is primarily
+    # SIMD but the scalar core handles control flow + load/store).
+    - name: scalar_control
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 5.0
+      notes: Scalar control + load/store + branch/dispatch logic
+  clocks:
+    base_clock_mhz: 600.0    # 600 MHz minimum
+    boost_clock_mhz: 1200.0   # 1.2 GHz max boost
+  blocks:
+  - kind: dsp
+    # Pure IP core -- no SoC fabric / measured bandwidth.
+    deployment_kind: standalone_ip
+    # Single fabric (1024-bit SIMD). Multi-fabric DSPs (TDA4VM with
+    # C7x+MMA, SA8775P with HVX+HMX) will populate this list with
+    # two entries when their YAMLs land.
+    compute_fabrics:
+    - fabric_kind: vector_simd
+      circuit_class: balanced_logic
+      num_units: 32                # 32-unit decomposition of 1024-bit SIMD
+      ops_per_unit_per_clock:
+        # 1024-bit SIMD divided by element width gives ops/cycle per unit
+        int8: 119         # ~119 INT8 ops/cycle/unit (target: 3.8 TOPS @ 1 GHz)
+        int16: 119        # Same as INT8 for vision (1024/8 packed pairs)
+        fp32: 4           # 129 GFLOPS / 32 units / 1.0 GHz
+        fp16: 8           # 2x FP32 (16-bit packed)
+      energy_per_op_fp32_pj: 2.43   # 16nm SIMD packed baseline
+      energy_scaling:
+        int8: 0.15        # INT8 very efficient (no FP machinery)
+        int16: 0.15       # Same as INT8 (vision-optimized)
+        fp16: 0.50        # Half-cost vs FP32
+    memory:
+      l1_size_bytes_per_unit: 32768    # 32 KiB per SIMD unit
+      l2_size_bytes_total: 1048576     # 1 MiB shared L2
+      l2_bandwidth_gbps: 80.0          # on-chip SRAM bandwidth (estimate)
+      has_external_dram: true          # typical-integration DRAM
+      external_dram_type: lpddr4       # most common integration choice
+      external_dram_size_gb: 4.0       # typical embedded SoC pairing
+      external_dram_bandwidth_gbps: 40.0   # typical (NOT measured)
+      external_dram_bandwidth_kind: typical   # IP-core load-bearing discriminator
+      external_dram_access_energy_pj_per_byte: 12.0   # LPDDR4 typical
+      coherence_protocol: none         # Vision DSP doesn't snoop
+    clock_domain:
+      base_hz: 600000000.0      # 600 MHz min
+      boost_hz: 1200000000.0    # 1.2 GHz max boost
+      sustained_hz: 1000000000.0   # 1.0 GHz sustained
+    thermal_profiles:
+    - name: '1W'
+      tdp_watts: 1.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 1000.0
+      dvfs_enabled: false   # IP core ships with a fixed sustained clock
+      efficiency_factor_by_precision:
+        int8: 0.65       # Good vision DSP efficiency
+        int16: 0.65
+        fp32: 0.60       # FP32 slightly less efficient
+      instruction_efficiency_by_precision:
+        int8: 0.88
+        int16: 0.88
+        fp32: 0.85
+      memory_bottleneck_factor_by_precision:
+        int8: 0.70       # Vision workloads are bandwidth-sensitive
+        int16: 0.70
+        fp32: 0.65
+      vdd_v: 0.8         # 16nm nominal
+    default_thermal_profile_name: '1W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int8: 3800000000000.0    # 3.8 TOPS
+        int16: 3800000000000.0   # 3.8 TOPS (same as INT8, vision-optimized)
+        fp32: 129000000000.0     # 129 GFLOPS
+        fp16: 256000000000.0     # 2x FP32 ≈ 256 GFLOPS
+    default_precision: int8       # vision-optimized INT8 is the canonical workload
+    multi_precision_alu:
+    - int8
+    - int16
+    - fp16
+    - fp32
+    # DSP scheduler attributes (match the graphs hand-coded factory)
+    min_occupancy: 0.70
+    max_concurrent_kernels: 4
+    wave_quantization: 4
+    vliw_issue_width: null   # pure SIMD, not VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+# Chip-level performance roll-up at the 1W operating point:
+#   INT8: 32 units * 119 ops/cycle * 1.0 GHz = 3.81 TOPS (Cadence-published)
+#   INT16: same (vision-optimized; packed pairs)
+#   FP32: 32 units * 4 ops/cycle * 1.0 GHz = 128 GFLOPS (~129 GFLOPS marketed)
+performance:
+  int8_tops: 3.8
+  bf16_tflops: 0.0   # not supported on Vision Q8
+  fp32_tflops: 0.129
+  int4_tops: 0.0     # not supported
+
+power:
+  tdp_watts: 1.0
+  max_power_watts: 1.2     # at 1.2 GHz max boost (transient)
+  min_power_watts: 0.5     # at 600 MHz base
+  idle_power_watts: 0.1    # gating + retention only
+  default_thermal_profile: '1W'
+  # Single thermal profile (IP core ships with a fixed nominal operating
+  # point). Multi-profile DVFS exercised by automotive SoC follow-ups
+  # (SA8775P at 20/30/45W, TDA4VM at 10/20W).
+  thermal_profiles:
+  - name: '1W'
+    tdp_watts: 1.0
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_fanless
+
+market:
+  launch_date: '2021-01-01'   # Vision Q8 announced 2021
+  target_market: embodied      # mobile + automotive + AR/VR + surveillance
+  product_family: Tensilica-Vision-DSP
+  model_tier: ip_core
+  is_available: true           # licensable today via Cadence
+
+confidence: theoretical
+notes: >
+  Cadence Tensilica Vision Q8 -- first DSP SKU migrated to the v9
+  ComputeProduct schema (DSPBlock landed in embodied-schemas#43).
+  First IP-core SKU in the catalog (lifecycle product but not a
+  shipping silicon SKU); first SKU to exercise the
+  ``external_dram_bandwidth_kind: typical`` discriminator that
+  distinguishes IP-core typical-integration estimates from SoC
+  measured bandwidth.
+
+  7th-generation Tensilica Vision DSP. 1024-bit SIMD engine
+  decomposed as 32 units for catalog uniformity. Vision-optimized
+  precision mix: 3.8 TOPS INT8/INT16 (native vision rates) + 129
+  GFLOPS FP32 + ~256 GFLOPS FP16. Single thermal profile (1W
+  passive); multi-profile DVFS exercised by automotive follow-ups.
+
+  Used in automotive vision (ADAS cameras), mobile device cameras
+  (ISP + AI), surveillance cameras, AR/VR vision processing.
+
+  Closes branes-ai/embodied-schemas precursor for Cadence Vision
+  Q8 factory swap tracked at branes-ai/graphs#211 (PR 3/5 of the
+  sprint). 9 follow-up DSP YAMLs (CEVA, Synopsys, TI TDA4x4,
+  Qualcomm SA8775P/QRB5165/QCS6490) land as pure data PRs after
+  the umbrella closes.
+last_updated: '2026-05-17'
