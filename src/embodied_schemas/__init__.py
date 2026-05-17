@@ -276,6 +276,7 @@ from embodied_schemas.dsp_block import (
 )
 from embodied_schemas.compute_block_common import (
     TheoreticalPerformance,
+    ThermalProfile,
 )
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
@@ -568,8 +569,9 @@ __all__ = [
     "DSPTheoreticalPerformance",
     "DSPFabricKind",
     "DSPDeploymentKind",
-    # v8 unified primitives (compute_block_common)
+    # v8/v9 unified primitives (compute_block_common)
     "TheoreticalPerformance",
+    "ThermalProfile",
     # Version
     "__version__",
 ]
