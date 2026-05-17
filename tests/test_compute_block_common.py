@@ -24,17 +24,26 @@ from pydantic import ValidationError
 from embodied_schemas import (
     # Original module imports (must keep working)
     CGRATheoreticalPerformance,
+    CGRAThermalProfile,
     CircuitClass,
     ClockDomain,
     CPUTheoreticalPerformance,
+    CPUThermalProfile,
     DataConfidence,
     DPUTheoreticalPerformance,
+    DPUThermalProfile,
+    DSPThermalProfile,
     GPUTheoreticalPerformance,
+    GPUThermalProfile,
     MemoryType,
     NPUTheoreticalPerformance,
-    # NEW: unified type from compute_block_common
+    NPUThermalProfile,
+    # v8 unified type from compute_block_common
     TheoreticalPerformance,
+    # v9 unified type from compute_block_common
+    ThermalProfile,
     TPUTheoreticalPerformance,
+    TPUThermalProfile,
 )
 
 
@@ -308,3 +317,194 @@ def test_existing_catalog_block_kinds_unchanged():
         block = cp.dies[0].blocks[0]
         kinds.add(block.kind.value if hasattr(block.kind, "value") else str(block.kind))
     assert {"kpu", "gpu", "cpu", "npu", "cgra", "dpu", "tpu", "dsp"}.issubset(kinds)
+
+
+# ---------------------------------------------------------------------------
+# 7. v9: ThermalProfile (unified across 5 inference-accelerator block
+# kinds; CPU + GPU stay separate)
+# ---------------------------------------------------------------------------
+
+def test_compute_block_common_exports_thermal_profile():
+    """The new v9 unified ``ThermalProfile`` is importable from both
+    compute_block_common and the top-level package."""
+    from embodied_schemas.compute_block_common import (
+        ThermalProfile as common_ThermalProfile,
+    )
+    assert ThermalProfile is common_ThermalProfile
+
+
+def test_thermal_profile_constructs_with_realistic_data():
+    """A Cadence-Vision-Q8-shaped (1W single-profile) thermal entry validates."""
+    profile = ThermalProfile(
+        name="1W",
+        tdp_watts=1.0,
+        cooling_solution_id="passive_fanless",
+        clock_mhz=1000.0,
+        dvfs_enabled=False,
+        efficiency_factor_by_precision={"int8": 0.65, "fp32": 0.60},
+        instruction_efficiency_by_precision={"int8": 0.88, "fp32": 0.85},
+        memory_bottleneck_factor_by_precision={"int8": 0.70, "fp32": 0.65},
+        vdd_v=0.8,
+    )
+    assert profile.tdp_watts == 1.0
+    assert profile.dvfs_enabled is False
+
+
+def test_thermal_profile_minimal_construction():
+    """Only the 4 mandatory fields (name, tdp_watts, cooling_solution_id,
+    clock_mhz) are required; dicts default to empty; vdd_v defaults None."""
+    profile = ThermalProfile(
+        name="default",
+        tdp_watts=350.0,
+        cooling_solution_id="liquid_cooled",
+        clock_mhz=1050.0,
+    )
+    assert profile.efficiency_factor_by_precision == {}
+    assert profile.vdd_v is None
+
+
+def test_thermal_profile_rejects_zero_or_negative_tdp():
+    with pytest.raises(ValidationError):
+        ThermalProfile(
+            name="bad", tdp_watts=0.0,
+            cooling_solution_id="x", clock_mhz=1000.0,
+        )
+    with pytest.raises(ValidationError):
+        ThermalProfile(
+            name="bad", tdp_watts=-1.0,
+            cooling_solution_id="x", clock_mhz=1000.0,
+        )
+
+
+def test_thermal_profile_rejects_zero_or_negative_clock():
+    with pytest.raises(ValidationError):
+        ThermalProfile(
+            name="bad", tdp_watts=1.0,
+            cooling_solution_id="x", clock_mhz=0.0,
+        )
+
+
+def test_thermal_profile_rejects_out_of_range_efficiency():
+    """efficiency_factor / instruction_efficiency / memory_bottleneck_factor
+    are unit fractions in [0, 1]; values outside the range fail validation."""
+    for attr in (
+        "efficiency_factor_by_precision",
+        "instruction_efficiency_by_precision",
+        "memory_bottleneck_factor_by_precision",
+    ):
+        with pytest.raises(ValidationError, match=r"outside"):
+            ThermalProfile(
+                name="bad", tdp_watts=1.0,
+                cooling_solution_id="x", clock_mhz=1000.0,
+                **{attr: {"int8": 1.5}},  # > 1.0 -- invalid
+            )
+        with pytest.raises(ValidationError, match=r"outside"):
+            ThermalProfile(
+                name="bad", tdp_watts=1.0,
+                cooling_solution_id="x", clock_mhz=1000.0,
+                **{attr: {"int8": -0.1}},  # < 0.0 -- invalid
+            )
+
+
+def test_thermal_profile_forbids_extra_fields():
+    with pytest.raises(ValidationError):
+        ThermalProfile(
+            name="x", tdp_watts=1.0,
+            cooling_solution_id="x", clock_mhz=1000.0,
+            unknown_field=42,
+        )
+
+
+def test_thermal_profile_round_trips_through_json():
+    profile = ThermalProfile(
+        name="30W",
+        tdp_watts=30.0,
+        cooling_solution_id="active_fan",
+        clock_mhz=2000.0,
+        dvfs_enabled=True,
+        efficiency_factor_by_precision={"int8": 0.80, "fp16": 0.65},
+    )
+    payload = profile.model_dump(mode="json")
+    rebuilt = ThermalProfile.model_validate(payload)
+    assert rebuilt == profile
+
+
+def test_thermal_profile_accepts_existing_npu_data():
+    """The unified type accepts data shaped exactly like the existing
+    NPUThermalProfile uses (proves the PR 3 alias migration is safe)."""
+    npu = NPUThermalProfile(
+        name="default",
+        tdp_watts=20.0,
+        cooling_solution_id="passive_heatsink_small",
+        clock_mhz=1200.0,
+        dvfs_enabled=True,
+        efficiency_factor_by_precision={"int8": 0.78},
+    )
+    payload = npu.model_dump()
+    rebuilt = ThermalProfile.model_validate(payload)
+    assert rebuilt.tdp_watts == 20.0
+
+
+def test_thermal_profile_accepts_existing_dsp_data():
+    """Same for DSPThermalProfile (Cadence Vision Q8 shape)."""
+    dsp = DSPThermalProfile(
+        name="1W",
+        tdp_watts=1.0,
+        cooling_solution_id="passive_fanless",
+        clock_mhz=1000.0,
+    )
+    payload = dsp.model_dump()
+    rebuilt = ThermalProfile.model_validate(payload)
+    assert rebuilt.tdp_watts == 1.0
+
+
+def test_thermal_profile_accepts_existing_tpu_data():
+    """Same for TPUThermalProfile (TPU v4 350W shape)."""
+    tpu = TPUThermalProfile(
+        name="default",
+        tdp_watts=350.0,
+        cooling_solution_id="liquid_cooled",
+        clock_mhz=1050.0,
+        vdd_v=0.85,
+    )
+    payload = tpu.model_dump()
+    rebuilt = ThermalProfile.model_validate(payload)
+    assert rebuilt.vdd_v == 0.85
+
+
+def test_cpu_and_gpu_thermal_profile_have_different_shape():
+    """CPUThermalProfile and GPUThermalProfile have different field
+    sets from the unified ThermalProfile and stay separate. This test
+    documents the v9 boundary; if CPU/GPU shapes ever converge,
+    revisit the classification in the v9 paper exercise."""
+    unified_fields = set(ThermalProfile.model_fields.keys())
+    cpu_fields = set(CPUThermalProfile.model_fields.keys())
+    gpu_fields = set(GPUThermalProfile.model_fields.keys())
+
+    # CPU has per_cluster_clock_domain (not in unified)
+    assert "per_cluster_clock_domain" in cpu_fields
+    assert "per_cluster_clock_domain" not in unified_fields
+
+    # GPU has clock_domain + memory_clock_mhz + native_acceleration_by_precision
+    # (not in unified)
+    assert "clock_domain" in gpu_fields
+    assert "memory_clock_mhz" in gpu_fields
+    assert "native_acceleration_by_precision" in gpu_fields
+    for f in ("clock_domain", "memory_clock_mhz", "native_acceleration_by_precision"):
+        assert f not in unified_fields
+
+
+def test_five_per_block_kind_thermal_profiles_are_field_identical():
+    """The 5 byte-identical classes (NPU/CGRA/DPU/TPU/DSP) all have
+    the SAME field set as the unified ThermalProfile. This proves
+    PR 3's alias migration is safe -- no field is dropped on either
+    side."""
+    unified_fields = set(ThermalProfile.model_fields.keys())
+    for cls in (NPUThermalProfile, CGRAThermalProfile, DPUThermalProfile,
+                TPUThermalProfile, DSPThermalProfile):
+        cls_fields = set(cls.model_fields.keys())
+        assert cls_fields == unified_fields, (
+            f"{cls.__name__} fields differ from ThermalProfile: "
+            f"only in cls: {cls_fields - unified_fields}; "
+            f"only in unified: {unified_fields - cls_fields}"
+        )

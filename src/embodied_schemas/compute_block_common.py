@@ -1,10 +1,19 @@
 """Vendor-neutral primitives shared across compute block kinds.
 
-PR 2 of the v8 unification sprint scoped at ``graphs#208``. Centralizes
-the shared primitives that 7 prior sprints (KPU v1, GPU v2, CPU v3,
-NPU v4, CGRA v5, DPU v6, TPU v7) accumulated as ad-hoc cross-block-kind
-reuse, and collapses the byte-identical ``*TheoreticalPerformance``
-type into a single ``TheoreticalPerformance`` definition.
+Originally PR 2 of the v8 unification sprint scoped at ``graphs#208``.
+Centralizes the shared primitives that 7 prior sprints (KPU v1, GPU
+v2, CPU v3, NPU v4, CGRA v5, DPU v6, TPU v7) accumulated as ad-hoc
+cross-block-kind reuse, and collapses byte-identical types into
+single canonical definitions.
+
+Unified types landed so far:
+  - ``TheoreticalPerformance`` -- v8 sprint (graphs#208). Collapses
+    ``*TheoreticalPerformance`` across 6 block kinds (CPU/GPU/NPU/CGRA/
+    DPU/TPU); DSP added in v9 catalog as a day-1 reuser.
+  - ``ThermalProfile`` -- v9 sprint (graphs#215). Collapses the 5
+    byte-identical inference-accelerator ``*ThermalProfile`` classes
+    (NPU/CGRA/DPU/TPU/DSP). CPU and GPU stay separate (different
+    shapes for legitimate architectural reasons).
 
 This module is **additive only**. Existing block modules continue to
 work unchanged:
@@ -12,38 +21,39 @@ work unchanged:
   - The 4 re-exported primitives still live in their source modules
     (``process_node``, ``gpu``, ``gpu_block``); this module just gives
     them a single canonical import point.
-  - ``TheoreticalPerformance`` is a new type. The per-block-kind
-    aliases (``CPUTheoreticalPerformance``, ``GPUTheoreticalPerformance``,
-    ``NPUTheoreticalPerformance``, ``CGRATheoreticalPerformance``,
-    ``DPUTheoreticalPerformance``, ``TPUTheoreticalPerformance``)
-    will be aliased to ``TheoreticalPerformance`` in follow-up PRs
-    (PR 3 of this sprint migrates NPU as proof of concept; per-block-
-    kind follow-up issues migrate the rest).
+  - Per-block-kind aliases (``CPUTheoreticalPerformance =
+    TheoreticalPerformance``, ``NPUThermalProfile = ThermalProfile``,
+    etc.) preserve backward compat for existing callers. The aliases
+    land in follow-up PRs.
 
 Backward-compat guarantees:
 
   1. Every existing YAML in ``data/compute_products/`` validates
-     unchanged (this PR doesn't touch any block module yet).
+     unchanged.
   2. Every existing per-block-kind type name remains importable.
   3. Every ``isinstance`` check continues to work.
   4. Every serialized JSON round-trips unchanged.
   5. graphs-side YAML loaders work unchanged.
 
-Out of scope for v8:
+Out of scope for v9:
 
   - KPU schema unification (oldest module; pre-dates the pattern;
-    12 SKUs would need migration -- defer to v10+)
-  - ``ThermalProfile`` / ``OnDieFabric`` unification (NEAR_UNIFIABLE
-    patterns; defer to v9)
+    12 SKUs would need migration; KPUThermalProfile is doubly-purposed
+    as chip-level ``Power.thermal_profiles`` -- defer to v11+)
+  - ``OnDieFabric`` unification (3 byte-identical + 3 variants with
+    naming reconciliation -- defer to v10)
   - ``MemorySubsystem`` / ``ComputeFabric`` unification (KEEP_SEPARATE
     -- architectural variations are meaningful)
   - Per-architecture fabric kind enums (NPUDataflowKind etc.) --
     intentionally architecture-specific
   - ``has_external_dram`` vs ``has_host_dram`` naming reconciliation
-    (touches SKU YAMLs; defer to v9)
+    (touches SKU YAMLs; defer to v10)
 
-See ``graphs/docs/designs/v8-compute-block-common-unification.md`` for
-the full paper exercise + migration strategy + risk analysis.
+See:
+  - ``graphs/docs/designs/v8-compute-block-common-unification.md``
+    (original v8 paper exercise: 4 primitives + TheoreticalPerformance)
+  - ``graphs/docs/designs/v9-thermal-profile-unification.md``
+    (v9 paper exercise: 7-class audit + ThermalProfile unification)
 """
 
 from __future__ import annotations
@@ -140,6 +150,85 @@ class TheoreticalPerformance(BaseModel):
         return self
 
 
+# ---------------------------------------------------------------------------
+# Unified ThermalProfile (v9 unification, graphs#215 PR 2)
+#
+# The 5 modern inference-accelerator block kinds (NPU/CGRA/DPU/TPU/DSP)
+# each defined a ``*ThermalProfile`` class with a byte-identical body:
+# 9 fields + 1 validator that rejects out-of-range efficiency values.
+# v9 collapses these into a single definition; per-block-kind follow-
+# up PR aliases the existing names to this type (same mechanical
+# pattern v8 follow-up used for TheoreticalPerformance).
+#
+# CPU and GPU thermal profiles have different shapes for legitimate
+# architectural reasons (per-cluster ClockDomain on CPU; ClockDomain
+# + memory_clock + native_acceleration on GPU) and stay separate.
+# KPU is the oldest module + doubly-purposed (also chip-level Power)
+# and is deferred to v11+ KPU unification.
+#
+# See ``graphs/docs/designs/v9-thermal-profile-unification.md`` for the
+# full paper exercise + 7-class audit + risk analysis.
+# ---------------------------------------------------------------------------
+
+class ThermalProfile(BaseModel):
+    """Per-precision thermal operating point. Shared shape across the
+    5 modern inference-accelerator block kinds (NPU/CGRA/DPU/TPU/DSP);
+    collapsed into one definition here.
+
+    CPU and GPU use different shapes (per-cluster ClockDomain on CPU;
+    ClockDomain + memory_clock + native_acceleration on GPU) and stay
+    separate. KPUThermalProfile (oldest module; also used for chip-
+    level ``Power.thermal_profiles`` across the whole catalog) is also
+    excluded; v11+ KPU unification may revisit.
+
+    Cardinality varies by SKU: 1 profile for IP cores / single-mode
+    accelerators; 2-3 profiles for automotive SoCs with multi-mode
+    DVFS (e.g., Qualcomm SA8775P at 20/30/45W).
+
+    Per-block-kind aliases (e.g. ``NPUThermalProfile = ThermalProfile``)
+    preserve backward compat for existing callers. The aliases land
+    in PR 3 of the v9 sprint (graphs#215).
+    """
+
+    name: str = Field(...)
+    tdp_watts: float = Field(..., gt=0)
+    cooling_solution_id: str = Field(...)
+
+    clock_mhz: float = Field(..., gt=0, description="Operating frequency")
+    dvfs_enabled: bool = Field(
+        False,
+        description=(
+            "False is the IP-core / single-profile default; True for "
+            "SKUs with multiple thermal profiles (multi-mode DVFS)."
+        ),
+    )
+
+    # Per-precision empirical numbers. Each is a unit fraction in [0, 1].
+    efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
+    instruction_efficiency_by_precision: dict[str, float] = Field(default_factory=dict)
+    memory_bottleneck_factor_by_precision: dict[str, float] = Field(default_factory=dict)
+
+    vdd_v: float | None = Field(default=None, gt=0)
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _validate_efficiency_ranges(self) -> "ThermalProfile":
+        for attr_name, label in (
+            ("efficiency_factor_by_precision", "efficiency_factor"),
+            ("instruction_efficiency_by_precision", "instruction_efficiency"),
+            ("memory_bottleneck_factor_by_precision", "memory_bottleneck_factor"),
+        ):
+            mapping = getattr(self, attr_name)
+            for precision, value in mapping.items():
+                if not 0.0 <= value <= 1.0:
+                    raise ValueError(
+                        f"{attr_name}[{precision!r}] = {value} is outside "
+                        f"[0, 1]; {label} is a unit fraction."
+                    )
+        return self
+
+
 __all__ = [
     # Shared primitives (re-exported from source modules)
     "CircuitClass",
@@ -148,4 +237,5 @@ __all__ = [
     "ClockDomain",
     # Unified types
     "TheoreticalPerformance",
+    "ThermalProfile",
 ]
