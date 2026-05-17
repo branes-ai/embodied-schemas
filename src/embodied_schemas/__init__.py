@@ -254,6 +254,17 @@ from embodied_schemas.dpu_block import (
     DPUFabricKind,
     DPUNoCTopology,
 )
+from embodied_schemas.tpu_block import (
+    TPUBlock,
+    TPUComputeFabric,
+    TPUTileEnergyCoefficients,
+    TPUMemorySubsystem,
+    TPUOnDieFabric,
+    TPUThermalProfile,
+    TPUTheoreticalPerformance,
+    TPUFabricKind,
+    TPUNoCTopology,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -529,6 +540,15 @@ __all__ = [
     "DPUTheoreticalPerformance",
     "DPUFabricKind",
     "DPUNoCTopology",
+    "TPUBlock",
+    "TPUComputeFabric",
+    "TPUTileEnergyCoefficients",
+    "TPUMemorySubsystem",
+    "TPUOnDieFabric",
+    "TPUThermalProfile",
+    "TPUTheoreticalPerformance",
+    "TPUFabricKind",
+    "TPUNoCTopology",
     # Version
     "__version__",
 ]

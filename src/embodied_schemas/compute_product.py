@@ -140,10 +140,10 @@ class DieRole(str, Enum):
 class BlockKind(str, Enum):
     """Discriminator for ``Block`` subclasses. v1 ships ``KPU``; v2
     adds ``GPU``; v3 adds ``CPU``; v4 adds ``NPU``; v5 adds ``CGRA``;
-    v6 adds ``DPU``. Future block kinds (``DSP``, ``TPU``, ``MEMORY``,
-    ``IO``, ``BRIDGE``, ``ISP``, ``VIDEO_CODEC``, ``AUDIO_CODEC``,
-    ``RADAR_DSP``, ``LIDAR_PREPROC``) come in subsequent PRs as their
-    catalogs are added."""
+    v6 adds ``DPU``; v7 adds ``TPU``. Future block kinds (``DSP``,
+    ``MEMORY``, ``IO``, ``BRIDGE``, ``ISP``, ``VIDEO_CODEC``,
+    ``AUDIO_CODEC``, ``RADAR_DSP``, ``LIDAR_PREPROC``) come in
+    subsequent PRs as their catalogs are added."""
 
     KPU = "kpu"
     GPU = "gpu"
@@ -151,6 +151,7 @@ class BlockKind(str, Enum):
     NPU = "npu"
     CGRA = "cgra"
     DPU = "dpu"
+    TPU = "tpu"
 
 
 class KPUBlock(BaseModel):
@@ -190,21 +191,23 @@ class KPUBlock(BaseModel):
 # Imported here (after KPUBlock is defined) to keep the discriminator
 # union local. ``GPUBlock`` lives in ``gpu_block.py``, ``CPUBlock``
 # in ``cpu_block.py``, ``NPUBlock`` in ``npu_block.py``, ``CGRABlock``
-# in ``cgra_block.py``, ``DPUBlock`` in ``dpu_block.py`` -- each
-# block kind's supporting types form a self-contained module.
+# in ``cgra_block.py``, ``DPUBlock`` in ``dpu_block.py``, ``TPUBlock``
+# in ``tpu_block.py`` -- each block kind's supporting types form a
+# self-contained module.
 from embodied_schemas.gpu_block import GPUBlock  # noqa: E402
 from embodied_schemas.cpu_block import CPUBlock  # noqa: E402
 from embodied_schemas.npu_block import NPUBlock  # noqa: E402
 from embodied_schemas.cgra_block import CGRABlock  # noqa: E402
 from embodied_schemas.dpu_block import DPUBlock  # noqa: E402
+from embodied_schemas.tpu_block import TPUBlock  # noqa: E402
 
 # Discriminated union for ``Die.blocks``. v1 had one element (KPUBlock);
 # v2 added GPUBlock; v3 added CPUBlock; v4 added NPUBlock; v5 added
-# CGRABlock; v6 adds DPUBlock. Future PRs extend this with
-# ``DSPBlock``, ``TPUBlock``, ``MemoryBlock``, etc. and Pydantic
+# CGRABlock; v6 added DPUBlock; v7 adds TPUBlock. Future PRs extend
+# this with ``DSPBlock``, ``MemoryBlock``, etc. and Pydantic
 # dispatches by the ``kind`` discriminator.
 AnyBlock = Annotated[
-    Union[KPUBlock, GPUBlock, CPUBlock, NPUBlock, CGRABlock, DPUBlock],
+    Union[KPUBlock, GPUBlock, CPUBlock, NPUBlock, CGRABlock, DPUBlock, TPUBlock],
     Field(discriminator="kind"),
 ]
 
