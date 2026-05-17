@@ -402,24 +402,23 @@ class NPUThermalProfile(BaseModel):
 # Theoretical performance roll-up
 # ---------------------------------------------------------------------------
 
-class NPUTheoreticalPerformance(BaseModel):
-    """Roll-up peak ops/sec per precision for the NPU. Same shape as
-    ``GPUTheoreticalPerformance`` and ``CPUTheoreticalPerformance``.
-    The empty-FP set is the NPU norm (most ship INT4/INT8 only)."""
-
-    peak_ops_per_sec_by_precision: dict[str, float] = Field(...)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_positive(self) -> "NPUTheoreticalPerformance":
-        for prec, value in self.peak_ops_per_sec_by_precision.items():
-            if value < 0:
-                raise ValueError(
-                    f"peak_ops_per_sec_by_precision[{prec!r}] = {value} "
-                    f"must be >= 0"
-                )
-        return self
+# NPUTheoreticalPerformance is now an alias of the unified
+# ``TheoreticalPerformance`` from ``compute_block_common`` (v8 sprint
+# PR 3 -- branes-ai/graphs#208). The class body was byte-identical to
+# 5 other per-block-kind classes (CPU/GPU/CGRA/DPU/TPU); the unified
+# type accepts the same data shape (NPU's INT4/INT8-only data lives
+# in ``peak_ops_per_sec_by_precision`` exactly as before).
+#
+# This alias preserves backward compat for callers that import
+# ``NPUTheoreticalPerformance`` -- ``isinstance(x, NPUTheoreticalPerformance)``
+# AND ``isinstance(x, TheoreticalPerformance)`` are both True because
+# they refer to the same class.
+#
+# The empty-FP set is still the NPU norm (most ship INT4/INT8 only);
+# the unified type's optional ``sparse_peak_ops_per_sec_by_precision``
+# field (GPU-only today) defaults to None for NPU SKUs.
+from embodied_schemas.compute_block_common import TheoreticalPerformance
+NPUTheoreticalPerformance = TheoreticalPerformance
 
 
 # ---------------------------------------------------------------------------

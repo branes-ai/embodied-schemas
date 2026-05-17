@@ -208,27 +208,56 @@ def test_per_block_kind_theoretical_performance_classes_still_importable():
     assert TPUTheoreticalPerformance is not None
 
 
-def test_per_block_kind_theoretical_performance_still_independent_classes():
-    """**Before PR 3 of v8 lands**: the per-block-kind classes are
-    still independent Pydantic models (NOT yet aliases of
-    TheoreticalPerformance). This pins the pre-migration state.
+def test_npu_theoretical_performance_is_aliased_to_unified():
+    """v8 PR 3 migrated NPU as proof of concept: NPUTheoreticalPerformance
+    is now an alias of the unified TheoreticalPerformance from
+    compute_block_common. This means ``isinstance(x,
+    NPUTheoreticalPerformance)`` AND ``isinstance(x, TheoreticalPerformance)``
+    both work for any NPU performance instance."""
+    assert NPUTheoreticalPerformance is TheoreticalPerformance
 
-    PR 3 of v8 will alias ``NPUTheoreticalPerformance =
-    TheoreticalPerformance`` -- after that, this test will need to
-    be updated for NPU."""
-    # All 6 are distinct classes (no aliasing yet)
-    classes = [
+
+def test_other_per_block_kind_theoretical_performance_still_independent():
+    """The remaining 5 per-block-kind classes (CPU/GPU/CGRA/DPU/TPU)
+    are still independent Pydantic models (NOT yet aliases of
+    TheoreticalPerformance). Each will migrate in a follow-up issue
+    after v8 sprint closes.
+
+    When a future PR migrates one of these kinds, update this test
+    to remove that class from the independence assertion."""
+    not_yet_migrated = [
         CPUTheoreticalPerformance, GPUTheoreticalPerformance,
-        NPUTheoreticalPerformance, CGRATheoreticalPerformance,
+        CGRATheoreticalPerformance,
         DPUTheoreticalPerformance, TPUTheoreticalPerformance,
     ]
-    # No two are the same class
-    for i, c1 in enumerate(classes):
-        for c2 in classes[i+1:]:
+    for cls in not_yet_migrated:
+        assert cls is not TheoreticalPerformance, (
+            f"{cls.__name__} unexpectedly aliased to TheoreticalPerformance; "
+            "if a follow-up PR migrated this kind, update the test."
+        )
+    # No two of the remaining are aliased to each other either
+    for i, c1 in enumerate(not_yet_migrated):
+        for c2 in not_yet_migrated[i+1:]:
             assert c1 is not c2, (
-                f"{c1.__name__} unexpectedly aliased to {c2.__name__}; "
-                "if v8 PR 3+ migrated this kind, update the test."
+                f"{c1.__name__} unexpectedly aliased to {c2.__name__}"
             )
+
+
+def test_npu_isinstance_works_through_both_names():
+    """An NPU performance instance is recognized as both
+    NPUTheoreticalPerformance AND TheoreticalPerformance (because the
+    former IS the latter post-alias)."""
+    perf = TheoreticalPerformance(
+        peak_ops_per_sec_by_precision={"int8": 26e12, "int4": 52e12}
+    )
+    assert isinstance(perf, NPUTheoreticalPerformance)
+    assert isinstance(perf, TheoreticalPerformance)
+    # And constructing via the legacy name produces the same class
+    perf2 = NPUTheoreticalPerformance(
+        peak_ops_per_sec_by_precision={"int8": 26e12, "int4": 52e12}
+    )
+    assert isinstance(perf2, TheoreticalPerformance)
+    assert type(perf) is type(perf2)
 
 
 def test_per_block_kind_theoretical_performance_shapes_subset_unified():
