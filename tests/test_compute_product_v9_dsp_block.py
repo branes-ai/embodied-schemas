@@ -244,6 +244,26 @@ def test_external_dram_false_rejects_populated_fields(cadence_q8_memory):
         DSPMemorySubsystem(**payload)
 
 
+def test_external_dram_true_requires_access_energy(cadence_q8_memory):
+    """has_external_dram=True with energy_pj_per_byte=0 must fail
+    (unrealistic: SKU declares DRAM but claims free access)."""
+    payload = cadence_q8_memory.model_dump()
+    payload["external_dram_access_energy_pj_per_byte"] = 0.0
+    with pytest.raises(ValidationError,
+                       match=r"external_dram_access_energy_pj_per_byte"):
+        DSPMemorySubsystem(**payload)
+
+
+def test_external_dram_false_rejects_populated_access_energy():
+    """has_external_dram=False with energy_pj_per_byte > 0 must fail."""
+    with pytest.raises(ValidationError, match=r"has_external_dram=False requires"):
+        DSPMemorySubsystem(
+            l1_size_bytes_per_unit=32 * 1024,
+            has_external_dram=False,
+            external_dram_access_energy_pj_per_byte=12.0,  # invalid -- no DRAM
+        )
+
+
 def test_l2_size_without_bandwidth_rejected():
     """L2 size set but bandwidth missing must fail."""
     with pytest.raises(ValidationError,
@@ -330,6 +350,7 @@ def test_dsp_block_standalone_ip_requires_typical_bandwidth(
         external_dram_size_gb=4.0,
         external_dram_bandwidth_gbps=40.0,
         external_dram_bandwidth_kind="measured",  # wrong for IP core
+        external_dram_access_energy_pj_per_byte=12.0,
     )
     with pytest.raises(ValidationError,
                        match=r"STANDALONE_IP requires.*external_dram_bandwidth_kind"):
@@ -359,6 +380,7 @@ def test_dsp_block_soc_integrated_allows_measured_or_typical(
             external_dram_size_gb=8.0,
             external_dram_bandwidth_gbps=90.0,
             external_dram_bandwidth_kind=kind,
+            external_dram_access_energy_pj_per_byte=12.0,
         )
         block = DSPBlock(
             deployment_kind=DSPDeploymentKind.SOC_INTEGRATED,
@@ -434,6 +456,45 @@ def test_dsp_block_accepts_multi_thermal_profile(
     )
     assert len(block.thermal_profiles) == 3
     assert block.default_thermal_profile_name == "30W"
+
+
+def test_dsp_block_vliw_issue_width_must_be_positive(
+    cadence_q8_simd_fabric, cadence_q8_memory, cadence_q8_thermal,
+    cadence_q8_clock, cadence_q8_perf,
+):
+    """vliw_issue_width must be >= 1 when set (None is allowed for
+    non-VLIW DSPs like Cadence Vision Q8)."""
+    with pytest.raises(ValidationError, match=r"vliw_issue_width"):
+        DSPBlock(
+            deployment_kind=DSPDeploymentKind.STANDALONE_IP,
+            compute_fabrics=[cadence_q8_simd_fabric],
+            memory=cadence_q8_memory,
+            clock_domain=cadence_q8_clock,
+            thermal_profiles=[cadence_q8_thermal],
+            default_thermal_profile_name="1W",
+            theoretical_performance=cadence_q8_perf,
+            default_precision="int8",
+            vliw_issue_width=0,  # invalid -- must be >= 1 or None
+        )
+
+
+def test_dsp_block_vliw_issue_width_accepts_vliw_value(
+    cadence_q8_simd_fabric, cadence_q8_memory, cadence_q8_thermal,
+    cadence_q8_clock, cadence_q8_perf,
+):
+    """vliw_issue_width=8 (TI C7x) should be accepted."""
+    block = DSPBlock(
+        deployment_kind=DSPDeploymentKind.SOC_INTEGRATED,
+        compute_fabrics=[cadence_q8_simd_fabric],
+        memory=cadence_q8_memory,
+        clock_domain=cadence_q8_clock,
+        thermal_profiles=[cadence_q8_thermal],
+        default_thermal_profile_name="1W",
+        theoretical_performance=cadence_q8_perf,
+        default_precision="fp32",
+        vliw_issue_width=8,  # TI C7x
+    )
+    assert block.vliw_issue_width == 8
 
 
 def test_thermal_profile_efficiency_must_be_unit_fraction():

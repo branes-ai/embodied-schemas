@@ -314,13 +314,16 @@ class DSPMemorySubsystem(BaseModel):
                 missing.append("external_dram_bandwidth_gbps")
             if self.external_dram_bandwidth_kind is None:
                 missing.append("external_dram_bandwidth_kind")
+            if self.external_dram_access_energy_pj_per_byte <= 0:
+                missing.append("external_dram_access_energy_pj_per_byte")
             if missing:
                 raise ValueError(
                     f"has_external_dram=True requires all of "
                     f"external_dram_type, external_dram_size_gb, "
                     f"external_dram_bandwidth_gbps, "
-                    f"external_dram_bandwidth_kind to be populated; "
-                    f"missing/zero: {missing}"
+                    f"external_dram_bandwidth_kind, "
+                    f"external_dram_access_energy_pj_per_byte to be "
+                    f"populated; missing/zero: {missing}"
                 )
         else:
             extras = []
@@ -333,6 +336,8 @@ class DSPMemorySubsystem(BaseModel):
                 extras.append("external_dram_bandwidth_gbps")
             if self.external_dram_bandwidth_kind is not None:
                 extras.append("external_dram_bandwidth_kind")
+            if self.external_dram_access_energy_pj_per_byte > 0:
+                extras.append("external_dram_access_energy_pj_per_byte")
             if extras:
                 raise ValueError(
                     f"has_external_dram=False requires external_dram_* "
@@ -534,10 +539,11 @@ class DSPBlock(BaseModel):
         ),
     )
     vliw_issue_width: int | None = Field(
-        default=None,
+        default=None, ge=1,
         description=(
-            "VLIW issue width if the DSP is VLIW. Informational only -- "
-            "matters for compiler scheduling but not analytical roofline. "
+            "VLIW issue width if the DSP is VLIW. Must be >= 1 when set "
+            "(non-VLIW DSPs use None). Informational only -- matters for "
+            "compiler scheduling but not analytical roofline. "
             "TI C7x: 8. Cadence Vision Q8: None (pure SIMD, not VLIW)."
         ),
     )
