@@ -265,6 +265,15 @@ from embodied_schemas.tpu_block import (
     TPUFabricKind,
     TPUNoCTopology,
 )
+from embodied_schemas.dsp_block import (
+    DSPBlock,
+    DSPComputeFabric,
+    DSPMemorySubsystem,
+    DSPThermalProfile,
+    DSPTheoreticalPerformance,
+    DSPFabricKind,
+    DSPDeploymentKind,
+)
 from embodied_schemas.compute_block_common import (
     TheoreticalPerformance,
 )
@@ -552,6 +561,13 @@ __all__ = [
     "TPUTheoreticalPerformance",
     "TPUFabricKind",
     "TPUNoCTopology",
+    "DSPBlock",
+    "DSPComputeFabric",
+    "DSPMemorySubsystem",
+    "DSPThermalProfile",
+    "DSPTheoreticalPerformance",
+    "DSPFabricKind",
+    "DSPDeploymentKind",
     # v8 unified primitives (compute_block_common)
     "TheoreticalPerformance",
     # Version
