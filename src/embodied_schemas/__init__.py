@@ -244,6 +244,16 @@ from embodied_schemas.cgra_block import (
     CGRAFabricKind,
     CGRANoCTopology,
 )
+from embodied_schemas.dpu_block import (
+    DPUBlock,
+    DPUComputeFabric,
+    DPUMemorySubsystem,
+    DPUOnDieFabric,
+    DPUThermalProfile,
+    DPUTheoreticalPerformance,
+    DPUFabricKind,
+    DPUNoCTopology,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -511,6 +521,14 @@ __all__ = [
     "CGRATheoreticalPerformance",
     "CGRAFabricKind",
     "CGRANoCTopology",
+    "DPUBlock",
+    "DPUComputeFabric",
+    "DPUMemorySubsystem",
+    "DPUOnDieFabric",
+    "DPUThermalProfile",
+    "DPUTheoreticalPerformance",
+    "DPUFabricKind",
+    "DPUNoCTopology",
     # Version
     "__version__",
 ]
