@@ -299,11 +299,12 @@ def test_existing_catalog_still_loads():
 
 
 def test_existing_catalog_block_kinds_unchanged():
-    """7 BlockKinds populated across the catalog (8th = DSP, future)."""
+    """8 BlockKinds populated across the catalog after DSP sprint
+    (#211): all category gaps closed."""
     from embodied_schemas.loaders import load_compute_products
     products = load_compute_products()
     kinds = set()
     for cp in products.values():
         block = cp.dies[0].blocks[0]
         kinds.add(block.kind.value if hasattr(block.kind, "value") else str(block.kind))
-    assert kinds == {"kpu", "gpu", "cpu", "npu", "cgra", "dpu", "tpu"}
+    assert {"kpu", "gpu", "cpu", "npu", "cgra", "dpu", "tpu", "dsp"}.issubset(kinds)
