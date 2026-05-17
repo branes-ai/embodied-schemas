@@ -65,18 +65,18 @@ def test_catalog_includes_coral(all_products):
     assert google_skus == ["google_coral_edge_tpu"]
 
 
-def test_catalog_has_18_total_products(all_products):
-    """12 KPU + 2 GPU + 1 CPU + 3 NPU = 18. Subset semantics moving
-    forward: future SKU additions should not need to bump this number,
-    but the per-vendor-count tests will still flag unexpected drift."""
+def test_catalog_has_three_npu_skus(all_products):
+    """At-least-three-NPU check (subset semantics). The Plasticine v2
+    CGRA follow-up grew the catalog past the original 18-product mark;
+    the CGRA PR's own contract test pins the new total."""
     counts_by_kind: dict[str, int] = {}
     for cp in all_products.values():
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts_by_kind[kind] = counts_by_kind.get(kind, 0) + 1
-    assert counts_by_kind == {"kpu": 12, "gpu": 2, "cpu": 1, "npu": 3}, (
-        f"unexpected catalog composition: {counts_by_kind}"
-    )
+    # NPU count is the focus of the Coral PR; pin >= 3 (Hailo-8 +
+    # Hailo-10H + Coral) without locking the total catalog size.
+    assert counts_by_kind.get("npu", 0) >= 3
 
 
 def test_other_vendors_unaffected_by_coral_addition(all_products):

@@ -456,7 +456,8 @@ def test_v5_does_not_break_existing_catalog():
     assert counts["gpu"] == 2
     assert counts["cpu"] == 1
     assert counts["npu"] == 3
-    # cgra_count is 0 at the v5 schema PR baseline; the next data PR
-    # will add Plasticine v2 as the first CGRA SKU.
-    assert counts["cgra"] == 0
+    # cgra_count was 0 at the v5 schema PR baseline; the Plasticine v2
+    # data PR bumped it to 1 (first stanford/ vendor SKU; first
+    # ENGINEERING_SAMPLE lifecycle SKU).
+    assert counts["cgra"] == 1
     assert counts["kpu"] + counts["gpu"] + counts["cpu"] + counts["npu"] + counts["cgra"] == len(products)
