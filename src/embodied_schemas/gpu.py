@@ -54,6 +54,7 @@ class MemoryType(str, Enum):
     LPDDR4X = "lpddr4x"
     LPDDR5 = "lpddr5"
     LPDDR5X = "lpddr5x"
+    DDR3 = "ddr3"   # Added for TPU v1 (28nm, DDR3); historical / legacy SKUs
     DDR4 = "ddr4"
     DDR5 = "ddr5"
     UNIFIED = "unified"  # Shared system memory
