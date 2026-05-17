@@ -494,7 +494,8 @@ def test_v7_does_not_break_existing_catalog():
     assert counts["npu"] == 3
     assert counts["cgra"] == 1
     assert counts["dpu"] == 1
-    # tpu_count is 0 at the v7 schema PR baseline; the next data PR
-    # will add Google TPU v4 as the first TPU SKU.
-    assert counts["tpu"] == 0
+    # tpu_count was 0 at the v7 schema PR baseline; the TPU v4 data
+    # PR bumped it to 1 (first google/ TPU SKU; joins Coral in the
+    # existing google/ vendor directory).
+    assert counts["tpu"] == 1
     assert sum(counts.values()) == len(products)
