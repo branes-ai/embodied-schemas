@@ -395,25 +395,16 @@ class CGRAThermalProfile(BaseModel):
 # Theoretical performance roll-up
 # ---------------------------------------------------------------------------
 
-class CGRATheoreticalPerformance(BaseModel):
-    """Roll-up peak ops/sec per precision for the CGRA. Same shape as
-    GPU/CPU/NPU. CGRAs commonly include both INT and emulated-FP
-    entries (Plasticine v2: INT8 + emulated FP16 + emulated FP32),
-    distinguishing them from INT-only NPUs."""
-
-    peak_ops_per_sec_by_precision: dict[str, float] = Field(...)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_positive(self) -> "CGRATheoreticalPerformance":
-        for prec, value in self.peak_ops_per_sec_by_precision.items():
-            if value < 0:
-                raise ValueError(
-                    f"peak_ops_per_sec_by_precision[{prec!r}] = {value} "
-                    f"must be >= 0"
-                )
-        return self
+# CGRATheoreticalPerformance is now an alias of the unified
+# ``TheoreticalPerformance`` from ``compute_block_common`` (v8 follow-up
+# -- branes-ai/graphs#210). The class body was byte-identical to 4
+# other per-block-kind classes (NPU/CPU/DPU/TPU); the unified type
+# accepts the same data shape. CGRAs commonly include both INT and
+# emulated-FP entries (Plasticine v2: INT8 + emulated FP16 + emulated
+# FP32); the optional ``sparse_peak_ops_per_sec_by_precision`` field
+# (GPU-specific today) defaults to None for CGRA SKUs.
+from embodied_schemas.compute_block_common import TheoreticalPerformance
+CGRATheoreticalPerformance = TheoreticalPerformance
 
 
 # ---------------------------------------------------------------------------
