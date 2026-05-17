@@ -61,8 +61,11 @@ def coral_npu_block(coral_compute_die) -> NPUBlock:
 # ---------------------------------------------------------------------------
 
 def test_catalog_includes_coral(all_products):
+    """At-least-Coral check (subset semantics). The TPU v4 data PR
+    grew google/ past the original single-SKU mark; this test just
+    pins Coral as present."""
     google_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "google")
-    assert google_skus == ["google_coral_edge_tpu"]
+    assert "google_coral_edge_tpu" in google_skus
 
 
 def test_catalog_has_three_npu_skus(all_products):

@@ -1,0 +1,283 @@
+# Google TPU v4 -- datacenter-class systolic AI accelerator.
+#
+# First TPU SKU in the data/compute_products/ catalog. First user of
+# the v7 ComputeProduct schema (TPUBlock + supporting types, landed
+# in embodied-schemas#38). Joins Coral Edge TPU in the existing
+# ``google/`` vendor directory. Closes the TPU half of
+# branes-ai/graphs#204 from the embodied-schemas side.
+#
+# TPU v4 (4th-generation training TPU) was Google's flagship
+# datacenter accelerator from late 2021 through ~2023. Used to train
+# PaLM (540B parameters) among many production Google models. Built
+# in 4096-chip pods using the ICI 3D-torus fabric.
+#
+# This YAML models the **single chip**. Pod-level topology (the 3D
+# torus connecting 4096 chips) is a v8+ multi-chip / system-level
+# concern; this YAML captures only the per-chip ICI port surface
+# (6 ports, 400 GB/s per port).
+#
+# Data sourced from:
+#   - Google's TPU v4 paper (Norm Jouppi et al., ISCA 2023)
+#   - HotChips 33 TPU v4 presentation (Aug 2021)
+#   - graphs/src/graphs/hardware/models/datacenter/tpu_v4.py
+#     (the well-validated graphs mapper, the migration source)
+#   - graphs/docs/designs/tpu-compute-product-schema-extension.md
+#     (the paper exercise / sprint design doc)
+#
+# Confidence: theoretical.
+#   - Per-MXU dimensions (128x128) + clock (1.05 GHz) + BF16 peak
+#     (275 TFLOPS) are published Google numbers.
+#   - HBM2e capacity (32 GiB) + bandwidth (1.2 TB/s) are published.
+#   - 6-port 3D-torus ICI is published; per-port 400 GB/s is the
+#     widely-cited estimate (Google publishes pod-level aggregate).
+#   - Tile energy coefficients are estimates consistent with 7nm
+#     standard-cell + HBM2e access numbers.
+#   - Per-block transistor counts are estimates (Google publishes
+#     total ~50B for the SoC but not per-block).
+#
+# Out of scope for this YAML (separate concerns):
+#   - TPU v4 pod (4096-chip 3D torus) topology -- v8+ system-level
+#   - TPU v4 SparseCore (for embedding workloads) -- modeled as a
+#     separate compute path that the v4 hand-coded factory also
+#     omits; could be a v8 multi-block-per-die addition
+#   - Other TPU SKUs (v1, v3, v5p, edge_pro) -- follow-up data PRs
+#     once this lands
+
+id: google_tpu_v4
+name: Google TPU v4
+vendor: google
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: datacenter_oam   # Open Accelerator Module (datacenter form factor)
+
+lifecycle: production
+
+dies:
+- die_id: tpu_v4_die
+  die_role: compute
+  process_node_id: tsmc_n7   # already in catalog from KPU sprint
+  die_size_mm2: 600.0   # estimate from Google paper figures
+  transistors_billion: 50.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 2 MXUs, each 128x128 (= 32,768 total MACs). Hardened MAC arrays
+    # at 7nm; ~0.5 Mtx per MAC + control = ~16,000 Mtx total.
+    - name: mxu_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 16000.0
+      notes: 2 MXUs * 128x128 = 32768 MACs @ ~0.5 Mtx each
+    # -------------------------------------------------------------------
+    # Per-MXU accumulator: 2 MiB at 32-bit elements. Two MXUs = 4 MiB
+    # total accumulator SRAM. At 7nm SRAM density (~250 Mtx/mm^2 with
+    # periphery): ~1000 Mtx.
+    - name: accumulator_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: 2 MXUs * 2 MiB accumulator = 4 MiB total 32-bit element SRAM
+    # -------------------------------------------------------------------
+    # Unified Buffer: 32 MiB shared SRAM. The canonical TPU on-chip
+    # memory tier (collapses L1+L2). ~8000 Mtx at 7nm SRAM density.
+    - name: unified_buffer_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 8000.0
+      notes: 32 MiB Unified Buffer -- canonical TPU on-chip memory tier
+    # -------------------------------------------------------------------
+    # Per-MXU weight FIFO + weight prefetch logic. Small but critical
+    # for decoupling DRAM bandwidth from MXU throughput.
+    - name: weight_fifo_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 100.0
+      notes: Per-MXU weight prefetch FIFO + control
+    # -------------------------------------------------------------------
+    # HBM2e controller + PHY (4 stacks for 32 GiB / 1.2 TB/s). Datacenter
+    # HBM PHYs are large; ~5000 Mtx for 4 stacks.
+    - name: hbm_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 5000.0
+      notes: HBM2e controller + PHY (4 stacks, 32 GiB, 1.2 TB/s)
+    # -------------------------------------------------------------------
+    # ICI (Inter-Chip Interconnect): 6 ports for 3D-torus pod topology.
+    # Each port is a SerDes-style high-speed link; ~700 Mtx per port.
+    - name: ici_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 4200.0
+      notes: 6 ICI ports @ ~700 Mtx each (3D torus for pod topology)
+    # -------------------------------------------------------------------
+    # PCIe host interface for chip-to-host communication.
+    - name: pcie_host_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: PCIe Gen3/4 host interface
+    # -------------------------------------------------------------------
+    # XLA dispatch + scheduler + control logic + boot ROM.
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 2500.0
+      notes: XLA dispatch + systolic scheduler + boot ROM + PMC
+    # -------------------------------------------------------------------
+    # SparseCore (for embedding lookups). The TPU v4 paper describes
+    # this as a sibling compute path; this YAML accounts for it in the
+    # silicon_bin but doesn't model it as a separate block (the legacy
+    # graphs factory also omits it). v8 multi-block-per-die addition.
+    - name: sparsecore
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 9000.0
+      notes: SparseCore (embedding lookup; modeled in silicon_bin only; v8 will add as sibling block)
+    # -------------------------------------------------------------------
+    # NoC fabric + misc: clock generation, security IP, debug.
+    - name: noc_and_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3400.0
+      notes: On-chip NoC + clocks + security IP + debug
+  clocks:
+    base_clock_mhz: 1050.0
+    boost_clock_mhz: 1050.0   # no boost; fixed-frequency design
+  blocks:
+  - kind: tpu
+    # 2 MXUs, each 128x128 systolic array (= 32,768 total MACs).
+    num_mxus: 2
+    mxu_dim_rows: 128
+    mxu_dim_cols: 128
+    # Tile energy decomposition fields (per-MXU)
+    weight_tile_size_kib: 32       # per-MXU weight prefetch buffer
+    weight_fifo_depth: 2            # double-buffered
+    pipeline_fill_cycles: 128       # = mxu_dim_rows (canonical for square)
+    accumulator_size_kib_per_mxu: 2048   # 2 MiB per MXU
+    tile_energy_coefficients:
+      mac_energy_pj: 0.25
+      weight_memory_energy_pj_per_byte: 10.0   # HBM2e access
+      weight_fifo_energy_pj_per_byte: 0.5      # on-chip SRAM
+      unified_buffer_read_energy_pj_per_byte: 0.5
+      unified_buffer_write_energy_pj_per_byte: 0.5
+      accumulator_read_energy_pj_per_element: 0.3
+      accumulator_write_energy_pj_per_element: 0.4
+      weight_shift_in_energy_pj_per_element: 0.3
+      activation_stream_energy_pj_per_element: 0.2
+    # ICI (Inter-Chip Interconnect) single-chip surface. TPU v4 pod
+    # is a 4096-chip 3D torus; this YAML captures the per-chip port
+    # count and bandwidth. Pod-level topology deferred to v8+.
+    ici_port_count: 6
+    ici_bandwidth_per_port_gbps: 400.0   # per-port; aggregate ~2.4 TB/s
+    ici_topology_hint: '3d_torus_2x2x2'   # local sub-torus topology
+    multi_precision_alu:
+    - bf16
+    - int8
+    - fp32
+    compute_fabrics:
+    - fabric_kind: tpu_v2_plus
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        bf16: 2   # MAC = 2 ops (multiply + accumulate)
+        int8: 2   # MAC = 2 ops at INT8 rate
+      energy_per_op_bf16_pj: 0.225   # 0.45 pJ per MAC / 2 ops
+      energy_scaling:
+        int8: 0.25   # INT8 4x cheaper than BF16 (uses BF16 MAC differently)
+        fp32: 2.0    # FP32 emulated; 2x cost
+    memory:
+      on_chip_bandwidth_gbps: 2000.0   # UB-to-MXU streaming BW (estimate)
+      unified_buffer_size_kib: 32768   # 32 MiB Unified Buffer
+      unified_buffer_access_energy_pj_per_byte: 0.5
+      has_external_dram: true        # chip-attached HBM stacks
+      external_dram_type: hbm2e
+      external_dram_size_gb: 32.0
+      external_dram_bandwidth_gbps: 1200.0   # 1.2 TB/s aggregate
+      external_dram_access_energy_pj_per_byte: 10.0
+      coherence_protocol: none
+    noc:
+      topology: multi_crossbar   # 2 MXUs share the UB via crossbar
+      bisection_bandwidth_gbps: 2000.0
+      unit_count: 2
+      flit_size_bytes: 32
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 2.0
+      routing_distance_factor: 1.0
+      confidence: theoretical
+    # TPU v4 needs high systolic utilization to be efficient.
+    min_occupancy: 0.5
+    max_concurrent_models: 1   # one model/batch at a time per chip
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 350W operating point:
+#   BF16: 2 MXUs * 128x128 * 2 ops * 1.05 GHz = 275 TFLOPS (marketed)
+#   INT8: 2x BF16 rate = 550 TOPS
+#   FP32: 1/2 BF16 (emulated) = 137.5 TFLOPS
+performance:
+  int8_tops: 550.0
+  bf16_tflops: 275.0
+  fp32_tflops: 137.5
+  int4_tops: 0.0   # not supported on TPU v4 (added in v5p)
+
+power:
+  tdp_watts: 350.0
+  max_power_watts: 400.0
+  min_power_watts: 50.0
+  idle_power_watts: 50.0
+  default_thermal_profile: default
+  # Single thermal profile (no DVFS). Datacenter TPUs ship with
+  # active-liquid cooling in dedicated TPU pods.
+  thermal_profiles:
+  - name: default
+    tdp_watts: 350.0
+    clock_mhz: 1050.0
+    cooling_solution_id: liquid_cooled
+    efficiency_factor_by_precision:
+      bf16: 0.85   # systolic arrays sustain high utilization on
+      int8: 0.85   # well-tiled XLA workloads
+      fp32: 0.75   # emulated FP32 is less efficient
+    vdd_v: 0.85    # TSMC N7 nominal
+
+market:
+  launch_date: '2021-12-01'   # TPU v4 production launch (paper Aug 2021)
+  target_market: datacenter
+  product_family: TPU
+  model_tier: datacenter
+  is_available: true   # Google Cloud TPU rental
+
+confidence: theoretical
+notes: >
+  Google TPU v4 -- first TPU SKU migrated to the v7 ComputeProduct
+  schema (TPUBlock landed in embodied-schemas#38). First datacenter-
+  class systolic SKU; first SKU with chip-attached HBM (vs Coral's
+  host-bus DDR4); first SKU exercising the ICI single-chip port
+  surface (6 ports * 400 GB/s for 3D-torus pod topology).
+
+  2 MXUs of 128x128 each at 1.05 GHz on TSMC N7. Multi-precision:
+  275 TFLOPS BF16 (training default) + 550 TOPS INT8 (inference) +
+  137.5 TFLOPS emulated FP32. 32 MiB on-chip Unified Buffer (TPU's
+  collapsed L1+L2 tier) + 32 GiB chip-attached HBM2e at 1.2 TB/s.
+
+  Used to train PaLM (540B params) among many production Google
+  models. Built in 4096-chip pods using the ICI 3D-torus fabric;
+  pod-level topology modeling deferred to v8+ system-level scope.
+
+  Sibling SparseCore (for embedding workloads) is accounted for in
+  silicon_bin only; the v8 multi-block-per-die feature will model it
+  as a sibling block on the same die.
+
+  Closes branes-ai/embodied-schemas precursor for TPU v4 factory
+  swap tracked at branes-ai/graphs#204 (PR 3/5 of the sprint).
+last_updated: '2026-05-17'
