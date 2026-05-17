@@ -494,7 +494,8 @@ def test_v6_does_not_break_existing_catalog():
     assert counts["cpu"] == 1
     assert counts["npu"] == 3
     assert counts["cgra"] == 1
-    # dpu_count is 0 at the v6 schema PR baseline; the next data PR
-    # will add Xilinx Vitis AI B4096 as the first DPU SKU.
-    assert counts["dpu"] == 0
+    # dpu_count was 0 at the v6 schema PR baseline; the Vitis AI B4096
+    # data PR bumped it to 1 (first xilinx/ vendor SKU; first
+    # FPGA-based architecture in the catalog).
+    assert counts["dpu"] == 1
     assert sum(counts.values()) == len(products)

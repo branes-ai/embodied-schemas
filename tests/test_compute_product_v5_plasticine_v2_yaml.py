@@ -69,18 +69,18 @@ def test_catalog_includes_plasticine(all_products):
     assert stanford_skus == ["stanford_plasticine_v2"]
 
 
-def test_catalog_has_19_total_products(all_products):
-    """12 KPU + 2 GPU + 1 CPU + 3 NPU + 1 CGRA = 19. Subset semantics
-    moving forward: per-vendor-count tests below flag unexpected drift
-    in other vendors."""
+def test_catalog_contains_plasticine(all_products):
+    """At-least-one-CGRA check (subset semantics). The DPU follow-up
+    grew the catalog past the original 19-product mark; the DPU PR's
+    own contract test pins the new total."""
     counts_by_kind: dict[str, int] = {}
     for cp in all_products.values():
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts_by_kind[kind] = counts_by_kind.get(kind, 0) + 1
-    assert counts_by_kind == {"kpu": 12, "gpu": 2, "cpu": 1, "npu": 3, "cgra": 1}, (
-        f"unexpected catalog composition: {counts_by_kind}"
-    )
+    # CGRA count is the focus of this PR; pin >= 1 without locking
+    # the total catalog size.
+    assert counts_by_kind.get("cgra", 0) >= 1
 
 
 def test_other_vendors_unaffected_by_plasticine_addition(all_products):

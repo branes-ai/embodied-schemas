@@ -1,0 +1,284 @@
+# Xilinx Vitis AI DPU B4096 on Versal VE2302 -- edge AI accelerator.
+#
+# First DPU SKU in the data/compute_products/ catalog. First user of
+# the v6 ComputeProduct schema (DPUBlock + supporting types, landed
+# in embodied-schemas#36). First ``xilinx`` vendor SKU. Closes the
+# DPU half of branes-ai/graphs#200 from the embodied-schemas side.
+#
+# The "B4096" refers to one of Xilinx's published DPU configurations
+# (others: B512, B1024, B2304, B4096); B4096 ships 64 AIE-ML tiles
+# with 64 MACs each (= 4096 MACs total) and is the largest VE2302
+# config. The Versal VE2302 SoC contains the AIE-ML array + FPGA
+# programmable logic + ARM Cortex-A72 control complex + DDR4
+# controller + PCIe/Ethernet PHYs; this YAML models only the DPU
+# function (the AIE-ML compute path). Modeling the ARM control
+# complex as a sibling CPU block on the same die is a v7+ feature.
+#
+# Data sourced from:
+#   - Xilinx Versal VE2302 product brief + AIE-ML v1 architecture docs
+#   - Xilinx Vitis AI documentation (DPU configurations)
+#   - graphs/src/graphs/hardware/models/accelerators/xilinx_vitis_ai_dpu.py
+#     (the well-validated graphs mapper, the migration source)
+#   - graphs/docs/designs/dpu-compute-product-schema-extension.md
+#     (the paper exercise / sprint design doc)
+#
+# Confidence: theoretical.
+#   - AIE-ML v1 per-tile ops/clock are published Xilinx figures
+#     (128 INT8, 32 FP16); chip-level peak (10.24 TOPS INT8) matches
+#     the marketed B4096 number.
+#   - Per-block transistor counts are estimates -- Xilinx publishes
+#     Versal SoC totals (~3.7B for VE2302) but not per-block.
+#   - The 8x8 AIE_MESH topology is consistent with B4096's 64-tile
+#     layout but the per-hop streaming-fabric details are not
+#     publicly documented.
+#   - fpga_fabric_overhead_factor = 1.25 (the 25% FPGA-vs-ASIC
+#     penalty) is a standard rule of thumb; Xilinx hasn't published
+#     a precise AIE-vs-ASIC ratio.
+#
+# Out of scope for this YAML (separate concerns):
+#   - AMD Versal AI Core / Premium (AIE-ML v2; different MAC width +
+#     precision support) -- separate follow-up YAML
+#   - Versal AIE-HD datacenter SKUs -- separate follow-up YAML
+#   - Intel/Altera AgileX AI -- separate vendor + IP
+#   - Versal ARM Cortex-A72 control complex as a sibling CPU block
+#     on the same die (v7+ multi-block-per-die feature)
+#   - FPGA partial reconfiguration scheduling (runtime concern)
+
+id: xilinx_vitis_ai_b4096
+name: Xilinx Vitis AI B4096 (Versal VE2302)
+vendor: xilinx
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: bga   # Versal VE2302 ships as a packaged SoC (BGA)
+
+lifecycle: production
+
+dies:
+- die_id: ve2302_die
+  die_role: compute
+  process_node_id: tsmc_n16   # already in catalog from KPU sprint
+  die_size_mm2: 600.0   # full Versal VE2302 SoC die area (estimate)
+  transistors_billion: 3.7
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 64 AIE-ML v1 tiles, each with 64 INT8 MACs. AIE tiles are
+    # hardened (not LUT-based); ~12.5 Mtx per tile = 800 Mtx total
+    # (~22% of the SoC die).
+    - name: aie_tile_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: 64 AIE-ML v1 tiles @ ~12.5 Mtx each (64 MACs + scheduler + interconnect)
+    # -------------------------------------------------------------------
+    # Per-tile scratchpad: 64 KiB * 64 tiles = 4 MiB total private
+    # SRAM. At 28 Mtx/mm^2 SRAM density on N16 with periphery: ~5 Mtx
+    # per tile-scratchpad = 320 Mtx total.
+    - name: tile_scratchpad_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 320.0
+      notes: 64 * 64 KiB AIE tile scratchpads = 4 MiB total private SRAM
+    # -------------------------------------------------------------------
+    # 4 MiB shared L2 SRAM (inter-tile LLC).
+    - name: shared_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 4 MiB shared L2 -- inter-AIE-tile staging buffer
+    # -------------------------------------------------------------------
+    # AIE streaming mesh: 8x8 layout, 64 routers + links + arbitration.
+    # ~5 Mtx per router = 320 Mtx total.
+    - name: aie_noc
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 320.0
+      notes: 8x8 AIE streaming mesh of 64 routers + links (low_confidence -- estimated)
+    # -------------------------------------------------------------------
+    # FPGA programmable logic fabric: LUT array + DSP58 slices + BRAM
+    # tiles used for DPU bitstream glue logic. ~1200 Mtx (~32% of SoC).
+    # This is the "FPGA fabric overhead" that distinguishes DPU from
+    # ASIC equivalents.
+    - name: fpga_fabric_overhead
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1200.0
+      notes: LUT array + DSP58 + BRAM glue for DPU bitstream routing
+    # -------------------------------------------------------------------
+    # DDR4 controller + PHY for chip-attached 8 GiB main memory.
+    - name: ddr4_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 150.0
+      notes: DDR4-3200 controller + PHY (8 GiB chip-attached)
+    # -------------------------------------------------------------------
+    # PCIe Gen4 + GbE + USB host interfaces.
+    - name: pcie_host_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: PCIe Gen4 + Gigabit Ethernet + USB 3.0 + GPIO
+    # -------------------------------------------------------------------
+    # ARM Cortex-A72 control complex (dual-core + caches). Modeled here
+    # for transistor accounting only; the v7 multi-block-per-die feature
+    # would carry this as a sibling CPUBlock.
+    - name: arm_control_complex
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 500.0
+      notes: Dual ARM Cortex-A72 + L1/L2 caches + control fabric
+    # -------------------------------------------------------------------
+    # Miscellaneous: power management, clock generation, security IP,
+    # boot ROM, debug.
+    - name: misc_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: PMC, clocks, security IP, boot ROM, debug
+  clocks:
+    base_clock_mhz: 1250.0
+    boost_clock_mhz: 1250.0   # no boost; fixed-frequency design
+  blocks:
+  - kind: dpu
+    num_aie_tiles: 64
+    macs_per_tile: 64
+    simd_lanes_per_tile: 8   # AIE-ML v1 wide-vector datapath
+    # FPGA-based: bitstream loaded at deployment time.
+    is_statically_reconfigurable: true
+    # Typical Versal VE2302 bitstream load time: ~2 seconds.
+    bitstream_load_time_ms: 2000.0
+    multi_precision_alu:
+    - int8
+    - fp16
+    - fp32
+    compute_fabrics:
+    - fabric_kind: aie_ml_v1
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        int8: 128   # 64 MACs * 2 ops/MAC = 128 INT8 ops/tile/clock
+        fp16: 32    # 1/4 INT8 rate -- native FP16 in AIE-ML
+      # Per-INT8-op energy at 16nm AIE-ML balanced logic, pre-FPGA-overhead.
+      energy_per_op_int8_pj: 0.4
+      energy_scaling:
+        fp16: 2.5   # FP16 native in AIE-ML; 2.5x INT8 cost (wider datapath)
+        fp32: 5.0   # FP32 emulated; 5x INT8 cost
+      # FPGA-vs-ASIC penalty -- 25% overhead from LUT-based interconnect
+      # + programmable routing (standard rule of thumb for Versal AIE).
+      fpga_fabric_overhead_factor: 1.25
+    memory:
+      on_chip_bandwidth_gbps: 80.0   # AIE streaming mesh bisection BW
+      scratchpad_kib_per_tile: 64    # AIE tile data memory
+      shared_sram_kib: 4096          # 4 MiB shared L2
+      shared_sram_layout: shared
+      has_external_dram: true        # chip-attached DDR4 (NOT host-bus)
+      external_dram_type: ddr4
+      external_dram_size_gb: 8.0
+      external_dram_bandwidth_gbps: 50.0   # DDR4-3200 dual-channel
+      scratchpad_access_energy_pj_per_byte: 5.0
+      external_dram_access_energy_pj_per_byte: 15.0
+      coherence_protocol: none
+    noc:
+      topology: aie_mesh
+      bisection_bandwidth_gbps: 80.0
+      unit_count: 64
+      flit_size_bytes: 32
+      mesh_rows: 8
+      mesh_cols: 8
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 1.5
+      routing_distance_factor: 1.1
+      confidence: theoretical   # Xilinx doesn't publish per-hop streaming details
+    # Lower default occupancy than NPU (0.8) -- FPGA fabric overhead
+    # means tile utilization varies more than fixed-function dataflow.
+    min_occupancy: 0.3
+    # DPUs can run multiple compiled models simultaneously by partitioning
+    # AIE tiles. Vitis AI default: 4 concurrent models.
+    max_concurrent_models: 4
+    # AIE tiles allocated in pairs per Xilinx documentation.
+    wave_quantization: 2
+  interconnects: []
+
+# Chip-level performance roll-up at the 20W operating point:
+#   INT8: 64 tiles * 128 ops/clk * 1.25e9 = 10.24 TOPS (theoretical)
+#   FP16: 64 tiles * 32 ops/clk * 1.25e9 = 2.56 TFLOPS (native AIE-ML)
+#   FP32: ~0.32 TFLOPS (emulated)
+# Realistic at 75% efficiency (per Xilinx benchmarks):
+#   INT8: ~7.68 TOPS sustained (the marketed Vitis AI B4096 number)
+performance:
+  int8_tops: 10.24
+  bf16_tflops: 0.0    # not supported on AIE-ML v1
+  fp32_tflops: 0.32   # emulated
+  int4_tops: 0.0      # not supported on AIE-ML v1 (added in AIE-ML v2)
+
+power:
+  tdp_watts: 20.0
+  max_power_watts: 22.0
+  min_power_watts: 3.0
+  idle_power_watts: 3.0
+  default_thermal_profile: default
+  # Single thermal profile (no DVFS). Versal VE2302 is edge-class with
+  # active-fan cooling in the 15-20W envelope. Datacenter Versal SKUs
+  # (Premium series) ship with multiple DVFS-capable profiles.
+  thermal_profiles:
+  - name: default
+    tdp_watts: 20.0
+    clock_mhz: 1250.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.75   # 75% efficiency (per Xilinx Vitis AI benchmarks)
+      fp16: 0.70
+      fp32: 0.60
+    vdd_v: 0.8    # TSMC N16 nominal
+
+market:
+  launch_date: '2022-11-01'   # Versal AI Edge VE2302 production launch
+  launch_msrp_usd: 350.0   # SoM / dev-board pricing (Xilinx VEK280 estimate)
+  target_market: edge
+  product_family: Vitis AI
+  model_tier: mid
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Xilinx Vitis AI B4096 on Versal VE2302 -- first DPU SKU migrated to
+  the v6 ComputeProduct schema (DPUBlock landed in embodied-schemas#36).
+  First FPGA-based architecture in the catalog. First ``xilinx`` vendor
+  SKU.
+
+  AIE-ML v1 tile array (64 tiles * 64 MACs = 4096 MACs) at 1.25 GHz on
+  TSMC N16. Multi-precision: 10.24 TOPS INT8 (theoretical; ~7.68 TOPS
+  sustained at 75% efficiency, the Xilinx-marketed Vitis AI number) +
+  2.56 TFLOPS native FP16 (AIE-ML) + 0.32 TFLOPS emulated FP32. Single
+  20W operating point with active-fan cooling. 8 GiB DDR4 chip-attached
+  main memory (NOT host-bus like CGRA Plasticine; Versal has on-die
+  DDR4 controllers).
+
+  Defining DPU characteristics captured:
+    - is_statically_reconfigurable: true -- FPGA bitstream loaded at
+      deployment (~2 seconds), not runtime like CGRA's per-cycle remap
+    - fpga_fabric_overhead_factor: 1.25 -- 25% FPGA-vs-ASIC penalty
+      from LUT-based interconnect + programmable routing
+    - max_concurrent_models: 4 -- DPU can partition AIE tiles for
+      multi-model concurrency (vs NPU/CGRA which run single models)
+    - wave_quantization: 2 -- AIE tiles ship and configure in pairs
+
+  Versal VE2302 SoC also contains an ARM Cortex-A72 control complex,
+  FPGA programmable logic, and various I/O PHYs (~3.7B total transistors).
+  This YAML models only the DPU compute function; modeling the full
+  Versal SoC as a multi-block die (DPU + CPU + FPGA fabric) is a v7+
+  multi-block-per-die feature.
+
+  Closes branes-ai/embodied-schemas precursor for DPU factory swap
+  tracked at branes-ai/graphs#200 (PR 3/5 of the sprint).
+last_updated: '2026-05-17'
