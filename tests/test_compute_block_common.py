@@ -208,38 +208,32 @@ def test_per_block_kind_theoretical_performance_classes_still_importable():
     assert TPUTheoreticalPerformance is not None
 
 
-def test_npu_theoretical_performance_is_aliased_to_unified():
-    """v8 PR 3 migrated NPU as proof of concept: NPUTheoreticalPerformance
-    is now an alias of the unified TheoreticalPerformance from
-    compute_block_common. This means ``isinstance(x,
-    NPUTheoreticalPerformance)`` AND ``isinstance(x, TheoreticalPerformance)``
-    both work for any NPU performance instance."""
-    assert NPUTheoreticalPerformance is TheoreticalPerformance
+def test_all_per_block_kind_theoretical_performance_aliased_to_unified():
+    """v8 follow-up (branes-ai/graphs#210) batched the per-block-kind
+    migration: all 6 ``*TheoreticalPerformance`` classes are now
+    aliases of the unified ``TheoreticalPerformance``. This means
+    ``isinstance(x, XXXTheoreticalPerformance)`` works for any
+    TheoreticalPerformance instance, and all aliases ARE the same
+    class object.
 
-
-def test_other_per_block_kind_theoretical_performance_still_independent():
-    """The remaining 5 per-block-kind classes (CPU/GPU/CGRA/DPU/TPU)
-    are still independent Pydantic models (NOT yet aliases of
-    TheoreticalPerformance). Each will migrate in a follow-up issue
-    after v8 sprint closes.
-
-    When a future PR migrates one of these kinds, update this test
-    to remove that class from the independence assertion."""
-    not_yet_migrated = [
+    NPU was migrated in v8 PR 3 (branes-ai/embodied-schemas#41) as
+    proof of concept; CPU/GPU/CGRA/DPU/TPU follow in this batch."""
+    aliases = [
         CPUTheoreticalPerformance, GPUTheoreticalPerformance,
-        CGRATheoreticalPerformance,
+        NPUTheoreticalPerformance, CGRATheoreticalPerformance,
         DPUTheoreticalPerformance, TPUTheoreticalPerformance,
     ]
-    for cls in not_yet_migrated:
-        assert cls is not TheoreticalPerformance, (
-            f"{cls.__name__} unexpectedly aliased to TheoreticalPerformance; "
-            "if a follow-up PR migrated this kind, update the test."
+    for cls in aliases:
+        assert cls is TheoreticalPerformance, (
+            f"{cls.__name__} is not aliased to TheoreticalPerformance "
+            f"(got {cls!r}); the v8 follow-up should have unified all 6."
         )
-    # No two of the remaining are aliased to each other either
-    for i, c1 in enumerate(not_yet_migrated):
-        for c2 in not_yet_migrated[i+1:]:
-            assert c1 is not c2, (
-                f"{c1.__name__} unexpectedly aliased to {c2.__name__}"
+    # All 6 aliases ARE the same class object
+    for i, c1 in enumerate(aliases):
+        for c2 in aliases[i+1:]:
+            assert c1 is c2, (
+                f"{c1.__name__} and {c2.__name__} are unexpectedly "
+                f"different classes; v8 follow-up should have unified them."
             )
 
 

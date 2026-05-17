@@ -357,50 +357,21 @@ class GPUThermalProfile(BaseModel):
 # Theoretical performance (per-precision peak)
 # ---------------------------------------------------------------------------
 
-class GPUTheoreticalPerformance(BaseModel):
-    """Roll-up peak ops/sec per precision for the GPU.
-
-    GPUs report more precision points than KPUs (FP64, FP32, FP16,
-    BF16, INT8, INT4, TF32 sometimes), and Tensor cores can amplify
-    throughput well beyond the CUDA-core baseline at low precision.
-    Rather than fix a precision set up front (as
-    ``KPUTheoreticalPerformance`` does), this type carries a flexible
-    dict so vendors can report whichever precisions they support.
-    """
-
-    peak_ops_per_sec_by_precision: dict[str, float] = Field(
-        ...,
-        description=(
-            "Peak sustained throughput keyed on lowercase precision "
-            "name. Units are ops/sec (TOPS = ops/sec / 1e12; TFLOPS = "
-            "FP-ops/sec / 1e12). Roll-up across CUDA cores + Tensor "
-            "cores; reported at the chip's default thermal profile."
-        ),
-    )
-
-    # Optional sparsity-amplified peaks. Ampere 2:4 structured sparsity
-    # gives 2x speedup on supporting Tensor cores; Hopper adds INT4
-    # sparsity. None means sparsity not supported / not reported.
-    sparse_peak_ops_per_sec_by_precision: dict[str, float] | None = Field(None)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_positive(self) -> "GPUTheoreticalPerformance":
-        for prec, value in self.peak_ops_per_sec_by_precision.items():
-            if value < 0:
-                raise ValueError(
-                    f"peak_ops_per_sec_by_precision[{prec!r}] = {value} "
-                    f"must be >= 0"
-                )
-        if self.sparse_peak_ops_per_sec_by_precision:
-            for prec, value in self.sparse_peak_ops_per_sec_by_precision.items():
-                if value < 0:
-                    raise ValueError(
-                        f"sparse_peak_ops_per_sec_by_precision[{prec!r}] = "
-                        f"{value} must be >= 0"
-                    )
-        return self
+# GPUTheoreticalPerformance is now an alias of the unified
+# ``TheoreticalPerformance`` from ``compute_block_common`` (v8 follow-up
+# -- branes-ai/graphs#210). The unified type already includes the
+# optional ``sparse_peak_ops_per_sec_by_precision`` field (originally
+# GPU-specific for Ampere/Hopper 2:4 structured sparsity) -- v8 PR 2
+# included it in the unified type precisely so GPU could alias cleanly
+# without losing the sparsity capability.
+#
+# GPUs report more precision points than KPUs (FP64, FP32, FP16,
+# BF16, INT8, INT4, TF32 sometimes), and Tensor cores can amplify
+# throughput well beyond the CUDA-core baseline at low precision.
+# The flexible dict in TheoreticalPerformance carries whichever
+# precisions the vendor reports.
+from embodied_schemas.compute_block_common import TheoreticalPerformance
+GPUTheoreticalPerformance = TheoreticalPerformance
 
 
 # ---------------------------------------------------------------------------
