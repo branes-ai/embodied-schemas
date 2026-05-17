@@ -368,55 +368,21 @@ class DSPMemorySubsystem(BaseModel):
 # automotive SoCs)
 # ---------------------------------------------------------------------------
 
-class DSPThermalProfile(BaseModel):
-    """One DSP operating point. Cardinality varies by SKU:
-
-      - Cadence Vision Q8 / CEVA / Synopsys IP cores: 1 profile
-      - TI TDA4VM: 2 profiles (10W / 20W)
-      - Qualcomm SA8775P: 3 profiles (20W / 30W / 45W)
-
-    Mirrors ``DPUThermalProfile`` / ``TPUThermalProfile`` field-by-field.
-    The DSPBlock holds a ``thermal_profiles: list[DSPThermalProfile]``
-    + ``default_thermal_profile_name`` -- same pattern as GPU/TPU
-    multi-profile DVFS."""
-
-    name: str = Field(...)
-    tdp_watts: float = Field(..., gt=0)
-    cooling_solution_id: str = Field(...)
-
-    clock_mhz: float = Field(..., gt=0, description="Operating frequency")
-    dvfs_enabled: bool = Field(
-        False,
-        description=(
-            "False is the IP-core default (single fixed operating point). "
-            "True for SoC-integrated SKUs with multiple thermal profiles."
-        ),
-    )
-
-    # Per-precision empirical numbers, same shape as other block kinds
-    efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-    instruction_efficiency_by_precision: dict[str, float] = Field(default_factory=dict)
-    memory_bottleneck_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-
-    vdd_v: float | None = Field(default=None, gt=0)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_efficiency_ranges(self) -> "DSPThermalProfile":
-        for attr_name, label in (
-            ("efficiency_factor_by_precision", "efficiency_factor"),
-            ("instruction_efficiency_by_precision", "instruction_efficiency"),
-            ("memory_bottleneck_factor_by_precision", "memory_bottleneck_factor"),
-        ):
-            mapping = getattr(self, attr_name)
-            for precision, value in mapping.items():
-                if not 0.0 <= value <= 1.0:
-                    raise ValueError(
-                        f"{attr_name}[{precision!r}] = {value} is outside "
-                        f"[0, 1]; {label} is a unit fraction."
-                    )
-        return self
+# DSPThermalProfile is now an alias of the unified ``ThermalProfile``
+# from ``compute_block_common`` (v9 sprint PR 3 -- branes-ai/graphs#215).
+# The class body was byte-identical to 4 other per-block-kind classes
+# (NPU/CGRA/DPU/TPU). DSP was authored expecting this; cardinality
+# varies by SKU (1 for Cadence Vision Q8 / CEVA / Synopsys IP cores;
+# 2 for TI TDA4VM; 3 for Qualcomm SA8775P at 20/30/45W).
+#
+# DSPBlock holds a ``thermal_profiles: list[DSPThermalProfile]`` +
+# ``default_thermal_profile_name``. Since the alias IS the unified
+# class, list members are interchangeable with bare ``ThermalProfile``.
+#
+# Backward-compat: ``isinstance(x, DSPThermalProfile)`` AND
+# ``isinstance(x, ThermalProfile)`` both work (same class object).
+from embodied_schemas.compute_block_common import ThermalProfile
+DSPThermalProfile = ThermalProfile
 
 
 # ---------------------------------------------------------------------------
