@@ -173,7 +173,19 @@ class DPUComputeFabric(BaseModel):
     def _validate_int_precision_required(self) -> "DPUComputeFabric":
         """DPUs must ship at least one of INT4 / INT8 -- the dominant
         DNN inference precisions. Catches typo'd YAMLs that only declare
-        FP precisions (which would be wrong for any DNN-class DPU)."""
+        FP precisions (which would be wrong for any DNN-class DPU).
+
+        Also rejects non-positive ops values; zero or negative
+        ops/unit/clock is not a meaningful capacity number."""
+        non_positive = [
+            precision for precision, value in self.ops_per_unit_per_clock.items()
+            if value <= 0
+        ]
+        if non_positive:
+            raise ValueError(
+                f"DPUComputeFabric.ops_per_unit_per_clock values must be "
+                f"positive; got non-positive entries for: {sorted(non_positive)}"
+            )
         precisions = {k.lower() for k in self.ops_per_unit_per_clock}
         if not ({"int4", "int8"} & precisions):
             raise ValueError(

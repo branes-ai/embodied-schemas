@@ -237,17 +237,38 @@ def test_crossbar_topology_rejects_dimensions(vitis_ai_noc):
     """topology=CROSSBAR shouldn't set mesh_rows/mesh_cols."""
     payload = vitis_ai_noc.model_dump()
     payload["topology"] = DPUNoCTopology.CROSSBAR
-    with pytest.raises(ValidationError, match="requires mesh_rows.*to be None"):
+    with pytest.raises(ValidationError, match=r"requires mesh_rows.*to be None"):
         DPUOnDieFabric(**payload)
 
 
 def test_dpu_compute_fabric_requires_int_precision():
     """DPUs must ship INT4 or INT8; FP-only fabric is wrong for DNN."""
-    with pytest.raises(ValidationError, match="at least one of.*int4.*int8"):
+    with pytest.raises(ValidationError, match=r"at least one of.*int4.*int8"):
         DPUComputeFabric(
             fabric_kind=DPUFabricKind.AIE_ML_V1,
             circuit_class=CircuitClass.BALANCED_LOGIC,
             ops_per_unit_per_clock={"fp16": 32},  # invalid -- no INT
+            energy_per_op_int8_pj=0.4,
+        )
+
+
+def test_dpu_compute_fabric_rejects_non_positive_ops():
+    """Zero / negative ops/unit/clock values are not meaningful
+    capacity numbers and must be rejected (the int-precision-required
+    validator catches FP-only fabrics; this validator catches zero-cap
+    fabrics)."""
+    with pytest.raises(ValidationError, match=r"values must be positive"):
+        DPUComputeFabric(
+            fabric_kind=DPUFabricKind.AIE_ML_V1,
+            circuit_class=CircuitClass.BALANCED_LOGIC,
+            ops_per_unit_per_clock={"int8": 0},   # invalid -- zero cap
+            energy_per_op_int8_pj=0.4,
+        )
+    with pytest.raises(ValidationError, match=r"values must be positive"):
+        DPUComputeFabric(
+            fabric_kind=DPUFabricKind.AIE_ML_V1,
+            circuit_class=CircuitClass.BALANCED_LOGIC,
+            ops_per_unit_per_clock={"int8": 128, "fp16": -1},   # invalid -- negative cap
             energy_per_op_int8_pj=0.4,
         )
 
@@ -282,7 +303,7 @@ def test_dpu_block_noc_unit_count_must_match(dpu_block):
     payload["noc"]["unit_count"] = 16  # doesn't match num_aie_tiles=64
     payload["noc"]["mesh_rows"] = 4
     payload["noc"]["mesh_cols"] = 4
-    with pytest.raises(ValidationError, match="noc.unit_count.*must equal num_aie_tiles"):
+    with pytest.raises(ValidationError, match=r"noc\.unit_count.*must equal num_aie_tiles"):
         DPUBlock(**payload)
 
 
