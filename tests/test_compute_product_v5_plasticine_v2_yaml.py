@@ -85,7 +85,8 @@ def test_catalog_contains_plasticine(all_products):
 
 def test_other_vendors_unaffected_by_plasticine_addition(all_products):
     """Additive guarantee: adding stanford/ vendor directory must not
-    perturb stillwater/, nvidia/, intel/, hailo/, or google/ loading."""
+    perturb stillwater/, nvidia/, intel/, hailo/ loading. google/
+    loosened to >= 1 since the TPU v4 follow-up adds a 2nd google SKU."""
     stillwater = [s for s, cp in all_products.items() if cp.vendor == "stillwater"]
     nvidia = [s for s, cp in all_products.items() if cp.vendor == "nvidia"]
     intel = [s for s, cp in all_products.items() if cp.vendor == "intel"]
@@ -95,7 +96,7 @@ def test_other_vendors_unaffected_by_plasticine_addition(all_products):
     assert len(nvidia) == 2
     assert len(intel) == 1
     assert len(hailo) == 2
-    assert len(google) == 1
+    assert len(google) >= 1
 
 
 # ---------------------------------------------------------------------------
