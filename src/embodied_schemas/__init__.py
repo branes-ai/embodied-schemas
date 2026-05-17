@@ -265,6 +265,9 @@ from embodied_schemas.tpu_block import (
     TPUFabricKind,
     TPUNoCTopology,
 )
+from embodied_schemas.compute_block_common import (
+    TheoreticalPerformance,
+)
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
     load_gpus,
@@ -549,6 +552,8 @@ __all__ = [
     "TPUTheoreticalPerformance",
     "TPUFabricKind",
     "TPUNoCTopology",
+    # v8 unified primitives (compute_block_common)
+    "TheoreticalPerformance",
     # Version
     "__version__",
 ]
