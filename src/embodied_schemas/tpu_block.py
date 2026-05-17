@@ -395,54 +395,16 @@ class TPUOnDieFabric(BaseModel):
 # Thermal profile (single profile on datacenter; multi-profile on edge)
 # ---------------------------------------------------------------------------
 
-class TPUThermalProfile(BaseModel):
-    """One TPU operating point. Datacenter TPUs (v1/v3/v4/v5p) ship
-    single profiles with no DVFS. Edge TPUs (tpu_edge_pro) ship
-    multiple profiles (15W / 30W / 45W on tpu_edge_pro -- three
-    distinct operating points). The schema uses a scalar ``clock_mhz``
-    per profile (mirrors NPU/CGRA/DPU); for multi-profile SKUs the
-    ``power.thermal_profiles`` list carries multiple entries.
-
-    Mirrors ``DPUThermalProfile`` field-by-field."""
-
-    name: str = Field(...)
-    tdp_watts: float = Field(..., gt=0)
-    cooling_solution_id: str = Field(...)
-
-    clock_mhz: float = Field(..., gt=0, description="Operating frequency")
-    dvfs_enabled: bool = Field(
-        False,
-        description=(
-            "False is the datacenter-TPU default (single fixed "
-            "operating point). True for edge TPUs with multiple "
-            "thermal profiles (tpu_edge_pro)."
-        ),
-    )
-
-    # Per-precision empirical numbers, same shape as GPU/CPU/KPU/NPU/CGRA/DPU
-    efficiency_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-    instruction_efficiency_by_precision: dict[str, float] = Field(default_factory=dict)
-    memory_bottleneck_factor_by_precision: dict[str, float] = Field(default_factory=dict)
-
-    vdd_v: float | None = Field(default=None, gt=0)
-
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="after")
-    def _validate_efficiency_ranges(self) -> "TPUThermalProfile":
-        for attr_name, label in (
-            ("efficiency_factor_by_precision", "efficiency_factor"),
-            ("instruction_efficiency_by_precision", "instruction_efficiency"),
-            ("memory_bottleneck_factor_by_precision", "memory_bottleneck_factor"),
-        ):
-            mapping = getattr(self, attr_name)
-            for precision, value in mapping.items():
-                if not 0.0 <= value <= 1.0:
-                    raise ValueError(
-                        f"{attr_name}[{precision!r}] = {value} is outside "
-                        f"[0, 1]; {label} is a unit fraction."
-                    )
-        return self
+# TPUThermalProfile is now an alias of the unified ``ThermalProfile``
+# from ``compute_block_common`` (v9 sprint PR 3 -- branes-ai/graphs#215).
+# The class body was byte-identical to 4 other per-block-kind classes
+# (NPU/CGRA/DPU/DSP); the unified type accepts the same data shape
+# (datacenter TPU single profile + edge TPU multi-profile both work).
+#
+# Backward-compat: ``isinstance(x, TPUThermalProfile)`` AND
+# ``isinstance(x, ThermalProfile)`` both work (same class object).
+from embodied_schemas.compute_block_common import ThermalProfile
+TPUThermalProfile = ThermalProfile
 
 
 # ---------------------------------------------------------------------------
