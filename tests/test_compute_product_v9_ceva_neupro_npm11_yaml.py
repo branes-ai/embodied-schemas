@@ -55,13 +55,15 @@ def test_catalog_includes_ceva_neupro_npm11(all_products):
     assert ceva_skus == ["ceva_neupro_m_npm11"]
 
 
-def test_catalog_dsp_count_is_now_three(all_products):
-    """Cadence + Synopsys + CEVA = 3 DSP SKUs."""
+def test_catalog_dsp_count_at_least_three(all_products):
+    """Cadence + Synopsys + CEVA lands the DSP count to at least 3 at
+    this SKU's PR baseline. Subset semantics so further DSP follow-ups
+    (graphs#223) don't regress this test."""
     dsp_count = sum(
         1 for cp in all_products.values()
         if cp.dies[0].blocks[0].kind == "dsp"
     )
-    assert dsp_count == 3
+    assert dsp_count >= 3
 
 
 # ---------------------------------------------------------------------------
