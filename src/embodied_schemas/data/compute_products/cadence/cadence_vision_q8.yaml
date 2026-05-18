@@ -127,6 +127,7 @@ dies:
       external_dram_size_gb: 4.0       # typical embedded SoC pairing
       external_dram_bandwidth_gbps: 40.0   # typical (NOT measured)
       external_dram_bandwidth_kind: typical   # IP-core load-bearing discriminator
+      dram_attachment: chip_attached      # v12 backfill: SoC integrators put LPDDR on the host SoC die
       external_dram_access_energy_pj_per_byte: 12.0   # LPDDR4 typical
       coherence_protocol: none         # Vision DSP doesn't snoop
     clock_domain:
