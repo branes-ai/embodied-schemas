@@ -9,11 +9,16 @@ single canonical definitions.
 Unified types landed so far:
   - ``TheoreticalPerformance`` -- v8 sprint (graphs#208). Collapses
     ``*TheoreticalPerformance`` across 6 block kinds (CPU/GPU/NPU/CGRA/
-    DPU/TPU); DSP added in v9 catalog as a day-1 reuser.
+    DPU/TPU); DSP added in v9 catalog as a day-1 reuser. Alias-based.
   - ``ThermalProfile`` -- v9 sprint (graphs#215). Collapses the 5
     byte-identical inference-accelerator ``*ThermalProfile`` classes
     (NPU/CGRA/DPU/TPU/DSP). CPU and GPU stay separate (different
-    shapes for legitimate architectural reasons).
+    shapes for legitimate architectural reasons). Alias-based.
+  - ``OnDieFabric`` -- v10 sprint (graphs#217). Shared base for the
+    6 ``*OnDieFabric`` classes; per-block-kind subclasses contribute
+    only the architecture-specific ``topology`` enum. Inheritance-
+    based (vs alias) because each block kind has its own topology
+    enum that must stay validated.
 
 This module is **additive only**. Existing block modules continue to
 work unchanged:
@@ -35,25 +40,26 @@ Backward-compat guarantees:
   4. Every serialized JSON round-trips unchanged.
   5. graphs-side YAML loaders work unchanged.
 
-Out of scope for v9:
+Out of scope for v10:
 
   - KPU schema unification (oldest module; pre-dates the pattern;
     12 SKUs would need migration; KPUThermalProfile is doubly-purposed
-    as chip-level ``Power.thermal_profiles`` -- defer to v11+)
-  - ``OnDieFabric`` unification (3 byte-identical + 3 variants with
-    naming reconciliation -- defer to v10)
+    as chip-level ``Power.thermal_profiles`` -- defer to v12+)
   - ``MemorySubsystem`` / ``ComputeFabric`` unification (KEEP_SEPARATE
     -- architectural variations are meaningful)
-  - Per-architecture fabric kind enums (NPUDataflowKind etc.) --
-    intentionally architecture-specific
+  - Per-architecture fabric kind enums (NPUDataflowKind, NPUNoCTopology
+    etc.) -- intentionally architecture-specific
   - ``has_external_dram`` vs ``has_host_dram`` naming reconciliation
-    (touches SKU YAMLs; defer to v10)
+    (touches SKU YAMLs; defer to v11)
 
 See:
   - ``graphs/docs/designs/v8-compute-block-common-unification.md``
     (original v8 paper exercise: 4 primitives + TheoreticalPerformance)
   - ``graphs/docs/designs/v9-thermal-profile-unification.md``
     (v9 paper exercise: 7-class audit + ThermalProfile unification)
+  - ``graphs/docs/designs/v10-on-die-fabric-unification.md``
+    (v10 paper exercise: 6-class audit + OnDieFabric base + endpoint-
+    count naming reconciliation)
 """
 
 from __future__ import annotations
@@ -229,13 +235,97 @@ class ThermalProfile(BaseModel):
         return self
 
 
+# ---------------------------------------------------------------------------
+# Inheritance base: OnDieFabric (v10 unification, graphs#217 PR 2)
+#
+# The 6 ``*OnDieFabric`` classes (CPU/GPU/NPU/CGRA/DPU/TPU) share 7
+# fields but each carries an architecture-specific ``topology`` enum
+# (CPU's infinity_fabric, DPU's aie_mesh, NPU's systolic, etc.). The
+# topology enums are genuinely different -- only ``crossbar`` overlaps
+# across multiple kinds. So v10 uses **inheritance**, not aliasing:
+# the base holds the shared fields; per-block-kind subclasses contribute
+# only the typed ``topology`` field.
+#
+# This is the first inheritance-based unification (vs v8/v9 alias-based).
+# The cost is one inheritance level; the benefit is per-kind topology
+# enum validation preserved + ~150 LOC saved across the 6 subclasses.
+#
+# CPU and GPU gain a ``confidence`` field (with THEORETICAL default)
+# in v10; previously these two block kinds had no provenance hook on
+# their fabric description.
+#
+# See ``graphs/docs/designs/v10-on-die-fabric-unification.md`` for the
+# full paper exercise + 6-class audit + risk analysis.
+# ---------------------------------------------------------------------------
+
+class OnDieFabric(BaseModel):
+    """Base for on-die fabric descriptions. Per-block-kind subclasses
+    contribute the architecture-specific ``topology`` enum; this base
+    holds the 7 fields all 6 block-kind NoCs share + 2 optional mesh
+    dims + optional confidence.
+
+    Inheritance (not alias) because the topology field is genuinely
+    architecture-specific. Each per-kind subclass looks like::
+
+        class NPUOnDieFabric(OnDieFabric):
+            topology: NPUNoCTopology = Field(...)
+
+    ``isinstance(x, NPUOnDieFabric)`` AND ``isinstance(x, OnDieFabric)``
+    both work (proper subclass relationship).
+
+    Endpoint-count semantics by block kind:
+      - NPU/DPU/CGRA/TPU: ``unit_count`` = number of compute units
+      - CPU: ``unit_count`` = number of ring stops (formerly stop_count)
+      - GPU: ``unit_count`` = number of memory controllers (formerly controller_count)
+
+    The v10 sprint renamed CPU's ``stop_count`` and GPU's
+    ``controller_count`` to ``unit_count`` for shared-base
+    compatibility. Pre-rename data shapes are NOT supported; the
+    YAML migration is atomic with the schema change.
+    """
+
+    bisection_bandwidth_gbps: float = Field(..., gt=0)
+    unit_count: int = Field(
+        ..., gt=0,
+        description=(
+            "Number of fabric endpoints. Meaning varies by block kind: "
+            "compute units (NPU/DPU/CGRA/TPU); ring stops (CPU); "
+            "memory controllers (GPU)."
+        ),
+    )
+    flit_size_bytes: int = Field(..., gt=0)
+    hop_latency_ns: float = Field(..., ge=0)
+    pj_per_flit_per_hop: float = Field(..., ge=0)
+    routing_distance_factor: float = Field(1.0, gt=0)
+
+    # Mesh-specific (optional; only populated when topology is a
+    # mesh-like one). NPU/CGRA/DPU populate these for 2D meshes;
+    # TPU/CPU/GPU leave them None.
+    mesh_rows: int | None = Field(default=None, gt=0)
+    mesh_cols: int | None = Field(default=None, gt=0)
+
+    # NoC provenance. NPU/CGRA/DPU/TPU populate explicitly; CPU/GPU
+    # gain this field in v10 with THEORETICAL default.
+    confidence: DataConfidence = Field(
+        DataConfidence.THEORETICAL,
+        description=(
+            "Provenance of NoC numbers. Vendors rarely publish full "
+            "NoC details, so THEORETICAL is the common case."
+        ),
+    )
+
+    model_config = {"extra": "forbid"}
+
+
 __all__ = [
     # Shared primitives (re-exported from source modules)
     "CircuitClass",
     "DataConfidence",
     "MemoryType",
     "ClockDomain",
-    # Unified types
+    # Unified types (alias-based, v8/v9)
     "TheoreticalPerformance",
     "ThermalProfile",
+    # Inheritance base (v10)
+    "OnDieFabric",
 ]
