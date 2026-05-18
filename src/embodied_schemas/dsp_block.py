@@ -91,6 +91,7 @@ from embodied_schemas.compute_block_common import (
     CircuitClass,
     ClockDomain,
     DataConfidence,
+    DramAttachment,
     MemoryType,
     TheoreticalPerformance,
 )
@@ -283,6 +284,12 @@ class DSPMemorySubsystem(BaseModel):
             "has_external_dram=True."
         ),
     )
+    # v11 (graphs#219): DRAM-attachment discriminator (orthogonal to
+    # external_dram_bandwidth_kind, which captures typical-vs-measured).
+    # Optional in v11 for backward compat; DSP SKUs are chip-attached today
+    # (LPDDR controllers on the SoC for SoC-integrated; typical-integration
+    # for IP cores assumes chip-attached LPDDR on the host SoC).
+    dram_attachment: DramAttachment | None = Field(default=None)
     external_dram_access_energy_pj_per_byte: float = Field(
         0.0, ge=0,
         description="Energy per byte for external DRAM access. ~12 pJ/byte for LPDDR5.",

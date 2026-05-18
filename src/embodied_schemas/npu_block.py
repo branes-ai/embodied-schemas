@@ -57,6 +57,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from embodied_schemas.compute_block_common import DramAttachment
 from embodied_schemas.gpu import MemoryType
 from embodied_schemas.process_node import CircuitClass, DataConfidence
 
@@ -220,6 +221,11 @@ class NPUMemorySubsystem(BaseModel):
     external_dram_type: MemoryType | None = Field(default=None)
     external_dram_size_gb: float | None = Field(default=None, ge=0)
     external_dram_bandwidth_gbps: float | None = Field(default=None, ge=0)
+
+    # v11 (graphs#219): DRAM-attachment discriminator. Optional in v11
+    # for backward compat; YAMLs that don't populate it default None.
+    # NPU SKUs are chip-attached today (no PCIe-DRAM NPUs in the catalog).
+    dram_attachment: DramAttachment | None = Field(default=None)
 
     # Energy per byte for the dominant memory tier (on-chip SRAM).
     # ~2 pJ/B for SRAM on 16nm; higher (~20 pJ/B) when DRAM is

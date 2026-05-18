@@ -69,6 +69,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from embodied_schemas.compute_block_common import DramAttachment
 from embodied_schemas.gpu import MemoryType
 from embodied_schemas.process_node import CircuitClass, DataConfidence
 
@@ -206,6 +207,13 @@ class CGRAMemorySubsystem(BaseModel):
     host_dram_type: MemoryType | None = Field(default=None)
     host_dram_size_gb: float | None = Field(default=None, ge=0)
     host_dram_bandwidth_gbps: float | None = Field(default=None, ge=0)
+
+    # v11 (graphs#219): DRAM-attachment discriminator. Optional in v11
+    # for backward compat; the CGRAMemorySubsystem field rename to
+    # has_external_dram / external_dram_* lands in PR 3 of the v11
+    # sprint along with the Plasticine YAML migration that sets
+    # dram_attachment=host_bus explicitly.
+    dram_attachment: DramAttachment | None = Field(default=None)
 
     # Energy per byte for the dominant on-chip memory tier (PMU + L2).
     # ~12 pJ/B for Plasticine 28nm; cheaper than host DRAM access.

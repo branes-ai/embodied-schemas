@@ -80,6 +80,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from embodied_schemas.compute_block_common import DramAttachment
 from embodied_schemas.gpu import MemoryType
 from embodied_schemas.process_node import CircuitClass, DataConfidence
 
@@ -300,6 +301,11 @@ class TPUMemorySubsystem(BaseModel):
     external_dram_type: MemoryType | None = Field(default=None)
     external_dram_size_gb: float | None = Field(default=None, ge=0)
     external_dram_bandwidth_gbps: float | None = Field(default=None, ge=0)
+
+    # v11 (graphs#219): DRAM-attachment discriminator. Optional in v11
+    # for backward compat; YAMLs that don't populate it default None.
+    # TPU SKUs are chip-attached today (HBM stacks on package).
+    dram_attachment: DramAttachment | None = Field(default=None)
 
     # Energy per byte for external DRAM (HBM/DDR/LPDDR) access.
     external_dram_access_energy_pj_per_byte: float = Field(0.0, ge=0)
