@@ -23,25 +23,33 @@ from pydantic import ValidationError
 
 from embodied_schemas import (
     # Original module imports (must keep working)
+    CGRAOnDieFabric,
     CGRATheoreticalPerformance,
     CGRAThermalProfile,
     CircuitClass,
     ClockDomain,
+    CPUOnDieFabric,
     CPUTheoreticalPerformance,
     CPUThermalProfile,
     DataConfidence,
+    DPUOnDieFabric,
     DPUTheoreticalPerformance,
     DPUThermalProfile,
     DSPThermalProfile,
+    GPUOnDieFabric,
     GPUTheoreticalPerformance,
     GPUThermalProfile,
     MemoryType,
+    NPUOnDieFabric,
     NPUTheoreticalPerformance,
     NPUThermalProfile,
     # v8 unified type from compute_block_common
     TheoreticalPerformance,
     # v9 unified type from compute_block_common
     ThermalProfile,
+    # v10 inheritance base from compute_block_common
+    OnDieFabric,
+    TPUOnDieFabric,
     TPUTheoreticalPerformance,
     TPUThermalProfile,
 )
@@ -508,3 +516,128 @@ def test_five_per_block_kind_thermal_profiles_are_field_identical():
             f"only in cls: {cls_fields - unified_fields}; "
             f"only in unified: {unified_fields - cls_fields}"
         )
+
+
+# ---------------------------------------------------------------------------
+# 8. v10: OnDieFabric (inheritance base across 6 block kinds)
+# ---------------------------------------------------------------------------
+
+def test_compute_block_common_exports_on_die_fabric():
+    """The new v10 ``OnDieFabric`` base is importable from both
+    compute_block_common and the top-level package."""
+    from embodied_schemas.compute_block_common import (
+        OnDieFabric as common_OnDieFabric,
+    )
+    assert OnDieFabric is common_OnDieFabric
+
+
+def test_on_die_fabric_base_constructs_without_topology():
+    """The base class itself has no ``topology`` field -- per-block-kind
+    subclasses contribute it. Constructing OnDieFabric directly should
+    succeed (only base fields required)."""
+    fabric = OnDieFabric(
+        bisection_bandwidth_gbps=500.0,
+        unit_count=16,
+        flit_size_bytes=32,
+        hop_latency_ns=1.0,
+        pj_per_flit_per_hop=2.0,
+        routing_distance_factor=1.0,
+    )
+    assert fabric.unit_count == 16
+    assert fabric.mesh_rows is None
+    assert fabric.mesh_cols is None
+    # Default confidence is THEORETICAL
+    assert fabric.confidence == DataConfidence.THEORETICAL
+
+
+def test_on_die_fabric_rejects_zero_or_negative_required_fields():
+    """bisection_bandwidth_gbps, unit_count, flit_size_bytes are all
+    positive-required; routing_distance_factor must be > 0."""
+    with pytest.raises(ValidationError):
+        OnDieFabric(
+            bisection_bandwidth_gbps=0.0, unit_count=16,
+            flit_size_bytes=32, hop_latency_ns=1.0,
+            pj_per_flit_per_hop=2.0,
+        )
+    with pytest.raises(ValidationError):
+        OnDieFabric(
+            bisection_bandwidth_gbps=500.0, unit_count=0,
+            flit_size_bytes=32, hop_latency_ns=1.0,
+            pj_per_flit_per_hop=2.0,
+        )
+    with pytest.raises(ValidationError):
+        OnDieFabric(
+            bisection_bandwidth_gbps=500.0, unit_count=16,
+            flit_size_bytes=32, hop_latency_ns=1.0,
+            pj_per_flit_per_hop=2.0, routing_distance_factor=0.0,
+        )
+
+
+def test_on_die_fabric_accepts_zero_hop_latency_and_energy():
+    """hop_latency_ns and pj_per_flit_per_hop use ge=0 (not gt=0)
+    because some idealized models report 0 for these."""
+    fabric = OnDieFabric(
+        bisection_bandwidth_gbps=500.0, unit_count=16,
+        flit_size_bytes=32, hop_latency_ns=0.0,
+        pj_per_flit_per_hop=0.0,
+    )
+    assert fabric.hop_latency_ns == 0.0
+    assert fabric.pj_per_flit_per_hop == 0.0
+
+
+def test_on_die_fabric_accepts_optional_mesh_dims():
+    """NPU/CGRA/DPU populate mesh_rows + mesh_cols for 2D meshes."""
+    fabric = OnDieFabric(
+        bisection_bandwidth_gbps=500.0, unit_count=32,
+        flit_size_bytes=32, hop_latency_ns=1.0,
+        pj_per_flit_per_hop=2.0,
+        mesh_rows=4, mesh_cols=8,
+        confidence=DataConfidence.CALIBRATED,
+    )
+    assert fabric.mesh_rows == 4
+    assert fabric.mesh_cols == 8
+    assert fabric.confidence == DataConfidence.CALIBRATED
+
+
+def test_on_die_fabric_rejects_zero_mesh_dim_when_set():
+    """If mesh_rows is set, it must be > 0 (not None and not 0)."""
+    with pytest.raises(ValidationError):
+        OnDieFabric(
+            bisection_bandwidth_gbps=500.0, unit_count=16,
+            flit_size_bytes=32, hop_latency_ns=1.0,
+            pj_per_flit_per_hop=2.0,
+            mesh_rows=0,  # invalid
+        )
+
+
+def test_on_die_fabric_forbids_extra_fields():
+    with pytest.raises(ValidationError):
+        OnDieFabric(
+            bisection_bandwidth_gbps=500.0, unit_count=16,
+            flit_size_bytes=32, hop_latency_ns=1.0,
+            pj_per_flit_per_hop=2.0,
+            unknown_field=42,  # invalid (extra: forbid)
+        )
+
+
+def test_on_die_fabric_round_trips_through_json():
+    fabric = OnDieFabric(
+        bisection_bandwidth_gbps=2000.0, unit_count=2,
+        flit_size_bytes=32, hop_latency_ns=1.0,
+        pj_per_flit_per_hop=2.0,
+        confidence=DataConfidence.THEORETICAL,
+    )
+    payload = fabric.model_dump(mode="json")
+    rebuilt = OnDieFabric.model_validate(payload)
+    assert rebuilt == fabric
+
+
+def test_existing_per_block_kind_on_die_fabric_classes_still_importable():
+    """All 6 ``*OnDieFabric`` types remain importable from the top-level
+    package; PR 3 of v10 sprint converts each to inherit from OnDieFabric."""
+    for cls in (NPUOnDieFabric, CGRAOnDieFabric, DPUOnDieFabric,
+                TPUOnDieFabric, CPUOnDieFabric, GPUOnDieFabric):
+        assert cls is not None
+        # In PR 2 (this PR) the existing classes are NOT yet aliased / inheriting.
+        # PR 3 of v10 sprint migrates them; until then, identity / subclass
+        # relationship is NOT yet expected.
