@@ -275,6 +275,7 @@ from embodied_schemas.dsp_block import (
     DSPDeploymentKind,
 )
 from embodied_schemas.compute_block_common import (
+    DramAttachment,
     OnDieFabric,
     TheoreticalPerformance,
     ThermalProfile,
@@ -570,10 +571,11 @@ __all__ = [
     "DSPTheoreticalPerformance",
     "DSPFabricKind",
     "DSPDeploymentKind",
-    # v8/v9/v10 unified primitives (compute_block_common)
+    # v8/v9/v10/v11 unified primitives (compute_block_common)
     "TheoreticalPerformance",
     "ThermalProfile",
     "OnDieFabric",
+    "DramAttachment",
     # Version
     "__version__",
 ]
