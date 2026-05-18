@@ -37,6 +37,7 @@ from embodied_schemas import (
     DPUOnDieFabric,
     DPUTheoreticalPerformance,
     DPUThermalProfile,
+    DramAttachment,
     GPUBlock,
     KPUBlock,
     LifecycleStatus,
@@ -86,6 +87,7 @@ def vitis_ai_memory() -> DPUMemorySubsystem:
         shared_sram_kib=4096,    # 4 MiB shared L2
         shared_sram_layout="shared",
         has_external_dram=True,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
         external_dram_type=MemoryType.DDR4,
         external_dram_size_gb=8.0,
         external_dram_bandwidth_gbps=50.0,
@@ -211,6 +213,7 @@ def test_external_dram_false_with_all_cleared_validates(vitis_ai_memory):
     payload["external_dram_type"] = None
     payload["external_dram_size_gb"] = None
     payload["external_dram_bandwidth_gbps"] = None
+    payload["dram_attachment"] = None   # v12 requirement: clear when no external_dram
     mem = DPUMemorySubsystem(**payload)
     assert mem.has_external_dram is False
 

@@ -39,6 +39,7 @@ from embodied_schemas import (
     DSPMemorySubsystem,
     DSPTheoreticalPerformance,
     DSPThermalProfile,
+    DramAttachment,
     GPUBlock,
     KPUBlock,
     LifecycleStatus,
@@ -95,6 +96,7 @@ def cadence_q8_memory() -> DSPMemorySubsystem:
         l2_size_bytes_total=1 * 1024 * 1024,
         l2_bandwidth_gbps=80.0,
         has_external_dram=True,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
         external_dram_type=MemoryType.LPDDR4,
         external_dram_size_gb=4.0,
         external_dram_bandwidth_gbps=40.0,
@@ -346,6 +348,7 @@ def test_dsp_block_standalone_ip_requires_typical_bandwidth(
     bad_memory = DSPMemorySubsystem(
         l1_size_bytes_per_unit=32 * 1024,
         has_external_dram=True,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
         external_dram_type=MemoryType.LPDDR4,
         external_dram_size_gb=4.0,
         external_dram_bandwidth_gbps=40.0,
@@ -376,6 +379,7 @@ def test_dsp_block_soc_integrated_allows_measured_or_typical(
         memory = DSPMemorySubsystem(
             l1_size_bytes_per_unit=32 * 1024,
             has_external_dram=True,
+            dram_attachment=DramAttachment.CHIP_ATTACHED,
             external_dram_type=MemoryType.LPDDR5,
             external_dram_size_gb=8.0,
             external_dram_bandwidth_gbps=90.0,

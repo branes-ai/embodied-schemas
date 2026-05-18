@@ -32,6 +32,7 @@ from embodied_schemas import (
     Die,
     DieRole,
     DPUBlock,
+    DramAttachment,
     GPUBlock,
     KPUBlock,
     LifecycleStatus,
@@ -104,6 +105,7 @@ def tpu_v4_memory() -> TPUMemorySubsystem:
         unified_buffer_size_kib=32 * 1024,    # 32 MiB
         unified_buffer_access_energy_pj_per_byte=0.5,
         has_external_dram=True,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
         external_dram_type=MemoryType.HBM2,
         external_dram_size_gb=32.0,
         external_dram_bandwidth_gbps=1200.0,
