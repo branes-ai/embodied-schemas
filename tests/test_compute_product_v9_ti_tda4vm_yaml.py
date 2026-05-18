@@ -53,8 +53,10 @@ def tda4vm_block(tda4vm) -> DSPBlock:
 # ---------------------------------------------------------------------------
 
 def test_catalog_includes_ti_tda4vm(all_products):
-    ti_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "ti")
-    assert ti_skus == ["ti_tda4vm"]
+    """At this SKU's PR baseline ti/ had 1 entry; subset semantics so
+    further TI TDA4 follow-ups (graphs#223 batch 2) don't regress this."""
+    ti_skus = {s for s, cp in all_products.items() if cp.vendor == "ti"}
+    assert "ti_tda4vm" in ti_skus
 
 
 def test_catalog_dsp_count_at_least_four(all_products):

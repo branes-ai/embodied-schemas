@@ -1,0 +1,248 @@
+# Texas Instruments TDA4AL (Jacinto 7 Advanced Low-Power) -- automotive ADAS SoC.
+#
+# Fifth DSP SKU in the catalog. Second TI TDA4 family member (after
+# TDA4VM). DSP batch #223 batch 2 SKU 2 of 4.
+#
+# TDA4AL is the low-power variant of the Jacinto 7 family: same C7x +
+# MMA architecture as TDA4VM but with MMAv2 (more efficient than
+# MMAv1) and a lower thermal ceiling (18W vs TDA4VM's 20W). 16nm
+# FinFET, ASIL-D safety certified.
+#
+# Data sourced from:
+#   - TI TDA4AL Product Brief
+#   - Jacinto 7 Architecture Overview
+#   - graphs/src/graphs/hardware/models/automotive/ti_tda4al.py
+#
+# Key TDA4AL vs TDA4VM deltas:
+#   - MMA: v2 (vs v1) -- more efficient implementation
+#   - Max thermal profile: 18W (vs 20W) -- better power efficiency
+#   - Sustained clock @ max profile: 980 MHz (vs 950 MHz)
+#   - energy_per_byte: 18 pJ (vs 20 pJ) -- LPDDR4x integration improvement
+
+id: ti_tda4al
+name: Texas Instruments TDA4AL (Jacinto 7 Advanced Low-Power)
+vendor: ti
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: fcbga
+
+lifecycle: production
+
+dies:
+- die_id: tda4al_die
+  die_role: compute
+  process_node_id: tsmc_n16     # 16nm FinFET (corrected from hand-coded's buggy 28nm)
+  die_size_mm2: 105.0
+  transistors_billion: 4.8
+  silicon_bin:
+    blocks:
+    - name: c7x_dsp_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: 8x C7x VLIW DSP cores
+    - name: mma_v2_accelerator
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 450.0
+      notes: MMAv2 tensor accelerator (more efficient than MMAv1)
+    - name: msmc_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 8 MiB MSMC on-chip SRAM
+    - name: l1d_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: 48 KB L1D per C7x core
+    - name: lpddr4x_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 300.0
+      notes: LPDDR4x dual-channel PHY (~60 GB/s)
+    - name: cortex_a72_cluster
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 2000.0
+      notes: 2x Cortex-A72 @ 2.0 GHz (out of scope for DSPBlock)
+    - name: r5f_safety_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: R5F safety cores for ASIL-D
+    - name: peripherals
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: ISP + MCAN + Ethernet + PCIe + display
+  clocks:
+    base_clock_mhz: 600.0
+    boost_clock_mhz: 1000.0
+  blocks:
+  - kind: dsp
+    deployment_kind: soc_integrated
+    compute_fabrics:
+    # Fabric 1: C7x DSP (8 cores VLIW; FP32 baseline)
+    - fabric_kind: vliw_scalar
+      circuit_class: balanced_logic
+      num_units: 8
+      ops_per_unit_per_clock:
+        fp32: 10
+        fp16: 20
+      energy_per_op_fp32_pj: 2.43      # 16nm simd_packed baseline (corrected)
+      energy_scaling:
+        fp16: 0.50
+        int8: 0.15
+    # Fabric 2: MMAv2 tensor accelerator (more efficient than MMAv1)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 1
+      ops_per_unit_per_clock:
+        int8: 8000                     # 8 TOPS / 1.0 GHz
+        int16: 4000
+      energy_per_op_fp32_pj: 2.295     # 16nm tensor_core baseline (corrected)
+      energy_scaling:
+        int8: 0.15
+        int16: 0.25
+    memory:
+      l1_size_bytes_per_unit: 49152
+      l2_size_bytes_total: 8388608
+      l2_bandwidth_gbps: 120.0
+      has_external_dram: true
+      external_dram_type: lpddr4x
+      external_dram_size_gb: 8.0
+      external_dram_bandwidth_gbps: 60.0
+      external_dram_bandwidth_kind: measured
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 18.0   # MMAv2 SoC: ~10% better than TDA4VM
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 600000000.0
+      boost_hz: 1000000000.0
+      sustained_hz: 880000000.0        # 880 MHz @ 10W default profile
+    thermal_profiles:
+    - name: '10W'                       # Front-camera ADAS (passive)
+      tdp_watts: 10.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 880.0                  # 88% of 1.0 GHz peak
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.75                      # MMAv2 improvement vs TDA4VM's 0.70
+        int16: 0.70
+        fp16: 0.60
+        fp32: 0.55
+      instruction_efficiency_by_precision:
+        int8: 0.94                      # MMAv2 improvement
+        int16: 0.92
+        fp16: 0.78
+        fp32: 0.88
+      memory_bottleneck_factor_by_precision:
+        int8: 0.78
+        int16: 0.73
+        fp16: 0.68
+        fp32: 0.63
+      vdd_v: 0.8
+    - name: '18W'                       # Multi-camera ADAS (active)
+      tdp_watts: 18.0                   # vs TDA4VM's 20W -- better power efficiency
+      cooling_solution_id: active_fan
+      clock_mhz: 980.0                  # 98% of 1.0 GHz peak
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.82                      # MMAv2 improvement vs TDA4VM's 0.80
+        int16: 0.78
+        fp16: 0.68
+        fp32: 0.62
+      instruction_efficiency_by_precision:
+        int8: 0.95
+        int16: 0.93
+        fp16: 0.83
+        fp32: 0.90
+      memory_bottleneck_factor_by_precision:
+        int8: 0.82
+        int16: 0.77
+        fp16: 0.72
+        fp32: 0.67
+      vdd_v: 0.85
+    default_thermal_profile_name: '10W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int8: 8000000000000.0           # 8 TOPS INT8 (TI-marketed, MMAv2 path)
+        int16: 4000000000000.0          # 4 TOPS INT16
+        fp16: 160000000000.0            # 160 GFLOPS FP16 (C7x)
+        fp32: 80000000000.0             # 80 GFLOPS FP32 (C7x)
+    default_precision: int8
+    multi_precision_alu:
+    - int8
+    - int16
+    - fp16
+    - fp32
+    min_occupancy: 0.70
+    max_concurrent_kernels: 4
+    wave_quantization: 4
+    vliw_issue_width: 8                # C7x is 8-wide VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+performance:
+  int8_tops: 8.0
+  bf16_tflops: 0.0
+  fp32_tflops: 0.08
+  int4_tops: 0.0
+
+power:
+  tdp_watts: 10.0
+  max_power_watts: 20.0                 # at 18W profile + small boost headroom
+  min_power_watts: 4.0
+  idle_power_watts: 0.5
+  default_thermal_profile: '10W'
+  thermal_profiles:
+  - name: '10W'
+    tdp_watts: 10.0
+    clock_mhz: 880.0
+    cooling_solution_id: passive_fanless
+  - name: '18W'
+    tdp_watts: 18.0
+    clock_mhz: 980.0
+    cooling_solution_id: active_fan
+
+market:
+  launch_date: '2022-01-01'
+  target_market: embodied
+  product_family: Jacinto-7
+  model_tier: mid
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Texas Instruments TDA4AL (Jacinto 7 Advanced Low-Power) -- fifth
+  DSP SKU in the catalog, second TI TDA4 family member after TDA4VM.
+
+  Same C7x + MMA architecture as TDA4VM but with **MMAv2** (more
+  efficient than MMAv1) and a lower thermal ceiling (18W vs TDA4VM's
+  20W). 16nm FinFET, ASIL-D safety certified. Replaces TDA4VM in
+  newer designs that target the 10-18W envelope.
+
+  Key TDA4AL vs TDA4VM deltas:
+    - MMA: v2 (vs v1) -- more efficient implementation
+    - Max thermal profile: 18W (vs 20W) -- better power efficiency
+    - Sustained clock @ max profile: 980 MHz (vs 950 MHz)
+    - energy_per_byte: 18 pJ (vs 20 pJ) -- LPDDR4x integration improvement
+
+  Process node correction: hand-coded factory uses 28nm; YAML uses
+  16nm per TI's official Jacinto 7 docs (same correction as TDA4VM).
+
+  Used in automotive ADAS Level 2-3 (similar to TDA4VM but more
+  efficient). Closes batch 2 SKU 2 of 4 in the DSP follow-up
+  sprint (graphs#223).
+last_updated: '2026-05-18'
