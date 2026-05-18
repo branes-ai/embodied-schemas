@@ -46,9 +46,11 @@ def tda4al_block(tda4al) -> DSPBlock:
 # Catalog: second TI TDA4 family member
 # ---------------------------------------------------------------------------
 
-def test_ti_vendor_has_two_skus(all_products):
-    ti_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "ti")
-    assert ti_skus == ["ti_tda4al", "ti_tda4vm"]
+def test_ti_vendor_has_at_least_two_skus(all_products):
+    """At this SKU's PR baseline ti/ had 2 entries; subset semantics
+    so further TI TDA4 follow-ups (graphs#223) don't regress this."""
+    ti_skus = {s for s, cp in all_products.items() if cp.vendor == "ti"}
+    assert {"ti_tda4al", "ti_tda4vm"}.issubset(ti_skus)
 
 
 def test_catalog_dsp_count_at_least_five(all_products):
