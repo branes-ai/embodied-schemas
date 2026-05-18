@@ -1,0 +1,290 @@
+# Qualcomm QCS6490 -- entry-level edge AI SoC.
+#
+# **Closes DSP batch #223 sprint** -- last of 9 follow-up SKUs.
+# 10th DSP SKU in the catalog. Third Qualcomm DSP.
+#
+# QCS6490 targets battery-powered IoT cameras, drones, mobile robots,
+# and edge AI deployments. 6nm TSMC (vs SA8775P's 5nm and QRB5165's
+# 7nm). Hexagon NPU V79 (6th-gen AI Engine) with HVX vector + HTA
+# tensor accelerator.
+#
+# Data sourced from:
+#   - Qualcomm QCS6490 Product Brief
+#   - Hexagon V79 NPU architecture documentation
+#   - graphs/src/graphs/hardware/models/edge/qualcomm_qcs6490.py
+#
+# Key QCS6490 deltas vs QRB5165:
+#   - 6nm TSMC (vs 7nm) -- newer process node, **first 6nm SKU in catalog**
+#   - 12 TOPS INT8 (vs 15) -- slightly lower peak; entry-level
+#   - 24 TOPS INT4 (vs not marketed on QRB5165)
+#   - 3-profile DVFS: 5W / 10W / 15W (vs QRB5165's single 7W)
+#   - LPDDR4X 40 GB/s (vs QRB5165's LPDDR5 44 GB/s)
+#   - Smaller LPDDR4X, lower bandwidth
+#   - Cheaper BOM ($85 vs $103) -- newer process + smaller memory
+#
+# Fabric ordering: HTA first (primary path; ~7.5 of 12 TOPS).
+# BOMCostProfile attached via the graphs-side wrapper overlay
+# (same pattern as SA8775P and QRB5165).
+
+id: qualcomm_qcs6490
+name: Qualcomm QCS6490
+vendor: qualcomm
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: fcbga
+
+lifecycle: production
+
+dies:
+- die_id: qcs6490_die
+  die_role: compute
+  process_node_id: tsmc_n6        # **first 6nm SKU in catalog** (N6 added in this PR)
+  die_size_mm2: 65.0              # ~smaller than QRB5165 (more efficient process)
+  transistors_billion: 5.5
+  silicon_bin:
+    blocks:
+    - name: hta_tensor_accelerator
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 900.0
+      notes: 1x HTA (Hexagon Tensor Accelerator) -- ~7.5 of 12 TOPS
+    - name: hvx_vector_units
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1600.0
+      notes: 16x HVX vector units (DSP cores with HVX)
+    - name: hexagon_dsp_control
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: Hexagon V79 DSP control + scalar VLIW
+    - name: l1_l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 300.0
+      notes: 64 KB L1/unit + 3 MB shared L2
+    - name: lpddr4x_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 250.0
+      notes: LPDDR4X controller PHY (~40 GB/s)
+    - name: kryo_cpu_cluster
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: Kryo CPU cluster (out of scope for DSPBlock)
+    - name: adreno_gpu
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: Adreno GPU (out of scope for DSPBlock)
+    - name: peripherals
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 650.0
+      notes: ISP + Wi-Fi 6 + 5G modem + connectivity
+  clocks:
+    base_clock_mhz: 800.0           # 800 MHz min
+    boost_clock_mhz: 1800.0         # 1.8 GHz peak boost
+  blocks:
+  - kind: dsp
+    deployment_kind: soc_integrated
+    compute_fabrics:
+    # Fabric 1: HTA tensor accelerator (PRIMARY -- ~7.5 of 12 TOPS)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 1
+      ops_per_unit_per_clock:
+        int4: 10000               # 2x INT8
+        int8: 5000                # 1 unit * 5000 * 1.5 GHz = 7.5 TOPS
+        int16: 2500               # Half of INT8
+        fp16: 1250
+      energy_per_op_fp32_pj: 1.40   # 6nm tensor_core baseline
+      energy_scaling:
+        int4: 0.08
+        int8: 0.15
+        int16: 0.25
+        fp16: 0.50
+    # Fabric 2: HVX vector path (16x 1024-bit SIMD units)
+    - fabric_kind: vector_simd
+      circuit_class: balanced_logic
+      num_units: 16                 # 16x HVX units (more than QRB5165's 4)
+      ops_per_unit_per_clock:
+        int4: 400                   # 2x INT8
+        int8: 200                   # 16 * 200 * 1.5 GHz = 4.8 TOPS
+        int16: 100
+        fp16: 50                    # Emulated
+      energy_per_op_fp32_pj: 1.49   # 6nm simd_packed baseline
+      energy_scaling:
+        int4: 0.08
+        int8: 0.15
+        int16: 0.25
+        fp16: 0.50
+    memory:
+      l1_size_bytes_per_unit: 65536    # 64 KiB per unit
+      l2_size_bytes_total: 3145728     # 3 MiB shared L2
+      l2_bandwidth_gbps: 80.0
+      has_external_dram: true
+      external_dram_type: lpddr4x      # cheaper than LPDDR5 (entry-level)
+      external_dram_size_gb: 8.0
+      external_dram_bandwidth_gbps: 40.0   # measured datasheet
+      external_dram_bandwidth_kind: measured
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 12.0   # LPDDR4X efficient
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 800000000.0
+      boost_hz: 1800000000.0
+      sustained_hz: 1500000000.0       # 1.5 GHz @ 10W default profile
+    # 3-profile DVFS: 5W battery / 10W standard / 15W max (similar to SA8775P shape)
+    thermal_profiles:
+    - name: '5W'                       # Battery-powered IoT cameras
+      tdp_watts: 5.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 1000.0                # 56% of 1.8 GHz peak
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int4: 0.42
+        int8: 0.45
+        int16: 0.40
+        fp16: 0.38
+      instruction_efficiency_by_precision:
+        int4: 0.86
+        int8: 0.88
+        int16: 0.85
+        fp16: 0.78
+      memory_bottleneck_factor_by_precision:
+        int4: 0.65
+        int8: 0.65
+        int16: 0.60
+        fp16: 0.55
+      vdd_v: 0.7
+    - name: '10W'                      # Standard edge AI (drones, robots)
+      tdp_watts: 10.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 1500.0                # 83% of 1.8 GHz peak
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int4: 0.50
+        int8: 0.55
+        int16: 0.48
+        fp16: 0.48
+      instruction_efficiency_by_precision:
+        int4: 0.88
+        int8: 0.90
+        int16: 0.88
+        fp16: 0.80
+      memory_bottleneck_factor_by_precision:
+        int4: 0.70
+        int8: 0.70
+        int16: 0.65
+        fp16: 0.60
+      vdd_v: 0.7
+    - name: '15W'                      # Max performance (tethered)
+      tdp_watts: 15.0
+      cooling_solution_id: active_fan
+      clock_mhz: 1700.0                # 94% of 1.8 GHz peak
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int4: 0.60
+        int8: 0.65
+        int16: 0.58
+        fp16: 0.55
+      instruction_efficiency_by_precision:
+        int4: 0.90
+        int8: 0.92
+        int16: 0.90
+        fp16: 0.85
+      memory_bottleneck_factor_by_precision:
+        int4: 0.75
+        int8: 0.75
+        int16: 0.70
+        fp16: 0.65
+      vdd_v: 0.8
+    default_thermal_profile_name: '10W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int4: 24000000000000.0          # 24 TOPS INT4 (2x INT8)
+        int8: 12000000000000.0          # 12 TOPS INT8 (Qualcomm-marketed)
+        int16: 6000000000000.0          # 6 TOPS INT16
+        fp16: 3000000000000.0           # 3 TFLOPS FP16
+    default_precision: int8
+    multi_precision_alu:
+    - int4
+    - int8
+    - int16
+    - fp16
+    min_occupancy: 0.5
+    max_concurrent_kernels: 8
+    wave_quantization: 2                # Smaller wave grouping (vs SA8775P's 4)
+    vliw_issue_width: 4                 # Hexagon DSP is 4-issue VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+performance:
+  int8_tops: 12.0
+  bf16_tflops: 0.0
+  fp32_tflops: 0.0
+  int4_tops: 24.0
+
+power:
+  tdp_watts: 10.0                       # default profile
+  max_power_watts: 17.0                 # 15W + boost headroom
+  min_power_watts: 2.0
+  idle_power_watts: 0.2
+  default_thermal_profile: '10W'
+  thermal_profiles:
+  - name: '5W'
+    tdp_watts: 5.0
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_fanless
+  - name: '10W'
+    tdp_watts: 10.0
+    clock_mhz: 1500.0
+    cooling_solution_id: passive_fanless
+  - name: '15W'
+    tdp_watts: 15.0
+    clock_mhz: 1700.0
+    cooling_solution_id: active_fan
+
+market:
+  launch_date: '2022-06-01'             # QCS6490 platform launch
+  target_market: embodied               # edge AI / IoT / robotics
+  product_family: Snapdragon-AI
+  model_tier: entry                     # entry-level edge AI (vs QRB5165=mid)
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Qualcomm QCS6490 -- entry-level edge AI SoC. **Closes DSP batch
+  #223 sprint** (10th DSP SKU; ninth follow-up SKU; third Qualcomm).
+
+  Newer process node than QRB5165: 6nm TSMC (vs 7nm). **First 6nm
+  SKU in the catalog** (tsmc_n6 process node added in this PR).
+  Hexagon NPU V79 (6th-gen AI Engine) with HVX vector + HTA tensor.
+
+  Key QCS6490 vs QRB5165 deltas:
+    - 6nm TSMC (vs 7nm) -- more efficient
+    - 12 TOPS INT8 (vs 15) -- slightly lower peak
+    - 24 TOPS INT4 explicit (vs not marketed on QRB5165)
+    - 3-profile DVFS: 5W/10W/15W (vs single 7W)
+    - LPDDR4X 40 GB/s (vs LPDDR5 44 GB/s) -- cheaper memory
+    - 16x HVX units (vs QRB5165's 4) -- HVX side scales up
+    - Cheaper BOM ($85 vs $103) -- newer process + cheaper memory
+
+  Targets battery-powered IoT cameras, drones, mobile robots.
+  Competitor to Hailo-8, Coral Edge TPU, Jetson Orin Nano.
+  model_tier='entry' (vs QRB5165=mid, SA8775P=high).
+
+  BOMCostProfile attached via the graphs-side wrapper overlay.
+last_updated: '2026-05-18'
