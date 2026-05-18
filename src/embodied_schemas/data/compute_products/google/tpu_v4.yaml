@@ -204,6 +204,7 @@ dies:
       external_dram_type: hbm2e
       external_dram_size_gb: 32.0
       external_dram_bandwidth_gbps: 1200.0   # 1.2 TB/s aggregate
+      dram_attachment: chip_attached         # v12 backfill: TPU v4 HBM2e is on-package
       external_dram_access_energy_pj_per_byte: 10.0
       coherence_protocol: none
     noc:

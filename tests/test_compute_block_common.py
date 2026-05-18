@@ -810,3 +810,47 @@ def test_dram_attachment_round_trips_through_json():
     assert payload["dram_attachment"] == "chip_attached"
     rebuilt = DSPMemorySubsystem.model_validate(payload)
     assert rebuilt.dram_attachment == DramAttachment.CHIP_ATTACHED
+
+
+# ---------------------------------------------------------------------------
+# 10. v12 (graphs#222): dram_attachment is populated on every catalog
+# SKU with external DRAM. Pre-v12 the field was optional; v12 PR 1
+# backfills all 4 chip-attached SKUs; v12 PR 2 will make the field
+# required when has_external_dram=True.
+# ---------------------------------------------------------------------------
+
+def test_v12_backfill_every_external_dram_sku_populates_dram_attachment():
+    """All catalog SKUs with has_external_dram=True populate the
+    dram_attachment discriminator. 4 chip-attached + 1 host_bus = 5.
+    Pre-v12 the chip-attached SKUs left the field None; PR 1 backfills."""
+    from embodied_schemas.loaders import load_compute_products
+    products = load_compute_products()
+
+    by_attachment: dict[str, list[str]] = {
+        "chip_attached": [], "host_bus": [], "missing": [],
+    }
+    for sku_id, cp in products.values_with_id() if hasattr(products, "values_with_id") else [(k, v) for k, v in products.items()]:
+        block = cp.dies[0].blocks[0]
+        mem = getattr(block, "memory", None)
+        if mem is None:
+            continue   # KPU block doesn't have a *MemorySubsystem-shaped memory
+        has_ext = getattr(mem, "has_external_dram", None)
+        if has_ext is None:
+            # CGRA pre-v11 had has_host_dram; post-v11 all use has_external_dram
+            continue
+        if has_ext:
+            attachment = getattr(mem, "dram_attachment", None)
+            if attachment is None:
+                by_attachment["missing"].append(sku_id)
+            else:
+                by_attachment[attachment.value].append(sku_id)
+
+    # v12 PR 1 guarantees: no external-DRAM SKU left without dram_attachment
+    assert not by_attachment["missing"], (
+        f"v12 backfill incomplete -- these SKUs have has_external_dram=True "
+        f"but no dram_attachment: {by_attachment['missing']}"
+    )
+    # 4 chip-attached: hailo_10h, vitis_ai_b4096, tpu_v4, cadence_vision_q8
+    assert len(by_attachment["chip_attached"]) >= 4
+    # 1 host_bus: plasticine_v2
+    assert len(by_attachment["host_bus"]) >= 1
