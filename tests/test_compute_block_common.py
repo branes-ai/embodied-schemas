@@ -739,23 +739,39 @@ def test_all_five_memory_subsystems_carry_dram_attachment_field():
         )
 
 
-def test_dram_attachment_field_defaults_to_none():
-    """Backward compat: in v11 the field is optional with None
-    default so existing YAMLs (NPU/DPU/TPU/DSP/CGRA) validate
-    unchanged without populating the discriminator."""
+def test_dram_attachment_field_defaults_to_none_when_no_external_dram():
+    """v11 made the field optional with None default; v12 tightens
+    the validator to require it when has_external_dram=True. The None
+    default still applies when has_external_dram=False (e.g., Coral
+    Edge TPU, Hailo-8 -- on-chip SRAM only)."""
     from embodied_schemas.tpu_block import TPUMemorySubsystem
     memory = TPUMemorySubsystem(
         on_chip_bandwidth_gbps=2000.0,
         unified_buffer_size_kib=32 * 1024,
         unified_buffer_access_energy_pj_per_byte=0.5,
-        has_external_dram=True,
-        external_dram_type=MemoryType.HBM2,
-        external_dram_size_gb=32.0,
-        external_dram_bandwidth_gbps=1200.0,
-        external_dram_access_energy_pj_per_byte=10.0,
+        has_external_dram=False,
     )
-    # No dram_attachment passed -> defaults to None
+    # No external DRAM -> no dram_attachment needed
     assert memory.dram_attachment is None
+
+
+def test_dram_attachment_required_when_has_external_dram_v12():
+    """v12 (graphs#222) tightens the validator: has_external_dram=True
+    without dram_attachment is rejected (previously v11 allowed None
+    for backward compat during the backfill window)."""
+    from embodied_schemas.tpu_block import TPUMemorySubsystem
+    with pytest.raises(ValidationError, match=r"dram_attachment"):
+        TPUMemorySubsystem(
+            on_chip_bandwidth_gbps=2000.0,
+            unified_buffer_size_kib=32 * 1024,
+            unified_buffer_access_energy_pj_per_byte=0.5,
+            has_external_dram=True,
+            external_dram_type=MemoryType.HBM2,
+            external_dram_size_gb=32.0,
+            external_dram_bandwidth_gbps=1200.0,
+            external_dram_access_energy_pj_per_byte=10.0,
+            # No dram_attachment -> v12 validator rejects
+        )
 
 
 def test_dram_attachment_field_accepts_chip_attached():

@@ -35,6 +35,7 @@ from embodied_schemas import (
     CPUBlock,
     Die,
     DieRole,
+    DramAttachment,
     GPUBlock,
     KPUBlock,
     LifecycleStatus,
@@ -83,6 +84,7 @@ def plasticine_memory() -> CGRAMemorySubsystem:
         shared_sram_kib=2048,    # 2 MB shared L2
         shared_sram_layout="shared",
         has_external_dram=True,
+        dram_attachment=DramAttachment.HOST_BUS,
         external_dram_type=MemoryType.DDR4,
         external_dram_size_gb=4.0,
         external_dram_bandwidth_gbps=12.8,
@@ -207,6 +209,7 @@ def test_external_dram_false_with_all_cleared_validates(plasticine_memory):
     payload["external_dram_type"] = None
     payload["external_dram_size_gb"] = None
     payload["external_dram_bandwidth_gbps"] = None
+    payload["dram_attachment"] = None   # v12 requirement: clear when no external_dram
     mem = CGRAMemorySubsystem(**payload)
     assert mem.has_external_dram is False
 

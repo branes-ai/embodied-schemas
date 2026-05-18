@@ -25,6 +25,7 @@ from embodied_schemas import (
     CPUBlock,
     Die,
     DieRole,
+    DramAttachment,
     GPUBlock,
     KPUBlock,
     KVCacheSpec,
@@ -198,6 +199,7 @@ def test_external_dram_true_with_full_fields_validates(hailo8_memory):
     payload["external_dram_type"] = MemoryType.LPDDR4X
     payload["external_dram_size_gb"] = 4.0
     payload["external_dram_bandwidth_gbps"] = 12.8
+    payload["dram_attachment"] = DramAttachment.CHIP_ATTACHED   # v12 requirement
     mem = NPUMemorySubsystem(**payload)
     assert mem.has_external_dram is True
     assert mem.external_dram_size_gb == 4.0
@@ -504,6 +506,7 @@ def test_npu_block_accepts_kv_cache_when_dram_present(
         shared_sram_kib=12 * 1024,
         shared_sram_layout=NPUSramLayout.SHARED,
         has_external_dram=True,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
         external_dram_type=MemoryType.LPDDR4X,
         external_dram_size_gb=4.0,
         external_dram_bandwidth_gbps=12.8,
@@ -586,6 +589,7 @@ def test_npu_block_with_kv_cache_round_trips_through_anyblock(
         shared_sram_kib=12 * 1024,
         shared_sram_layout=NPUSramLayout.SHARED,
         has_external_dram=True,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
         external_dram_type=MemoryType.LPDDR4X,
         external_dram_size_gb=4.0,
         external_dram_bandwidth_gbps=12.8,
