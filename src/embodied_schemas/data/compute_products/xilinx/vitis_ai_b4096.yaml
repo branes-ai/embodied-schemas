@@ -185,6 +185,7 @@ dies:
       external_dram_type: ddr4
       external_dram_size_gb: 8.0
       external_dram_bandwidth_gbps: 50.0   # DDR4-3200 dual-channel
+      dram_attachment: chip_attached      # v12 backfill: Versal has on-die DDR4 controllers
       scratchpad_access_energy_pj_per_byte: 5.0
       external_dram_access_energy_pj_per_byte: 15.0
       coherence_protocol: none

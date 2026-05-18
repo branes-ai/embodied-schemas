@@ -134,6 +134,7 @@ dies:
       external_dram_type: lpddr4x
       external_dram_size_gb: 8.0          # 4-8 GiB available; YAML targets the 8 GiB variant
       external_dram_bandwidth_gbps: 40.0  # LPDDR4X-4266, 64-bit interface
+      dram_attachment: chip_attached      # v12 backfill: Hailo-10H has on-die LPDDR4X controllers
       sram_access_energy_pj_per_byte: 2.0
       coherence_protocol: none
     noc:
