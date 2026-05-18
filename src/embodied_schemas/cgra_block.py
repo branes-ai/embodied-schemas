@@ -14,8 +14,11 @@ architectures it's now time to think seriously about v6 unification
 
 **Third cross-block-kind type reuse**: ``CGRAOnDieFabric.confidence``
 reuses ``DataConfidence`` from ``process_node`` (same as NPU);
-``CGRAMemorySubsystem.host_dram_type`` reuses ``MemoryType`` from
-``gpu`` (same as NPU's ``external_dram_type``); ``CGRAComputeFabric.
+``CGRAMemorySubsystem.external_dram_type`` reuses ``MemoryType`` from
+``gpu`` (same as NPU's ``external_dram_type``; v11 rename matches the
+5-of-6 convention, with ``dram_attachment=host_bus`` preserving the
+PCIe-DRAM semantic the original ``host_dram_*`` naming captured);
+``CGRAComputeFabric.
 circuit_class`` reuses ``CircuitClass`` from ``process_node`` (same
 as GPU/CPU/NPU). These three data points across NPU (v4) and CGRA
 (v5) justify carving out a vendor-neutral ``compute_block_common``
@@ -173,15 +176,21 @@ class CGRAComputeFabric(BaseModel):
 # ---------------------------------------------------------------------------
 
 class CGRAMemorySubsystem(BaseModel):
-    """CGRA memory hierarchy: PMU-dominant + small shared L2 + host
-    memory. Plasticine v2 has 64 KB PMU per PCU + 2 MB shared L2 +
-    4 GB host DDR4 (accessed via host bus, not chip-attached).
+    """CGRA memory hierarchy: PMU-dominant + small shared L2 + external
+    DRAM. Plasticine v2 has 64 KB PMU per PCU + 2 MB shared L2 +
+    4 GB DDR4 (accessed via host bus, NOT chip-attached -- captured
+    via ``dram_attachment=host_bus``).
 
-    The host-DRAM gating mirrors NPU's external-DRAM gating but with
-    different naming (``has_host_dram`` vs ``has_external_dram``) to
-    signal the bus-mediated nature. v6 unification can resolve the
-    naming; for now, the loader-side overlay pattern from Coral
-    (graphs#192) handles the peak_bandwidth bottleneck-tier selection.
+    **v11 (graphs#219) rename**: the field family was previously named
+    ``has_host_dram`` / ``host_dram_*`` to signal the bus-mediated
+    nature. v11 reconciled the naming to match the 5-of-6 convention
+    (``has_external_dram`` / ``external_dram_*``) used by
+    NPU/DPU/TPU/DSP, AND added the explicit ``dram_attachment``
+    discriminator (CHIP_ATTACHED | HOST_BUS) so the semantic
+    distinction the old naming captured is preserved.
+
+    Plasticine v2 YAML migrated atomically in this PR: renamed fields
+    + ``dram_attachment: host_bus``.
     """
 
     # On-chip mesh fabric bandwidth -- replaces the GPU/CPU "DRAM
@@ -198,31 +207,30 @@ class CGRAMemorySubsystem(BaseModel):
     shared_sram_kib: int = Field(..., ge=0)
     shared_sram_layout: Literal["shared", "partitioned"] = Field("shared")
 
-    # Host DRAM. Gated by has_host_dram bool; when False all the
-    # host_dram_* fields must be None / 0 (validator enforces).
-    # Plasticine v2: True with DDR4 / 4 GB. Future CGRAs with chip-
-    # attached external DRAM (Cerebras WSE) would prefer adding a
-    # parallel has_chip_dram path in v6 rather than reusing has_host_dram.
-    has_host_dram: bool = Field(False)
-    host_dram_type: MemoryType | None = Field(default=None)
-    host_dram_size_gb: float | None = Field(default=None, ge=0)
-    host_dram_bandwidth_gbps: float | None = Field(default=None, ge=0)
+    # External DRAM. Gated by has_external_dram bool; when False all
+    # the external_dram_* fields must be None / 0 (validator enforces).
+    # Plasticine v2: True with DDR4 / 4 GB via host bus (set
+    # dram_attachment=host_bus on the YAML). Future chip-attached
+    # CGRAs (Cerebras WSE) would set dram_attachment=chip_attached.
+    has_external_dram: bool = Field(False)
+    external_dram_type: MemoryType | None = Field(default=None)
+    external_dram_size_gb: float | None = Field(default=None, ge=0)
+    external_dram_bandwidth_gbps: float | None = Field(default=None, ge=0)
 
     # v11 (graphs#219): DRAM-attachment discriminator. Optional in v11
-    # for backward compat; the CGRAMemorySubsystem field rename to
-    # has_external_dram / external_dram_* lands in PR 3 of the v11
-    # sprint along with the Plasticine YAML migration that sets
-    # dram_attachment=host_bus explicitly.
+    # for backward compat. Plasticine v2 YAML populates host_bus
+    # explicitly to preserve the PCIe-DRAM semantic the original
+    # has_host_dram naming captured.
     dram_attachment: DramAttachment | None = Field(default=None)
 
     # Energy per byte for the dominant on-chip memory tier (PMU + L2).
-    # ~12 pJ/B for Plasticine 28nm; cheaper than host DRAM access.
+    # ~12 pJ/B for Plasticine 28nm; cheaper than DRAM access.
     pmu_access_energy_pj_per_byte: float = Field(..., gt=0)
 
-    # Energy per byte for host DRAM access (via host bus). Only
-    # meaningful when has_host_dram=True. ~20 pJ/B for Plasticine
-    # DDR4 path on 28nm.
-    host_dram_access_energy_pj_per_byte: float = Field(0.0, ge=0)
+    # Energy per byte for external DRAM access. Only meaningful when
+    # has_external_dram=True. ~20 pJ/B for Plasticine DDR4 host-bus
+    # path on 28nm (includes PCIe transit + host DRAM access).
+    external_dram_access_energy_pj_per_byte: float = Field(0.0, ge=0)
 
     # Cache coherence. CGRA default is "none" since compiler-routed
     # spatial dataflow has no host-coherent cache. Free-form string
@@ -235,39 +243,40 @@ class CGRAMemorySubsystem(BaseModel):
     model_config = {"extra": "forbid"}
 
     @model_validator(mode="after")
-    def _validate_host_dram_consistency(self) -> "CGRAMemorySubsystem":
-        """When ``has_host_dram=True`` the host_dram_* fields must all
-        be populated; when False they must all be None / 0. Catches
-        typo'd YAMLs that toggled one field without the other. Mirrors
-        the external_dram validator on ``NPUMemorySubsystem``."""
-        if self.has_host_dram:
+    def _validate_external_dram_consistency(self) -> "CGRAMemorySubsystem":
+        """When ``has_external_dram=True`` the external_dram_* fields
+        must all be populated; when False they must all be None / 0.
+        Catches typo'd YAMLs that toggled one field without the other.
+        Mirrors the external_dram validator on ``NPUMemorySubsystem``."""
+        if self.has_external_dram:
             missing = []
-            if self.host_dram_type is None:
-                missing.append("host_dram_type")
-            if self.host_dram_size_gb is None or self.host_dram_size_gb <= 0:
-                missing.append("host_dram_size_gb")
-            if (self.host_dram_bandwidth_gbps is None
-                    or self.host_dram_bandwidth_gbps <= 0):
-                missing.append("host_dram_bandwidth_gbps")
+            if self.external_dram_type is None:
+                missing.append("external_dram_type")
+            if self.external_dram_size_gb is None or self.external_dram_size_gb <= 0:
+                missing.append("external_dram_size_gb")
+            if (self.external_dram_bandwidth_gbps is None
+                    or self.external_dram_bandwidth_gbps <= 0):
+                missing.append("external_dram_bandwidth_gbps")
             if missing:
                 raise ValueError(
-                    f"has_host_dram=True requires all of host_dram_type, "
-                    f"host_dram_size_gb, host_dram_bandwidth_gbps to be "
-                    f"populated; missing/zero: {missing}"
+                    f"has_external_dram=True requires all of "
+                    f"external_dram_type, external_dram_size_gb, "
+                    f"external_dram_bandwidth_gbps to be populated; "
+                    f"missing/zero: {missing}"
                 )
         else:
             extras = []
-            if self.host_dram_type is not None:
-                extras.append("host_dram_type")
-            if self.host_dram_size_gb is not None and self.host_dram_size_gb > 0:
-                extras.append("host_dram_size_gb")
-            if (self.host_dram_bandwidth_gbps is not None
-                    and self.host_dram_bandwidth_gbps > 0):
-                extras.append("host_dram_bandwidth_gbps")
+            if self.external_dram_type is not None:
+                extras.append("external_dram_type")
+            if self.external_dram_size_gb is not None and self.external_dram_size_gb > 0:
+                extras.append("external_dram_size_gb")
+            if (self.external_dram_bandwidth_gbps is not None
+                    and self.external_dram_bandwidth_gbps > 0):
+                extras.append("external_dram_bandwidth_gbps")
             if extras:
                 raise ValueError(
-                    f"has_host_dram=False requires host_dram_* fields to "
-                    f"be None / 0; got populated: {extras}"
+                    f"has_external_dram=False requires external_dram_* "
+                    f"fields to be None / 0; got populated: {extras}"
                 )
         return self
 
