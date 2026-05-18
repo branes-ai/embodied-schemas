@@ -323,14 +323,18 @@ class DSPMemorySubsystem(BaseModel):
                 missing.append("external_dram_bandwidth_kind")
             if self.external_dram_access_energy_pj_per_byte <= 0:
                 missing.append("external_dram_access_energy_pj_per_byte")
+            # v12 (graphs#222): dram_attachment required when external DRAM present.
+            if self.dram_attachment is None:
+                missing.append("dram_attachment")
             if missing:
                 raise ValueError(
                     f"has_external_dram=True requires all of "
                     f"external_dram_type, external_dram_size_gb, "
                     f"external_dram_bandwidth_gbps, "
                     f"external_dram_bandwidth_kind, "
-                    f"external_dram_access_energy_pj_per_byte to be "
-                    f"populated; missing/zero: {missing}"
+                    f"external_dram_access_energy_pj_per_byte, "
+                    f"dram_attachment to be populated; "
+                    f"missing/zero: {missing}"
                 )
         else:
             extras = []
@@ -345,6 +349,8 @@ class DSPMemorySubsystem(BaseModel):
                 extras.append("external_dram_bandwidth_kind")
             if self.external_dram_access_energy_pj_per_byte > 0:
                 extras.append("external_dram_access_energy_pj_per_byte")
+            if self.dram_attachment is not None:
+                extras.append("dram_attachment")
             if extras:
                 raise ValueError(
                     f"has_external_dram=False requires external_dram_* "
