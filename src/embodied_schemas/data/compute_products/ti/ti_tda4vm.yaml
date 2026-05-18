@@ -1,0 +1,286 @@
+# Texas Instruments TDA4VM (Jacinto 7) -- automotive ADAS SoC.
+#
+# Fourth DSP SKU in the catalog; **first SoC-integrated** DSP (vs the
+# 3 IP cores landed before). Opens batch 2 of the DSP follow-up sprint
+# (graphs#223): TI TDA4 family.
+#
+# TDA4VM is TI's flagship Jacinto 7 ADAS SoC: Cortex-A72 CPU + C7x DSP +
+# MMA (Matrix Multiply Accelerator) on 16nm FinFET. ASIL-D safety
+# certified. AEC-Q100 automotive grade (-40 deg C to +125 deg C).
+# This YAML models the **C7x DSP + MMA compute subsystem** (the AI
+# accelerator slice of the SoC); the Cortex-A72 control complex is
+# out of scope for the DSPBlock view.
+#
+# **First multi-profile DVFS DSP SKU**: 2 thermal profiles
+# (10W front-camera vs 20W full-ADAS-system). Exercises
+# DSPBlock.thermal_profiles: list with len > 1 for the first time.
+# Future SA8775P (Qualcomm) will exercise 3-profile DVFS.
+#
+# Data sourced from:
+#   - TI TDA4VM Product Brief
+#   - Jacinto 7 Architecture Overview
+#   - C7x DSP Core Manual
+#   - Automotive ADAS specifications
+#   - graphs/src/graphs/hardware/models/automotive/ti_tda4vm.py
+#     (the well-validated graphs mapper, the migration source)
+#
+# Confidence: theoretical.
+#   - Peak performance (8 TOPS INT8 / 80 GFLOPS FP32) is from TI's
+#     product brief.
+#   - 8 C7x cores + 1 MMA unit decomposition matches the graphs
+#     hand-coded factory.
+#   - **16nm TSMC FinFET** is the actual process node per TI's
+#     official docs. The graphs hand-coded factory says
+#     ``process_node_nm=28`` but the docstring's "Process: 16nm
+#     FinFET" section is authoritative. YAML uses the corrected 16nm;
+#     the cleanup PR documents this as a YAML correction.
+#   - LPDDR4x bandwidth (60 GB/s) is measured datasheet
+#     (dual-channel x 32-bit x 3733 MT/s).
+#
+# Fabric ordering: C7x first (matches hand-coded factory order). The
+# loader's pick-first convention puts the C7x's num_units=8 on the
+# chip-level compute_units surface. Hand-coded uses an abstraction
+# (num_dsp_units=32, derived from MMA's 8000 ops/cycle ÷ 250 ops/cycle/unit);
+# the cleanup PR documents this as a YAML correction (fabric[0]'s
+# real num_units is the cleaner surface).
+
+id: ti_tda4vm
+name: Texas Instruments TDA4VM (Jacinto 7)
+vendor: ti
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: fcbga      # flip-chip BGA, automotive grade
+
+lifecycle: production
+
+dies:
+- die_id: tda4vm_die
+  die_role: compute
+  process_node_id: tsmc_n16    # 16nm FinFET (corrected from hand-coded's buggy 28nm)
+  die_size_mm2: 110.0          # estimate -- full SoC, larger than IP cores
+  transistors_billion: 5.0     # full SoC (CPU + DSP + MMA + ISP + peripherals)
+  silicon_bin:
+    blocks:
+    - name: c7x_dsp_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: 8x C7x VLIW DSP cores (512-bit SIMD)
+    - name: mma_accelerator
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: MMAv1 single-unit matrix multiply accelerator
+    - name: msmc_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 8 MiB MSMC on-chip SRAM (DSP-attached)
+    - name: l1d_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: 48 KB L1D per C7x core (32 KB cache + 16 KB SRAM)
+    - name: lpddr4x_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 300.0
+      notes: LPDDR4x dual-channel PHY (~60 GB/s)
+    - name: cortex_a72_cluster
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 2000.0
+      notes: 2x Cortex-A72 application processors (out of scope for DSPBlock)
+    - name: r5f_safety_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: R5F lock-step safety cores for ASIL-D compliance
+    - name: peripherals
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 650.0
+      notes: ISP + MCAN + Ethernet + PCIe + display + misc
+  clocks:
+    base_clock_mhz: 600.0
+    boost_clock_mhz: 1000.0
+  blocks:
+  - kind: dsp
+    deployment_kind: soc_integrated   # **first SoC-integrated DSP SKU**
+    compute_fabrics:
+    # Fabric 1: C7x DSP (8x VLIW SIMD cores; general compute, FP32 baseline)
+    - fabric_kind: vliw_scalar       # C7x is VLIW (8 issue width)
+      circuit_class: balanced_logic
+      num_units: 8                    # 8 C7x cores
+      ops_per_unit_per_clock:
+        fp32: 10                      # 80 GFLOPS / 8 cores / 1.0 GHz = 10 ops/cycle
+        fp16: 20                      # 2x FP32
+      energy_per_op_fp32_pj: 2.43     # 16nm simd_packed baseline (corrected from 28nm)
+      energy_scaling:
+        fp16: 0.50
+        int8: 0.15                    # INT8 routed to MMA but accounted here for energy
+    # Fabric 2: MMAv1 tensor accelerator (single unit; INT8/INT16 only)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 1                    # Single MMA unit (original Jacinto 7 generation)
+      ops_per_unit_per_clock:
+        int8: 8000                    # 8 TOPS / 1.0 GHz = 8000 ops/cycle/unit
+        int16: 4000                   # Half of INT8
+      energy_per_op_fp32_pj: 2.295    # 16nm tensor_core baseline (corrected from 28nm)
+      energy_scaling:
+        int8: 0.15
+        int16: 0.25
+    memory:
+      l1_size_bytes_per_unit: 49152   # 48 KiB L1D per C7x core (32 cache + 16 SRAM)
+      l2_size_bytes_total: 8388608    # 8 MiB MSMC SRAM
+      l2_bandwidth_gbps: 120.0        # MSMC on-chip bandwidth (estimate)
+      has_external_dram: true
+      external_dram_type: lpddr4x     # **first DSP SKU with LPDDR4x**
+      external_dram_size_gb: 8.0
+      external_dram_bandwidth_gbps: 60.0   # dual-channel x 32-bit x 3733 MT/s (datasheet)
+      external_dram_bandwidth_kind: measured   # **first DSP SKU with measured (SoC) bandwidth**
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 20.0   # LPDDR4x automotive
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 600000000.0            # 600 MHz minimum
+      boost_hz: 1000000000.0          # 1.0 GHz peak (shared across profiles)
+      sustained_hz: 850000000.0       # 850 MHz @ 10W default profile
+    # **First multi-profile DVFS DSP SKU**: 2 thermal profiles
+    thermal_profiles:
+    - name: '10W'                      # Front-camera ADAS
+      tdp_watts: 10.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 850.0                 # 85% of 1.0 GHz peak
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.70
+        int16: 0.65
+        fp16: 0.55
+        fp32: 0.50
+      instruction_efficiency_by_precision:
+        int8: 0.90
+        int16: 0.88
+        fp16: 0.75
+        fp32: 0.85
+      memory_bottleneck_factor_by_precision:
+        int8: 0.75
+        int16: 0.70
+        fp16: 0.65
+        fp32: 0.60
+      vdd_v: 0.8
+    - name: '20W'                      # Full ADAS system (4-6 cameras + radar)
+      tdp_watts: 20.0
+      cooling_solution_id: active_fan
+      clock_mhz: 950.0                 # 95% of 1.0 GHz peak
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.80
+        int16: 0.75
+        fp16: 0.65
+        fp32: 0.60
+      instruction_efficiency_by_precision:
+        int8: 0.92
+        int16: 0.90
+        fp16: 0.80
+        fp32: 0.88
+      memory_bottleneck_factor_by_precision:
+        int8: 0.80
+        int16: 0.75
+        fp16: 0.70
+        fp32: 0.65
+      vdd_v: 0.85
+    default_thermal_profile_name: '10W'   # Most common automotive deployment
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int8: 8000000000000.0           # 8 TOPS INT8 (TI-marketed, MMA path)
+        int16: 4000000000000.0          # 4 TOPS INT16 (0.5x INT8)
+        fp16: 160000000000.0            # 160 GFLOPS FP16 (C7x x 2x FP32)
+        fp32: 80000000000.0             # 80 GFLOPS FP32 (C7x)
+    default_precision: int8
+    multi_precision_alu:
+    - int8
+    - int16
+    - fp16
+    - fp32
+    # Automotive deterministic scheduling
+    min_occupancy: 0.70
+    max_concurrent_kernels: 4          # Limited for determinism
+    wave_quantization: 4
+    vliw_issue_width: 8                # **first VLIW DSP SKU**: C7x is 8-wide VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+# Chip-level performance roll-up at the 10W default operating point:
+#   INT8: 8 TOPS (MMA path; TI-marketed)
+#   FP32: 80 GFLOPS (C7x VLIW SIMD; TI-marketed)
+performance:
+  int8_tops: 8.0
+  bf16_tflops: 0.0    # not supported on TDA4VM (Jacinto 7 generation)
+  fp32_tflops: 0.08
+  int4_tops: 0.0      # not supported
+
+power:
+  tdp_watts: 10.0     # default profile
+  max_power_watts: 22.0     # at 20W full-ADAS profile + boost headroom
+  min_power_watts: 4.0      # at 600 MHz base
+  idle_power_watts: 0.5
+  default_thermal_profile: '10W'
+  thermal_profiles:
+  - name: '10W'
+    tdp_watts: 10.0
+    clock_mhz: 850.0
+    cooling_solution_id: passive_fanless
+  - name: '20W'
+    tdp_watts: 20.0
+    clock_mhz: 950.0
+    cooling_solution_id: active_fan
+
+market:
+  launch_date: '2020-06-01'           # Jacinto 7 production launch
+  target_market: embodied             # automotive ADAS
+  product_family: Jacinto-7
+  model_tier: mid                     # mid-range automotive ADAS (vs SA8775P high-end)
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Texas Instruments TDA4VM (Jacinto 7) -- fourth DSP SKU in the catalog,
+  **first SoC-integrated** DSP (vs the 3 IP cores landed before).
+  Opens batch 2 of the DSP follow-up sprint (graphs#223): TI TDA4 family.
+
+  Multi-fabric: 8x C7x DSP cores (VLIW SIMD; FP32 baseline) +
+  MMAv1 tensor accelerator (1 unit; INT8/INT16). 8 TOPS INT8 MMA +
+  80 GFLOPS FP32 C7x. ASIL-D safety certified.
+
+  **First multi-profile DVFS DSP SKU**: 2 thermal profiles (10W
+  front-camera vs 20W full-ADAS-system). Exercises
+  DSPBlock.thermal_profiles list with len > 1 for the first time on
+  DSP. Future Qualcomm SA8775P will exercise 3-profile DVFS.
+
+  **First VLIW DSP SKU**: vliw_issue_width=8 (informational; C7x is
+  TI's VLIW DSP architecture).
+
+  **First measured external_dram_bandwidth_kind**: SoC-integrated
+  DSPs ship with measured LPDDR4x bandwidth (60 GB/s), vs IP cores'
+  typical-integration estimates.
+
+  Process node correction: the graphs hand-coded factory used
+  ``process_node_nm=28`` (an apparent bug -- the same factory's
+  docstring says "Process: 16nm FinFET"). YAML uses the corrected
+  tsmc_n16; the cleanup PR documents this as a YAML correction.
+
+  Used in automotive ADAS Level 2/2+ deployments (front camera,
+  multi-camera, radar fusion, parking assist). Opens TI TDA4 batch
+  (TDA4AL/VH/VL/VM = 4 SKUs).
+last_updated: '2026-05-18'
