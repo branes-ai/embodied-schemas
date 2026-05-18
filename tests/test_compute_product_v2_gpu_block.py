@@ -110,7 +110,7 @@ def agx_orin_noc() -> GPUOnDieFabric:
     return GPUOnDieFabric(
         topology=GPUNoCTopology.CROSSBAR,
         bisection_bandwidth_gbps=2048.0,
-        controller_count=16,
+        unit_count=16,  # v10 rename: was controller_count
         flit_size_bytes=32,
         hop_latency_ns=2.0,
         pj_per_flit_per_hop=8.0,

@@ -252,37 +252,33 @@ class GPUMemorySubsystem(BaseModel):
 # On-die fabric (SM <-> L2 interconnect)
 # ---------------------------------------------------------------------------
 
-class GPUOnDieFabric(BaseModel):
+# GPUOnDieFabric now inherits from the v10 ``OnDieFabric`` base
+# (graphs#217 PR 3). The base provides the 7 shared fields + optional
+# mesh dims + confidence; the subclass contributes only the typed
+# GPU-specific topology enum.
+#
+# **v10 field rename**: the field previously called ``controller_count``
+# is now ``unit_count`` (inherited from the base). For GPUs, ``unit``
+# means "memory controller" (CROSSBAR fabrics) or fabric-mesh endpoint
+# (MESH). SKU YAMLs migrated atomically in this PR.
+from embodied_schemas.compute_block_common import OnDieFabric
+
+
+class GPUOnDieFabric(OnDieFabric):
     """GPU on-die interconnect. Edge Tegra SoCs use a CROSSBAR between
     SMs and L2; datacenter GPUs (H100, B200) use a 2D mesh. Edge GPUs
     are crossbar-shaped because num_sms is small (tens), so the
     quadratic crossbar cost is acceptable in exchange for single-hop
     SM-to-L2 latency. Datacenter GPUs (hundreds of SMs) require
     mesh / hierarchical fabrics.
+
+    Inherits all shared NoC fields from ``OnDieFabric``. The inherited
+    ``unit_count`` field counts memory controllers / SM ports (CROSSBAR)
+    or row * col (MESH). Pre-v10 YAMLs used ``controller_count`` --
+    the field was renamed for cross-block-kind consistency.
     """
 
     topology: GPUNoCTopology = Field(...)
-    bisection_bandwidth_gbps: float = Field(..., gt=0)
-    controller_count: int = Field(
-        ..., gt=0,
-        description=(
-            "Number of fabric ports. For a CROSSBAR this typically "
-            "equals num_sms (each SM is a port). For a MESH this is "
-            "the row * col count."
-        ),
-    )
-    flit_size_bytes: int = Field(..., gt=0)
-    hop_latency_ns: float = Field(..., ge=0)
-    pj_per_flit_per_hop: float = Field(..., ge=0)
-    routing_distance_factor: float = Field(
-        1.0, gt=0,
-        description=(
-            "Average hop count per transaction relative to the topology "
-            "diameter. 1.0 for a single-hop crossbar; >1 for meshes."
-        ),
-    )
-
-    model_config = {"extra": "forbid"}
 
 
 # ---------------------------------------------------------------------------

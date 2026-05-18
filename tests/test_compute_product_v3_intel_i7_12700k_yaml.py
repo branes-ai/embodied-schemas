@@ -253,7 +253,7 @@ def test_i7_noc_is_double_ring(i7_cpu_block):
     """Alder Lake uses a double ring bus (data + snoop)."""
     noc = i7_cpu_block.noc
     assert noc.topology == CPUNoCTopology.DOUBLE_RING
-    assert noc.stop_count == 12   # 8 P + 4 E ring stops
+    assert noc.unit_count == 12   # 8 P + 4 E ring stops (v10 rename: was stop_count)
 
 
 def test_i7_simd_efficiency_carries_op_kind_map(i7_cpu_block):

@@ -211,7 +211,7 @@ dies:
       # is modeled as a 2D mesh (8x8) per Blackwell datacenter literature.
       topology: mesh_2d
       bisection_bandwidth_gbps: 4096.0
-      controller_count: 64
+      unit_count: 64   # mesh endpoints (v10 rename: was controller_count)
       flit_size_bytes: 32
       hop_latency_ns: 3.0
       pj_per_flit_per_hop: 6.0

@@ -355,7 +355,16 @@ class TPUMemorySubsystem(BaseModel):
 # On-die fabric (UB-to-MXU streaming; simpler than NoCs)
 # ---------------------------------------------------------------------------
 
-class TPUOnDieFabric(BaseModel):
+# TPUOnDieFabric now inherits from the v10 ``OnDieFabric`` base
+# (graphs#217 PR 3). The base provides the 7 shared fields + optional
+# mesh dims + confidence; the subclass contributes only the typed
+# TPU-specific topology enum (CROSSBAR / MULTI_CROSSBAR). TPUs don't
+# use mesh routing (XLA-routed direct crossbar between UB and MXUs),
+# so no mesh validator is needed.
+from embodied_schemas.compute_block_common import OnDieFabric
+
+
+class TPUOnDieFabric(OnDieFabric):
     """TPU on-die interconnect between the Unified Buffer and the
     MXUs. Much simpler than CGRA/DPU/NPU NoCs because the UB-to-MXU
     connection is essentially direct (crossbar) -- XLA statically
@@ -363,32 +372,12 @@ class TPUOnDieFabric(BaseModel):
 
     Single-MXU SKUs use CROSSBAR; multi-MXU SKUs use MULTI_CROSSBAR.
 
-    FIFTH cross-block-kind type reuse: ``confidence`` reuses
-    ``DataConfidence`` from ``process_node`` (same as NPU/CGRA/DPU).
+    Inherits all shared NoC fields from ``OnDieFabric``; contributes
+    only the TPU-specific topology enum. ``isinstance(x, TPUOnDieFabric)``
+    AND ``isinstance(x, OnDieFabric)`` both work.
     """
 
     topology: TPUNoCTopology = Field(...)
-    bisection_bandwidth_gbps: float = Field(..., gt=0)
-    unit_count: int = Field(
-        ..., gt=0,
-        description="Number of fabric endpoints (= num_mxus typically)",
-    )
-    flit_size_bytes: int = Field(..., gt=0)
-
-    hop_latency_ns: float = Field(..., ge=0)
-    pj_per_flit_per_hop: float = Field(..., ge=0)
-    routing_distance_factor: float = Field(1.0, gt=0)
-
-    confidence: DataConfidence = Field(
-        DataConfidence.THEORETICAL,
-        description=(
-            "Provenance of NoC numbers. Google publishes systolic "
-            "array dimensions and HBM bandwidth but not UB-to-MXU "
-            "fabric details, so THEORETICAL is the dominant case."
-        ),
-    )
-
-    model_config = {"extra": "forbid"}
 
 
 # ---------------------------------------------------------------------------

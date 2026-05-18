@@ -191,7 +191,7 @@ def test_thor_noc_is_2d_mesh(thor_gpu_block):
     AGX Orin (16 SMs) uses CROSSBAR; Thor switches to MESH_2D."""
     noc = thor_gpu_block.noc
     assert noc.topology == GPUNoCTopology.MESH_2D
-    assert noc.controller_count == 64
+    assert noc.unit_count == 64   # v10 rename: was controller_count
     assert noc.bisection_bandwidth_gbps == pytest.approx(4096.0)
 
 

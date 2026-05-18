@@ -291,40 +291,25 @@ class DPUMemorySubsystem(BaseModel):
 # On-die fabric (AIE tile streaming mesh, often low-confidence)
 # ---------------------------------------------------------------------------
 
-class DPUOnDieFabric(BaseModel):
+# DPUOnDieFabric now inherits from the v10 ``OnDieFabric`` base
+# (graphs#217 PR 3). The base provides the 7 shared fields + optional
+# mesh dims + confidence; the subclass contributes only the typed
+# DPU-specific topology enum (AIE_MESH / CROSSBAR) and the AIE-mesh
+# validator.
+from embodied_schemas.compute_block_common import OnDieFabric
+
+
+class DPUOnDieFabric(OnDieFabric):
     """DPU on-die interconnect between AIE tiles. Vitis AI VE2302 uses
     an 8x8 AIE_MESH (estimated; Xilinx doesn't publish per-hop
-    streaming-fabric details). Confidence defaults to THEORETICAL.
+    streaming-fabric details).
 
-    FOURTH cross-block-kind type reuse: ``confidence`` reuses
-    ``DataConfidence`` from ``process_node`` (same as NPU/CGRA).
+    Inherits all shared NoC fields from ``OnDieFabric``; contributes
+    the DPU-specific topology enum (AIE_MESH / CROSSBAR) and the
+    AIE-mesh consistency validator.
     """
 
     topology: DPUNoCTopology = Field(...)
-    bisection_bandwidth_gbps: float = Field(..., gt=0)
-    unit_count: int = Field(
-        ..., gt=0,
-        description="Number of fabric endpoints (= num_aie_tiles typically)",
-    )
-    flit_size_bytes: int = Field(..., gt=0)
-
-    # Mesh-specific (optional; only populated when topology=AIE_MESH)
-    mesh_rows: int | None = Field(default=None, gt=0)
-    mesh_cols: int | None = Field(default=None, gt=0)
-
-    hop_latency_ns: float = Field(..., ge=0)
-    pj_per_flit_per_hop: float = Field(..., ge=0)
-    routing_distance_factor: float = Field(1.0, gt=0)
-
-    confidence: DataConfidence = Field(
-        DataConfidence.THEORETICAL,
-        description=(
-            "Provenance of NoC numbers. Xilinx doesn't publish per-hop "
-            "AIE streaming-fabric details so THEORETICAL dominates."
-        ),
-    )
-
-    model_config = {"extra": "forbid"}
 
     @model_validator(mode="after")
     def _validate_mesh_dims(self) -> "DPUOnDieFabric":
