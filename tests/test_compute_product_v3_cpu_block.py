@@ -157,7 +157,7 @@ def i7_noc() -> CPUOnDieFabric:
     return CPUOnDieFabric(
         topology=CPUNoCTopology.DOUBLE_RING,
         bisection_bandwidth_gbps=512.0,
-        stop_count=12,  # 8 P + 4 E
+        unit_count=12,  # 8 P + 4 E (v10 rename: was stop_count)
         flit_size_bytes=32,
         hop_latency_ns=1.5,
         pj_per_flit_per_hop=5.0,

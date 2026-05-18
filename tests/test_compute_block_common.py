@@ -634,10 +634,58 @@ def test_on_die_fabric_round_trips_through_json():
 
 def test_existing_per_block_kind_on_die_fabric_classes_still_importable():
     """All 6 ``*OnDieFabric`` types remain importable from the top-level
-    package; PR 3 of v10 sprint converts each to inherit from OnDieFabric."""
+    package."""
     for cls in (NPUOnDieFabric, CGRAOnDieFabric, DPUOnDieFabric,
                 TPUOnDieFabric, CPUOnDieFabric, GPUOnDieFabric):
         assert cls is not None
-        # In PR 2 (this PR) the existing classes are NOT yet aliased / inheriting.
-        # PR 3 of v10 sprint migrates them; until then, identity / subclass
-        # relationship is NOT yet expected.
+
+
+def test_all_six_on_die_fabrics_inherit_from_unified_base():
+    """v10 PR 3: every per-block-kind ``*OnDieFabric`` is a subclass of
+    the unified ``OnDieFabric`` base. Pin this with issubclass() so any
+    future regression (re-defining one as a top-level BaseModel rather
+    than inheriting) fails loudly."""
+    for cls in (NPUOnDieFabric, CGRAOnDieFabric, DPUOnDieFabric,
+                TPUOnDieFabric, CPUOnDieFabric, GPUOnDieFabric):
+        assert issubclass(cls, OnDieFabric), (
+            f"{cls.__name__} does not inherit from OnDieFabric; "
+            f"v10 PR 3 migration regressed"
+        )
+
+
+def test_subclasses_carry_per_kind_topology_field():
+    """Each subclass must add its own ``topology`` field with the
+    per-kind enum type (the whole point of inheritance vs alias)."""
+    for cls in (NPUOnDieFabric, CGRAOnDieFabric, DPUOnDieFabric,
+                TPUOnDieFabric, CPUOnDieFabric, GPUOnDieFabric):
+        assert "topology" in cls.model_fields
+        # Base class has no topology
+        assert "topology" not in OnDieFabric.model_fields
+
+
+def test_v10_field_rename_no_stop_count_or_controller_count():
+    """CPU's ``stop_count`` and GPU's ``controller_count`` were renamed
+    to ``unit_count`` in v10. The old names must NOT appear in either
+    subclass's model_fields."""
+    cpu_fields = set(CPUOnDieFabric.model_fields.keys())
+    gpu_fields = set(GPUOnDieFabric.model_fields.keys())
+    assert "stop_count" not in cpu_fields
+    assert "controller_count" not in gpu_fields
+    assert "unit_count" in cpu_fields
+    assert "unit_count" in gpu_fields
+
+
+def test_isinstance_double_direction_for_on_die_fabric():
+    """An instance of any per-kind subclass must satisfy
+    ``isinstance(x, OnDieFabric)`` via inheritance."""
+    from embodied_schemas.tpu_block import TPUNoCTopology
+    tpu_fabric = TPUOnDieFabric(
+        topology=TPUNoCTopology.CROSSBAR,
+        bisection_bandwidth_gbps=2000.0,
+        unit_count=2,
+        flit_size_bytes=32,
+        hop_latency_ns=1.0,
+        pj_per_flit_per_hop=2.0,
+    )
+    assert isinstance(tpu_fabric, TPUOnDieFabric)
+    assert isinstance(tpu_fabric, OnDieFabric)

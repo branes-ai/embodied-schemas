@@ -380,31 +380,31 @@ class CPUMemorySubsystem(BaseModel):
 # On-die fabric
 # ---------------------------------------------------------------------------
 
-class CPUOnDieFabric(BaseModel):
+# CPUOnDieFabric now inherits from the v10 ``OnDieFabric`` base
+# (graphs#217 PR 3). The base provides the 7 shared fields + optional
+# mesh dims + confidence; the subclass contributes only the typed
+# CPU-specific topology enum.
+#
+# **v10 field rename**: the field previously called ``stop_count``
+# is now ``unit_count`` (inherited from the base). The base's field
+# description documents the per-arch meaning: "ring stops" for CPU.
+# SKU YAMLs migrated atomically in this PR.
+from embodied_schemas.compute_block_common import OnDieFabric
+
+
+class CPUOnDieFabric(OnDieFabric):
     """CPU on-die interconnect. Intel client uses RING; Intel server
     MESH_2D; AMD IO_DIE_PLUS_CCD (multi-die, modeled here as a single
-    fabric for v3 -- v4 chiplet support will split it across multiple
-    Dies)."""
+    fabric -- chiplet support split deferred).
+
+    Inherits all shared NoC fields from ``OnDieFabric``. The inherited
+    ``unit_count`` field counts ring stops on RING topology
+    (i7-12700K: 8 P + 4 E = 12), or row * col on MESH, or CCD count
+    on IO_DIE_PLUS_CCD. Pre-v10 YAMLs used ``stop_count`` -- the
+    field was renamed for cross-block-kind consistency.
+    """
 
     topology: CPUNoCTopology = Field(...)
-    bisection_bandwidth_gbps: float = Field(..., gt=0)
-    stop_count: int = Field(
-        ..., gt=0,
-        description=(
-            "Number of fabric endpoints. RING: cores + cache slices "
-            "(i7-12700K: 8 P + 4 E = 12). MESH: row * col. "
-            "IO_DIE_PLUS_CCD: number of CCDs."
-        ),
-    )
-    flit_size_bytes: int = Field(..., gt=0)
-    hop_latency_ns: float = Field(..., ge=0)
-    pj_per_flit_per_hop: float = Field(..., ge=0)
-    routing_distance_factor: float = Field(
-        1.0, gt=0,
-        description="Average hop count per transaction relative to topology diameter",
-    )
-
-    model_config = {"extra": "forbid"}
 
 
 # ---------------------------------------------------------------------------

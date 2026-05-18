@@ -170,7 +170,7 @@ def test_agx_orin_noc_is_crossbar(agx_orin):
     """SM-to-L2 crossbar with 16 SMs as ports."""
     noc = agx_orin.dies[0].blocks[0].noc
     assert noc.topology == GPUNoCTopology.CROSSBAR
-    assert noc.controller_count == 16
+    assert noc.unit_count == 16   # v10 rename: was controller_count
     assert noc.flit_size_bytes == 32
     assert noc.bisection_bandwidth_gbps == pytest.approx(2048.0)
 
