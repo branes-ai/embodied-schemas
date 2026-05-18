@@ -1,0 +1,239 @@
+# Qualcomm QRB5165 (Dragonwing) -- robotics platform SoC.
+#
+# Ninth DSP SKU in the catalog. Second Qualcomm DSP (after SA8775P).
+# DSP batch #223 batch 3 SKU 2 of 3.
+#
+# QRB5165 is Qualcomm's robotics platform based on the Snapdragon 865
+# (2020 mobile SoC, repositioned for edge AI / robotics deployments).
+# Targets battery-powered robots, drones, edge AI cameras, AMRs.
+#
+# Data sourced from:
+#   - Qualcomm QRB5165 Product Brief (87-28730-1 REV D)
+#   - Snapdragon 865 specifications
+#   - Hexagon 698 DSP architecture
+#   - graphs/src/graphs/hardware/models/edge/qrb5165.py
+#
+# Key QRB5165 deltas vs SA8775P:
+#   - 7nm TSMC (vs 5nm) -- older platform
+#   - Hexagon 698 DSP (vs SA8775P's automotive Hexagon HMX) -- HTA
+#     tensor accelerator vs HMX
+#   - Lower performance: 15 TOPS INT8 (vs 32) -- smaller HTA
+#   - Single thermal profile: 7W passive (vs 3-profile DVFS)
+#   - 44 GB/s LPDDR5 quad-channel (vs 90 GB/s on SA8775P)
+#   - Consumer-grade lifecycle (not automotive ASIL)
+#   - Cheaper BOM ($55 silicon vs $180 for SA8775P)
+#
+# Fabric ordering: HTA first (the primary INT8 path; 12 of 15 TOPS).
+# Loader's pick-first convention maps HTA to chip-level surfaces.
+#
+# BOMCostProfile attached via the graphs-side wrapper overlay (same
+# pattern as SA8775P).
+
+id: qualcomm_qrb5165
+name: Qualcomm QRB5165 (Dragonwing)
+vendor: qualcomm
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: fcbga             # flip-chip BGA
+
+lifecycle: production
+
+dies:
+- die_id: qrb5165_die
+  die_role: compute
+  process_node_id: tsmc_n7        # 7nm TSMC (Snapdragon 865 generation)
+  die_size_mm2: 83.0              # ~SD865 die area
+  transistors_billion: 6.0
+  silicon_bin:
+    blocks:
+    - name: hta_tensor_accelerator
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: 1x HTA (Hexagon Tensor Accelerator) -- 12 of 15 TOPS
+    - name: hvx_vector_units
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 800.0
+      notes: 4x HVX 1024-bit SIMD units
+    - name: hexagon_dsp_control
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: Hexagon 698 DSP control + scalar VLIW
+    - name: l1_l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: 128 KB L1/unit + 4 MB shared L2
+    - name: lpddr5_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 300.0
+      notes: LPDDR5 quad-channel PHY (~44 GB/s)
+    - name: kryo_cpu_cluster
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1500.0
+      notes: Kryo 585 CPU cluster (1+3+4 cores; out of scope for DSPBlock)
+    - name: adreno_gpu
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: Adreno 650 GPU (out of scope for DSPBlock)
+    - name: peripherals
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: ISP + camera ISPs + 5G modem + connectivity
+  clocks:
+    base_clock_mhz: 800.0           # 800 MHz min
+    boost_clock_mhz: 1500.0         # 1.5 GHz peak boost
+  blocks:
+  - kind: dsp
+    deployment_kind: soc_integrated
+    compute_fabrics:
+    # Fabric 1: HTA tensor accelerator (PRIMARY -- 12 of 15 TOPS)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 1
+      ops_per_unit_per_clock:
+        int8: 9024                  # 1 unit * 9024 ops/cycle * 1.5 GHz peak = 13.5 TOPS
+        int16: 4512                 # Half of INT8
+        fp16: 2256                  # Slower (not natively accelerated)
+      energy_per_op_fp32_pj: 1.53   # 7nm tensor_core baseline
+      energy_scaling:
+        int8: 0.15
+        int16: 0.25
+        fp16: 0.50
+    # Fabric 2: HVX vector path (1024-bit SIMD for activations)
+    - fabric_kind: vector_simd
+      circuit_class: balanced_logic
+      num_units: 4                  # 4x HVX units
+      ops_per_unit_per_clock:
+        int4: 512                   # 1024-bit / 2-bit
+        int8: 256                   # 1024-bit / 4-bit
+        int16: 128                  # 1024-bit / 8-bit
+        fp16: 64                    # Emulated, slower
+      energy_per_op_fp32_pj: 1.62   # 7nm simd_packed baseline
+      energy_scaling:
+        int4: 0.08
+        int8: 0.15
+        int16: 0.25
+        fp16: 0.50
+    memory:
+      l1_size_bytes_per_unit: 131072    # 128 KiB per unit
+      l2_size_bytes_total: 4194304      # 4 MiB shared L2
+      l2_bandwidth_gbps: 100.0
+      has_external_dram: true
+      external_dram_type: lpddr5
+      external_dram_size_gb: 16.0       # Up to 16 GB
+      external_dram_bandwidth_gbps: 44.0   # 4ch * 16-bit * 2750 MHz * 2 = 44 GB/s
+      external_dram_bandwidth_kind: measured
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 15.0   # LPDDR5
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 800000000.0
+      boost_hz: 1500000000.0
+      sustained_hz: 900000000.0         # 900 MHz @ 7W (60% throttle)
+    thermal_profiles:
+    - name: '7W'                         # Robotics / edge AI single profile
+      tdp_watts: 7.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 900.0                   # 60% of 1.5 GHz peak (thermal throttle)
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int4: 0.65
+        int8: 0.60                       # 60% effective (sustained load)
+        int16: 0.55
+        fp16: 0.45
+      instruction_efficiency_by_precision:
+        int4: 0.80
+        int8: 0.85                       # Good DSP efficiency
+        int16: 0.82
+        fp16: 0.70                       # Not as optimized
+      memory_bottleneck_factor_by_precision:
+        int4: 0.75
+        int8: 0.70                       # 44 GB/s limits 15 TOPS workloads
+        int16: 0.65
+        fp16: 0.60
+      vdd_v: 0.75
+    default_thermal_profile_name: '7W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int8: 15000000000000.0          # 15 TOPS INT8 (Qualcomm-marketed; AI Engine combined)
+        int16: 7500000000000.0          # 7.5 TOPS INT16
+        fp16: 3750000000000.0           # 3.75 TFLOPS FP16
+    default_precision: int8
+    multi_precision_alu:
+    - int4
+    - int8
+    - int16
+    - fp16
+    min_occupancy: 0.60
+    max_concurrent_kernels: 8           # Multi-layer concurrent execution
+    wave_quantization: 4
+    vliw_issue_width: 4                 # Hexagon DSP is 4-issue VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+performance:
+  int8_tops: 15.0
+  bf16_tflops: 0.0                       # not supported on Hexagon DSP
+  fp32_tflops: 0.0                       # not supported (only FP16)
+  int4_tops: 0.0                         # capability exists on HVX but not marketed
+
+power:
+  tdp_watts: 7.0
+  max_power_watts: 8.0
+  min_power_watts: 3.0
+  idle_power_watts: 0.3
+  default_thermal_profile: '7W'
+  thermal_profiles:
+  - name: '7W'
+    tdp_watts: 7.0
+    clock_mhz: 900.0
+    cooling_solution_id: passive_fanless
+
+market:
+  launch_date: '2021-01-01'             # Platform launch
+  target_market: embodied               # robotics / edge AI
+  product_family: Robotics-Platform
+  model_tier: mid                       # mid-range edge AI (vs SA8775P=high)
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Qualcomm QRB5165 (Dragonwing) -- robotics platform SoC. Ninth DSP
+  SKU in the catalog, second Qualcomm DSP (batch 3 of graphs#223).
+
+  Based on the Snapdragon 865 (2020 mobile SoC, repositioned for
+  edge AI). Targets battery-powered robots, drones, edge AI cameras,
+  AMRs.
+
+  Key QRB5165 vs SA8775P deltas:
+    - 7nm TSMC (vs 5nm)
+    - Hexagon 698 DSP with HTA tensor accelerator (vs SA8775P's HMX)
+    - Lower compute: 15 TOPS INT8 (vs 32)
+    - Single thermal profile: 7W passive (vs 3-profile DVFS)
+    - LPDDR5 quad-channel @ 44 GB/s (vs SA8775P's 90 GB/s)
+    - Consumer-grade lifecycle (no automotive ASIL)
+    - Cheaper BOM (~$103 vs $350)
+
+  Fabric ordering: HTA first (primary INT8 path; loader picks fabric[0]
+  for chip-level surfaces).
+
+  BOMCostProfile attached via the graphs-side wrapper overlay (same
+  pattern as SA8775P).
+last_updated: '2026-05-18'
