@@ -1,0 +1,211 @@
+# Synopsys ARC EV7x -- licensable embedded vision processor IP core.
+#
+# Second DSP IP-core SKU in the data/compute_products/ catalog (joins
+# Cadence Vision Q8 from sprint #211). First multi-fabric DSP SKU --
+# pairs 4 VPUs (vector processing units, 512-bit wide) with a 128-unit
+# DNN accelerator (tensor INT8 path). Closes 1 of 9 follow-up SKUs
+# tracked at graphs#223.
+#
+# ARC EV7x is the 7th-generation Synopsys DesignWare ARC embedded
+# vision IP. Licensable IP designed for SoC integration; the "system"
+# around it (DDR, ISP, CPU) is chosen by the SoC integrator. The
+# bandwidth + thermal numbers in this YAML are therefore the
+# typical SoC integration case (automotive), not measured silicon.
+#
+# Data sourced from:
+#   - Synopsys ARC EV7x Product Brief (2019)
+#   - EE Times coverage (2019)
+#   - graphs/src/graphs/hardware/models/ip_cores/synopsys_arc_ev7x.py
+#     (the well-validated graphs mapper, the migration source)
+#
+# Confidence: theoretical.
+#   - Peak performance (35 TOPS INT8 / 8.8 GFLOPS FP32) is from
+#     Synopsys product brief.
+#   - 4-core configuration with 128-unit DNN accelerator matches the
+#     graphs hand-coded factory.
+#   - 16nm TSMC is the typical integration node for this generation.
+#   - Energy coefficients estimated from 16nm SIMD packed + tensor cells.
+#   - Per-block transistor counts estimated (Synopsys doesn't publish
+#     gate counts for licensable IP).
+
+id: synopsys_arc_ev7x
+name: Synopsys ARC EV7x (4-core)
+vendor: synopsys
+kind: chip   # IP core modeled as a single-die chip for catalog uniformity
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: ip_core   # licensable IP, not a physical package
+
+lifecycle: production
+
+dies:
+- die_id: arc_ev7x_die
+  die_role: compute
+  process_node_id: tsmc_n16   # already in catalog (typical integration)
+  die_size_mm2: 8.0    # estimate for the IP core's silicon footprint
+  transistors_billion: 0.2   # ~200M gates for the 4-core + DNN config
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 4 VPUs (Vector Processing Units, 512-bit SIMD each).
+    - name: vpu_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 80.0
+      notes: 4 VPUs * 512-bit SIMD
+    # -------------------------------------------------------------------
+    # DNN accelerator: ~14,080 MACs for the flagship config, modeled
+    # as 128-unit tensor fabric.
+    - name: dnn_accelerator
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 80.0
+      notes: 128-unit DNN tensor accelerator (~14k MACs)
+    # -------------------------------------------------------------------
+    # L1 + L2 SRAM (32 KB/unit + 4 MB shared).
+    - name: l1_l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 35.0
+      notes: 32 KB/unit L1 + 4 MB shared L2
+    # -------------------------------------------------------------------
+    # ARCv2 RISC base + control + load/store + scheduler.
+    - name: arcv2_control
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 5.0
+      notes: ARCv2 RISC base + dispatch + control
+  clocks:
+    base_clock_mhz: 600.0    # 600 MHz minimum
+    boost_clock_mhz: 1200.0   # 1.2 GHz max boost
+  blocks:
+  - kind: dsp
+    deployment_kind: standalone_ip
+    # First multi-fabric DSP SKU in the catalog: 2 entries
+    compute_fabrics:
+    # Fabric 1: VPU vector path (FP32 / INT16 / INT32)
+    - fabric_kind: vector_simd
+      circuit_class: balanced_logic
+      num_units: 4                 # 4 VPU cores
+      ops_per_unit_per_clock:
+        fp32: 2200                 # 2.2 GFLOPS per VPU @ 1 GHz
+        int16: 4400                # INT16 vector operations
+        int32: 2200                # INT32 vector operations
+      energy_per_op_fp32_pj: 2.43  # 16nm SIMD packed baseline
+      energy_scaling:
+        int16: 0.40
+        int32: 0.50
+    # Fabric 2: DNN tensor path (INT8 only)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 128               # 128-unit DNN accelerator
+      ops_per_unit_per_clock:
+        int8: 273                  # 273 INT8 MACs/cycle/unit -> 35 TOPS @ 1 GHz
+      energy_per_op_fp32_pj: 2.295  # 16nm tensor_core baseline
+      energy_scaling:
+        int8: 0.14                 # INT8 very efficient on tensor accelerator
+    memory:
+      l1_size_bytes_per_unit: 32768    # 32 KiB per unit
+      l2_size_bytes_total: 4194304     # 4 MiB shared L2
+      l2_bandwidth_gbps: 100.0         # on-chip SRAM bandwidth (estimate)
+      has_external_dram: true          # typical-integration DRAM
+      external_dram_type: lpddr4       # automotive vision pairing
+      external_dram_size_gb: 8.0       # typical automotive embedded SoC
+      external_dram_bandwidth_gbps: 60.0   # typical (NOT measured)
+      external_dram_bandwidth_kind: typical
+      dram_attachment: chip_attached   # SoC integrators put DDR on host SoC die
+      external_dram_access_energy_pj_per_byte: 14.0   # LPDDR4 typical
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 600000000.0
+      boost_hz: 1200000000.0
+      sustained_hz: 1000000000.0
+    thermal_profiles:
+    - name: '5W'
+      tdp_watts: 5.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 1000.0
+      dvfs_enabled: false              # IP core ships with a fixed sustained clock
+      efficiency_factor_by_precision:
+        int8: 0.68
+        int16: 0.65
+        fp32: 0.60
+      instruction_efficiency_by_precision:
+        int8: 0.90
+        int16: 0.88
+        fp32: 0.85
+      memory_bottleneck_factor_by_precision:
+        int8: 0.72                     # Automotive workloads
+        int16: 0.70
+        fp32: 0.65
+      vdd_v: 0.8                       # 16nm nominal
+    default_thermal_profile_name: '5W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int8: 35000000000000.0         # 35 TOPS (DNN accelerator path)
+        int16: 17500000000000.0        # 17.5 TOPS
+        int32: 8800000000.0            # 8.8 GOPS (VPU INT32)
+        fp32: 8800000000.0             # 8.8 GFLOPS (VPU FP32)
+    default_precision: int8            # vision-optimized INT8
+    multi_precision_alu:
+    - int8
+    - int16
+    - int32
+    - fp32
+    # DSP scheduler attributes (match the graphs hand-coded factory)
+    min_occupancy: 0.70
+    max_concurrent_kernels: 8          # 4 VPUs allow good parallelism
+    wave_quantization: 4
+    vliw_issue_width: null             # ARCv2 is RISC, not VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+# Chip-level performance roll-up at the 5W operating point:
+#   INT8 (DNN): 128 units * 273 ops/cycle * 1.0 GHz = 34.94 TOPS (~35 marketed)
+#   FP32 (VPU): 4 cores * 2.2 GFLOPS = 8.8 GFLOPS marketed
+performance:
+  int8_tops: 35.0
+  bf16_tflops: 0.0    # not supported on EV7x
+  fp32_tflops: 0.0088
+  int4_tops: 0.0      # not supported
+
+power:
+  tdp_watts: 5.0
+  max_power_watts: 6.0     # at 1.2 GHz boost
+  min_power_watts: 2.0     # at 600 MHz base
+  idle_power_watts: 0.3
+  default_thermal_profile: '5W'
+  thermal_profiles:
+  - name: '5W'
+    tdp_watts: 5.0
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_fanless
+
+market:
+  launch_date: '2019-01-01'
+  target_market: embodied            # automotive + surveillance + drone + AR/VR
+  product_family: DesignWare-ARC-Embedded-Vision
+  model_tier: ip_core
+  is_available: true                 # licensable today via Synopsys
+
+confidence: theoretical
+notes: >
+  Synopsys DesignWare ARC EV7x (4-core configuration) -- second DSP
+  IP-core SKU in the catalog (joins Cadence Vision Q8 from sprint
+  #211). First multi-fabric DSP SKU; the DSPBlock schema's
+  compute_fabrics list is exercised with 2 entries: VPU vector path
+  (4x 512-bit SIMD for FP32/INT16/INT32) + DNN tensor accelerator
+  (128-unit INT8 path).
+
+  Used in automotive ADAS (camera processing), surveillance, drone
+  vision, AR/VR. Licensable IP; SoC integrator chooses the surrounding
+  DDR + cooling + ISP. Bandwidth numbers are typical-integration
+  estimates (automotive LPDDR4 reference).
+
+  Closes 1 of 9 follow-up SKUs at graphs#223 (DSP YAML batch).
+last_updated: '2026-05-17'
