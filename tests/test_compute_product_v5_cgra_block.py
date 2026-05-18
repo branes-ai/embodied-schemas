@@ -7,13 +7,13 @@ Validates that:
 2. The AnyBlock discriminated union now dispatches all FIVE block
    kinds (KPU + GPU + CPU + NPU + CGRA) via the ``kind`` field.
 3. ComputeProduct round-trips a CGRA SKU through serialize / deserialize.
-4. Schema invariants: host_dram consistency, mesh-dim consistency
+4. Schema invariants: external_dram consistency, mesh-dim consistency
    (including TORUS_2D), NoC unit_count matches num_pcus, INT precision
    required on fabrics, efficiency-factor ranges, ``extra: forbid``.
 5. Existing KPU + GPU + CPU + NPU YAMLs continue to validate (additive
    guarantee).
 6. Third cross-block-kind type reuse works (CGRAOnDieFabric.confidence
-   uses DataConfidence from process_node; CGRAMemorySubsystem.host_dram_type
+   uses DataConfidence from process_node; CGRAMemorySubsystem.external_dram_type
    uses MemoryType from gpu).
 """
 
@@ -82,12 +82,12 @@ def plasticine_memory() -> CGRAMemorySubsystem:
         pmu_kib_per_pcu=64,
         shared_sram_kib=2048,    # 2 MB shared L2
         shared_sram_layout="shared",
-        has_host_dram=True,
-        host_dram_type=MemoryType.DDR4,
-        host_dram_size_gb=4.0,
-        host_dram_bandwidth_gbps=12.8,
+        has_external_dram=True,
+        external_dram_type=MemoryType.DDR4,
+        external_dram_size_gb=4.0,
+        external_dram_bandwidth_gbps=12.8,
         pmu_access_energy_pj_per_byte=12.0,
-        host_dram_access_energy_pj_per_byte=20.0,
+        external_dram_access_energy_pj_per_byte=20.0,
         coherence_protocol="none",
     )
 
@@ -181,34 +181,34 @@ def test_anyblock_still_dispatches_other_block_kinds():
 # 2. Schema invariants
 # ---------------------------------------------------------------------------
 
-def test_host_dram_true_requires_all_fields(plasticine_memory):
-    """has_host_dram=True with missing host_dram_* fields must fail."""
+def test_external_dram_true_requires_all_fields(plasticine_memory):
+    """has_external_dram=True with missing external_dram_* fields must fail."""
     payload = plasticine_memory.model_dump()
-    payload["host_dram_type"] = None
-    payload["host_dram_size_gb"] = None
-    payload["host_dram_bandwidth_gbps"] = None
-    with pytest.raises(ValidationError, match="has_host_dram=True requires"):
+    payload["external_dram_type"] = None
+    payload["external_dram_size_gb"] = None
+    payload["external_dram_bandwidth_gbps"] = None
+    with pytest.raises(ValidationError, match="has_external_dram=True requires"):
         CGRAMemorySubsystem(**payload)
 
 
-def test_host_dram_false_rejects_populated_fields(plasticine_memory):
-    """has_host_dram=False with populated host_dram_* fields must fail."""
+def test_external_dram_false_rejects_populated_fields(plasticine_memory):
+    """has_external_dram=False with populated external_dram_* fields must fail."""
     payload = plasticine_memory.model_dump()
-    payload["has_host_dram"] = False
-    # leave host_dram_type populated (DDR4) -- validator should reject
-    with pytest.raises(ValidationError, match="has_host_dram=False requires"):
+    payload["has_external_dram"] = False
+    # leave external_dram_type populated (DDR4) -- validator should reject
+    with pytest.raises(ValidationError, match="has_external_dram=False requires"):
         CGRAMemorySubsystem(**payload)
 
 
-def test_host_dram_false_with_all_cleared_validates(plasticine_memory):
+def test_external_dram_false_with_all_cleared_validates(plasticine_memory):
     """SRAM-only CGRA (Cerebras-style; no host DRAM)."""
     payload = plasticine_memory.model_dump()
-    payload["has_host_dram"] = False
-    payload["host_dram_type"] = None
-    payload["host_dram_size_gb"] = None
-    payload["host_dram_bandwidth_gbps"] = None
+    payload["has_external_dram"] = False
+    payload["external_dram_type"] = None
+    payload["external_dram_size_gb"] = None
+    payload["external_dram_bandwidth_gbps"] = None
     mem = CGRAMemorySubsystem(**payload)
-    assert mem.has_host_dram is False
+    assert mem.has_external_dram is False
 
 
 def test_mesh_2d_requires_dimensions(plasticine_noc):
@@ -314,7 +314,7 @@ def test_reconfig_overhead_can_be_zero():
     mem = CGRAMemorySubsystem(
         on_chip_bandwidth_gbps=40.0,
         pmu_kib_per_pcu=64, shared_sram_kib=2048,
-        has_host_dram=False,
+        has_external_dram=False,
         pmu_access_energy_pj_per_byte=12.0,
     )
     noc = CGRAOnDieFabric(
@@ -344,10 +344,10 @@ def test_cgra_on_die_fabric_reuses_data_confidence(plasticine_noc):
 
 
 def test_cgra_memory_reuses_memory_type(plasticine_memory):
-    """CGRAMemorySubsystem.host_dram_type reuses MemoryType from gpu
+    """CGRAMemorySubsystem.external_dram_type reuses MemoryType from gpu
     (same pattern as NPU's external_dram_type)."""
-    assert isinstance(plasticine_memory.host_dram_type, MemoryType)
-    assert plasticine_memory.host_dram_type == MemoryType.DDR4
+    assert isinstance(plasticine_memory.external_dram_type, MemoryType)
+    assert plasticine_memory.external_dram_type == MemoryType.DDR4
 
 
 # ---------------------------------------------------------------------------

@@ -160,12 +160,17 @@ dies:
       pmu_kib_per_pcu: 64            # 64 KiB compiler-managed scratchpad per PCU
       shared_sram_kib: 2048          # 2 MiB shared L2
       shared_sram_layout: shared
-      has_host_dram: true            # Plasticine reaches DRAM via host bus
-      host_dram_type: ddr4
-      host_dram_size_gb: 4.0
-      host_dram_bandwidth_gbps: 12.8  # DDR4-3200 dual-channel
+      # v11 (graphs#219) rename: was has_host_dram / host_dram_*.
+      # New naming matches the 5-of-6 convention used by NPU/DPU/TPU/DSP;
+      # the PCIe-DRAM semantic is preserved explicitly via
+      # dram_attachment: host_bus.
+      has_external_dram: true            # Plasticine reaches DRAM via host bus
+      external_dram_type: ddr4
+      external_dram_size_gb: 4.0
+      external_dram_bandwidth_gbps: 12.8  # DDR4-3200 dual-channel
+      dram_attachment: host_bus           # v11: explicit PCIe-DRAM discriminator
       pmu_access_energy_pj_per_byte: 12.0   # on-chip SRAM at 28nm
-      host_dram_access_energy_pj_per_byte: 20.0   # DDR4 via host bus
+      external_dram_access_energy_pj_per_byte: 20.0   # DDR4 via host bus
       coherence_protocol: none
     noc:
       topology: mesh_2d
