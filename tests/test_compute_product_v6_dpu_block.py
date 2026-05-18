@@ -381,7 +381,7 @@ def test_dpu_on_die_fabric_reuses_data_confidence(vitis_ai_noc):
 
 def test_dpu_memory_reuses_memory_type(vitis_ai_memory):
     """DPUMemorySubsystem.external_dram_type reuses MemoryType from
-    gpu (same as NPU's external_dram_type). CGRA uses host_dram_type
+    gpu (same as NPU's external_dram_type). CGRA uses external_dram_type
     with the same underlying enum but different field name -- v7
     unification will resolve."""
     assert isinstance(vitis_ai_memory.external_dram_type, MemoryType)

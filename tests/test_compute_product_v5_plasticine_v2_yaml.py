@@ -4,7 +4,7 @@ Catalog gain: 12 KPU + 2 GPU + 1 CPU + 3 NPU + 1 CGRA = 19 ComputeProducts.
 First SKU to exercise:
   - ``BlockKind.CGRA`` and the full ``CGRABlock`` schema (landed in #34)
   - ``CGRAFabricKind.PCU_SPATIAL_DATAFLOW``
-  - ``CGRAMemorySubsystem.has_host_dram=True`` path (DDR4 via host bus)
+  - ``CGRAMemorySubsystem.has_external_dram=True`` path (DDR4 via host bus)
   - ``CGRABlock.reconfig_overhead_cycles`` (the defining CGRA Achilles heel)
   - The ``stanford`` vendor directory
   - ``LifecycleStatus.ENGINEERING_SAMPLE`` (research SKU)
@@ -197,18 +197,18 @@ def test_plasticine_multi_precision_includes_fp(plasticine_cgra_block):
 
 
 # ---------------------------------------------------------------------------
-# Memory: first SKU with host_dram_* populated (vs NPU's external_dram_*)
+# Memory: first SKU with external_dram via host_bus (v11 rename: was has_host_dram & host_dram_*)
 # ---------------------------------------------------------------------------
 
 def test_plasticine_memory_has_host_ddr4(plasticine_cgra_block):
-    """First SKU to populate has_host_dram=True. Plasticine reaches
+    """First SKU to populate has_external_dram=True. Plasticine reaches
     DDR4 via the host bus (architecturally like Coral, schema-distinct
     from NPU's chip-attached external_dram)."""
     mem = plasticine_cgra_block.memory
-    assert mem.has_host_dram is True
-    assert mem.host_dram_type == MemoryType.DDR4
-    assert mem.host_dram_size_gb == pytest.approx(4.0, rel=0.01)
-    assert mem.host_dram_bandwidth_gbps == pytest.approx(12.8, rel=0.1)
+    assert mem.has_external_dram is True
+    assert mem.external_dram_type == MemoryType.DDR4
+    assert mem.external_dram_size_gb == pytest.approx(4.0, rel=0.01)
+    assert mem.external_dram_bandwidth_gbps == pytest.approx(12.8, rel=0.1)
 
 
 def test_plasticine_on_chip_sram(plasticine_cgra_block):
@@ -279,5 +279,5 @@ def test_plasticine_round_trips_through_serialize(plasticine):
     assert rebuilt_block.num_pcus == 32
     assert rebuilt_block.macs_per_pcu == 8
     assert rebuilt_block.reconfig_overhead_cycles == 1000
-    assert rebuilt_block.memory.has_host_dram is True
+    assert rebuilt_block.memory.has_external_dram is True
     assert rebuilt_block.compute_fabrics[0].fabric_kind == CGRAFabricKind.PCU_SPATIAL_DATAFLOW

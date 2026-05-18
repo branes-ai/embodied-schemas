@@ -695,8 +695,8 @@ def test_isinstance_double_direction_for_on_die_fabric():
 
 # ---------------------------------------------------------------------------
 # 9. v11: DramAttachment discriminator + dram_attachment field on the
-# 5 *MemorySubsystem classes (CGRA still uses host_dram_* naming in
-# this PR; PR 3 of v11 renames CGRA fields).
+# 5 *MemorySubsystem classes. CGRA field rename (host_dram_* ->
+# external_dram_*) landed in PR 3; Plasticine YAML migrated atomically.
 # ---------------------------------------------------------------------------
 
 def test_compute_block_common_exports_dram_attachment():
@@ -782,12 +782,12 @@ def test_dram_attachment_field_accepts_host_bus():
         on_chip_bandwidth_gbps=200.0,
         pmu_kib_per_pcu=64,
         shared_sram_kib=2048,
-        has_host_dram=True,
-        host_dram_type=MemoryType.DDR4,
-        host_dram_size_gb=4.0,
-        host_dram_bandwidth_gbps=25.6,
+        has_external_dram=True,
+        external_dram_type=MemoryType.DDR4,
+        external_dram_size_gb=4.0,
+        external_dram_bandwidth_gbps=25.6,
         pmu_access_energy_pj_per_byte=12.0,
-        host_dram_access_energy_pj_per_byte=20.0,
+        external_dram_access_energy_pj_per_byte=20.0,
         dram_attachment=DramAttachment.HOST_BUS,
     )
     assert memory.dram_attachment == DramAttachment.HOST_BUS
