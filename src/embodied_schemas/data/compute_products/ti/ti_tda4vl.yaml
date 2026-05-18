@@ -1,0 +1,249 @@
+# Texas Instruments TDA4VL (Jacinto 7 Entry-Level) -- automotive ADAS SoC.
+#
+# Seventh DSP SKU in the catalog. **Closes batch 2** of the DSP
+# follow-up sprint (graphs#223): all 4 TI TDA4 family members
+# (VM + AL + VH + VL) YAML-backed.
+#
+# TDA4VL is the entry-level Jacinto 7 variant: half the compute of
+# TDA4VM. 4x C7x DSP cores + 1x MMAv2 (vs TDA4VM's 8x C7x + 1x MMAv1).
+# Targets cost-sensitive automotive ADAS (single front camera, lane
+# detection, basic ACC). ASIL-B/C safety (lower than VM's ASIL-D).
+#
+# Data sourced from:
+#   - TI TDA4VL Product Brief
+#   - graphs/src/graphs/hardware/models/automotive/ti_tda4vl.py
+#
+# Key TDA4VL vs TDA4VM deltas:
+#   - Half compute: 4 TOPS INT8 + 40 GFLOPS FP32 (vs 8/80)
+#   - Half C7x cores: 4 (vs 8); same 1x MMA unit but at 4000 ops/cycle
+#     (vs 8000)
+#   - MMA generation: v2 (vs v1) -- more efficient
+#   - Lower thermal envelope: 7W + 12W (vs 10W + 20W)
+#   - Smaller main memory: 4 GiB (vs 8 GiB)
+#   - Lower CPU frequency: A72 @ 1.2 GHz (vs 2.0 GHz)
+#   - Lower safety level: ASIL-B/C (vs ASIL-D)
+
+id: ti_tda4vl
+name: Texas Instruments TDA4VL (Jacinto 7 Entry-Level)
+vendor: ti
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: fcbga
+
+lifecycle: production
+
+dies:
+- die_id: tda4vl_die
+  die_role: compute
+  process_node_id: tsmc_n16     # 16nm FinFET (corrected from hand-coded's buggy 28nm)
+  die_size_mm2: 75.0            # ~70% of TDA4VM (smaller cluster + smaller memory)
+  transistors_billion: 3.0
+  silicon_bin:
+    blocks:
+    - name: c7x_dsp_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: 4x C7x VLIW DSP cores (half of TDA4VM)
+    - name: mma_v2_accelerator
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 250.0
+      notes: 1x MMAv2 tensor accelerator (half capacity vs TDA4AL)
+    - name: msmc_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 8 MiB MSMC on-chip SRAM
+    - name: l1d_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 25.0
+      notes: 48 KB L1D per C7x core (4x)
+    - name: lpddr4x_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 250.0
+      notes: LPDDR4x dual-channel PHY (60 GB/s)
+    - name: cortex_a72_cluster
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1200.0
+      notes: 2x Cortex-A72 @ 1.2 GHz (out of scope for DSPBlock)
+    - name: r5f_safety_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: R5F safety cores for ASIL-B/C
+    - name: peripherals
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 275.0
+      notes: ISP + Ethernet + PCIe + display
+  clocks:
+    base_clock_mhz: 500.0
+    boost_clock_mhz: 1000.0
+  blocks:
+  - kind: dsp
+    deployment_kind: soc_integrated
+    compute_fabrics:
+    # Fabric 1: C7x DSP (4 cores VLIW; half of TDA4VM)
+    - fabric_kind: vliw_scalar
+      circuit_class: balanced_logic
+      num_units: 4                      # Half of TDA4VM's 8 cores
+      ops_per_unit_per_clock:
+        fp32: 10
+        fp16: 20
+      energy_per_op_fp32_pj: 2.43       # 16nm simd_packed baseline (corrected)
+      energy_scaling:
+        fp16: 0.50
+        int8: 0.15
+    # Fabric 2: MMAv2 tensor accelerator (half capacity vs TDA4AL)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 1
+      ops_per_unit_per_clock:
+        int8: 4000                      # 4 TOPS / 1.0 GHz (half of TDA4AL's 8000)
+        int16: 2000
+      energy_per_op_fp32_pj: 2.295      # 16nm tensor_core baseline (corrected)
+      energy_scaling:
+        int8: 0.15
+        int16: 0.25
+    memory:
+      l1_size_bytes_per_unit: 49152
+      l2_size_bytes_total: 8388608      # 8 MiB MSMC (same as TDA4VM)
+      l2_bandwidth_gbps: 120.0
+      has_external_dram: true
+      external_dram_type: lpddr4x
+      external_dram_size_gb: 4.0        # Half of TDA4VM's 8 GiB (cost-optimized)
+      external_dram_bandwidth_gbps: 60.0
+      external_dram_bandwidth_kind: measured
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 20.0
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 500000000.0
+      boost_hz: 1000000000.0
+      sustained_hz: 750000000.0         # 750 MHz @ 7W default profile
+    thermal_profiles:
+    - name: '7W'                         # Entry-level ADAS (single camera)
+      tdp_watts: 7.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 750.0
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.72                       # MMAv2 efficiency
+        int16: 0.68
+        fp16: 0.58
+        fp32: 0.52
+      instruction_efficiency_by_precision:
+        int8: 0.92
+        int16: 0.90
+        fp16: 0.78
+        fp32: 0.85
+      memory_bottleneck_factor_by_precision:
+        int8: 0.75
+        int16: 0.70
+        fp16: 0.65
+        fp32: 0.60
+      vdd_v: 0.75
+    - name: '12W'                        # Multi-function ADAS (passive cooling adequate)
+      tdp_watts: 12.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 900.0
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.78
+        int16: 0.72
+        fp16: 0.62
+        fp32: 0.55
+      instruction_efficiency_by_precision:
+        int8: 0.93
+        int16: 0.91
+        fp16: 0.80
+        fp32: 0.88
+      memory_bottleneck_factor_by_precision:
+        int8: 0.80
+        int16: 0.75
+        fp16: 0.70
+        fp32: 0.65
+      vdd_v: 0.80
+    default_thermal_profile_name: '7W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int8: 4000000000000.0           # 4 TOPS INT8 (TI-marketed; half of TDA4VM)
+        int16: 2000000000000.0          # 2 TOPS INT16
+        fp16: 80000000000.0             # 80 GFLOPS FP16
+        fp32: 40000000000.0             # 40 GFLOPS FP32 (half of TDA4VM)
+    default_precision: int8
+    multi_precision_alu:
+    - int8
+    - int16
+    - fp16
+    - fp32
+    min_occupancy: 0.70
+    max_concurrent_kernels: 4
+    wave_quantization: 4
+    vliw_issue_width: 8                 # C7x is 8-wide VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+performance:
+  int8_tops: 4.0
+  bf16_tflops: 0.0
+  fp32_tflops: 0.04
+  int4_tops: 0.0
+
+power:
+  tdp_watts: 7.0
+  max_power_watts: 14.0                 # at 12W profile + boost headroom
+  min_power_watts: 3.0
+  idle_power_watts: 0.3
+  default_thermal_profile: '7W'
+  thermal_profiles:
+  - name: '7W'
+    tdp_watts: 7.0
+    clock_mhz: 750.0
+    cooling_solution_id: passive_fanless
+  - name: '12W'
+    tdp_watts: 12.0
+    clock_mhz: 900.0
+    cooling_solution_id: passive_fanless
+
+market:
+  launch_date: '2022-09-01'
+  target_market: embodied
+  product_family: Jacinto-7
+  model_tier: entry                     # entry-level (vs VM/AL=mid, VH=high)
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Texas Instruments TDA4VL (Jacinto 7 Entry-Level) -- seventh DSP
+  SKU in the catalog. **Closes TI TDA4 family** (batch 2 of DSP
+  follow-up sprint graphs#223). Half the compute of TDA4VM at half
+  the price; cost-sensitive ADAS deployments.
+
+  4x C7x DSP cores + 1x MMAv2 (half capacity vs TDA4AL). 4 TOPS INT8
+  + 40 GFLOPS FP32. 7W + 12W thermal profiles (both passive cooling
+  -- 12W can stay passive in this entry-level form factor). ASIL-B/C
+  safety (vs VM's ASIL-D).
+
+  Used in entry-level ADAS (Lane Keep Assist, Traffic Sign Recognition,
+  basic Adaptive Cruise Control). Cost-sensitive automotive markets,
+  single front-facing camera systems.
+
+  Process node correction: hand-coded factory uses 28nm; YAML uses
+  16nm per TI's official Jacinto 7 docs (same correction as VM/AL/VH).
+  model_tier='entry' (vs VM/AL='mid', VH='high').
+last_updated: '2026-05-18'
