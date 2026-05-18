@@ -268,44 +268,25 @@ class CGRAMemorySubsystem(BaseModel):
 # On-die fabric (PCU mesh, often low-confidence for research SKUs)
 # ---------------------------------------------------------------------------
 
-class CGRAOnDieFabric(BaseModel):
+# CGRAOnDieFabric now inherits from the v10 ``OnDieFabric`` base
+# (graphs#217 PR 3). The base provides the 7 shared fields + optional
+# mesh dims + confidence; the subclass contributes only the typed
+# CGRA-specific topology enum and the CGRA mesh-dim validator (handles
+# both MESH_2D and TORUS_2D mesh topologies).
+from embodied_schemas.compute_block_common import OnDieFabric
+
+
+class CGRAOnDieFabric(OnDieFabric):
     """CGRA on-die interconnect between PCUs + PMUs + memory
     controllers. Most CGRAs use 2D meshes (Plasticine v2: 4x8 mesh of
-    32 PCUs, estimated). Academic / research CGRAs typically don't
-    publish NoC details, so the ``confidence`` field defaults to
-    THEORETICAL.
+    32 PCUs, estimated).
 
-    THIRD cross-block-kind type reuse: ``confidence`` reuses
-    ``DataConfidence`` from ``process_node`` (same as NPU). Field
-    names align with NPU/GPU/CPU so v6 unification is mechanical.
+    Inherits all shared NoC fields from ``OnDieFabric``; contributes
+    the CGRA-specific topology enum (MESH_2D / TORUS_2D / CROSSBAR)
+    and the CGRA mesh-dim consistency validator.
     """
 
     topology: CGRANoCTopology = Field(...)
-    bisection_bandwidth_gbps: float = Field(..., gt=0)
-    unit_count: int = Field(
-        ..., gt=0,
-        description="Number of fabric endpoints (= num_pcus typically)",
-    )
-    flit_size_bytes: int = Field(..., gt=0)
-
-    # Mesh-specific (optional; only populated when topology=MESH_2D
-    # or TORUS_2D)
-    mesh_rows: int | None = Field(default=None, gt=0)
-    mesh_cols: int | None = Field(default=None, gt=0)
-
-    hop_latency_ns: float = Field(..., ge=0)
-    pj_per_flit_per_hop: float = Field(..., ge=0)
-    routing_distance_factor: float = Field(1.0, gt=0)
-
-    confidence: DataConfidence = Field(
-        DataConfidence.THEORETICAL,
-        description=(
-            "Provenance of NoC numbers. Research CGRAs rarely publish "
-            "fabric details so THEORETICAL is the dominant case."
-        ),
-    )
-
-    model_config = {"extra": "forbid"}
 
     @model_validator(mode="after")
     def _validate_mesh_dims(self) -> "CGRAOnDieFabric":

@@ -279,43 +279,25 @@ class NPUMemorySubsystem(BaseModel):
 # On-die fabric (dataflow mesh, often low-confidence)
 # ---------------------------------------------------------------------------
 
-class NPUOnDieFabric(BaseModel):
+# NPUOnDieFabric now inherits from the v10 ``OnDieFabric`` base
+# (graphs#217 PR 3). The base provides the 7 shared fields + optional
+# mesh dims + confidence; the subclass contributes only the typed
+# NPU-specific topology enum and the NPU-specific mesh-dim validator.
+from embodied_schemas.compute_block_common import OnDieFabric
+
+
+class NPUOnDieFabric(OnDieFabric):
     """NPU on-die interconnect between dataflow units. Most edge NPUs
     use 2D meshes of dataflow units (Hailo: 8x4, estimated; Coral:
-    unknown). NPU vendors typically don't publish NoC details, so
-    the ``confidence`` field defaults to THEORETICAL.
+    unknown).
 
-    SECOND cross-block-kind type reuse: ``confidence`` field uses
-    ``DataConfidence`` from ``process_node`` rather than an NPU-
-    specific enum. (The first was CPU's ``ClockDomain`` reuse from
-    ``gpu_block``.)
+    Inherits all shared NoC fields from ``OnDieFabric``; contributes
+    the NPU-specific topology enum and the NPU mesh-dim consistency
+    validator. ``isinstance(x, NPUOnDieFabric)`` AND
+    ``isinstance(x, OnDieFabric)`` both work (proper subclass).
     """
 
     topology: NPUNoCTopology = Field(...)
-    bisection_bandwidth_gbps: float = Field(..., gt=0)
-    unit_count: int = Field(
-        ..., gt=0,
-        description="Number of fabric endpoints (= num_dataflow_units typically)",
-    )
-    flit_size_bytes: int = Field(..., gt=0)
-
-    # Mesh-specific (optional; only populated when topology=MESH_2D)
-    mesh_rows: int | None = Field(default=None, gt=0)
-    mesh_cols: int | None = Field(default=None, gt=0)
-
-    hop_latency_ns: float = Field(..., ge=0)
-    pj_per_flit_per_hop: float = Field(..., ge=0)
-    routing_distance_factor: float = Field(1.0, gt=0)
-
-    confidence: DataConfidence = Field(
-        DataConfidence.THEORETICAL,
-        description=(
-            "Provenance of NoC numbers. NPU vendors rarely publish "
-            "fabric details so THEORETICAL is the dominant case."
-        ),
-    )
-
-    model_config = {"extra": "forbid"}
 
     @model_validator(mode="after")
     def _validate_mesh_dims(self) -> "NPUOnDieFabric":
