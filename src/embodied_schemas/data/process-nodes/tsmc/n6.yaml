@@ -1,0 +1,132 @@
+# TSMC N6 -- enhanced FinFET (DUV-only), ~12% density boost over N7.
+#
+# Added for Qualcomm QCS6490 (DSP batch graphs#223 SKU 9). N6 is
+# TSMC's "long-life" enhanced N7 process: same metal stack and design
+# rules as N7 but with shrink-friendly cell libraries. Production
+# since 2020; widely used for mobile SoCs and edge-AI deployments
+# that don't need EUV.
+
+id: tsmc_n6
+foundry: tsmc
+node_name: N6
+node_nm: 6
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [ULVT, LVT, SVT, HVT]
+nominal_vdd_v: 0.7              # ~7% lower than N7 (efficiency improvement)
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 84.0           # ~12% over N7's 75
+    library_name: "N6 HPC"
+    confidence: theoretical
+    source: "TSMC N6 design rule scaling vs N7"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 102.0          # ~12% over N7's 91
+    library_name: "N6 7.5T HD"
+    confidence: theoretical
+    source: "TSMC N6 vs N7 density comparison (DUV-only enhanced FinFET)"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 108.0          # ~12% over N7's 96
+    library_name: "N6 6T LP"
+    confidence: theoretical
+    source: "TSMC N6 mobile reference flow"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 310.0          # ~11% over N7's 280
+    library_name: "N6 HD-SRAM"
+    confidence: theoretical
+    source: "TSMC N6 SRAM density estimate"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 255.0
+    library_name: "N6 HC-SRAM"
+    confidence: theoretical
+    source: "Scaled from N7 HC SRAM"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 200.0
+    library_name: "N6 HP-SRAM"
+    confidence: theoretical
+    source: "Scaled from N7 HP SRAM"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 8.5
+    confidence: theoretical
+    source: "Estimated; same metal stack as N7"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 2.0
+    confidence: theoretical
+    source: "Same pad ring rules as N7"
+
+leakage_w_per_mm2:
+  hp_logic: 0.035            # ~12% lower than N7 (lower VDD)
+  balanced_logic: 0.015
+  lp_logic: 0.007
+  sram_hd: 0.0045
+  sram_hc: 0.006
+  sram_hp: 0.010
+  analog: 0.002
+  io: 0.0008
+
+energy_per_op_pj:
+  # ~15% lower than N7 (DUV-only enhanced FinFET; same metal stack
+  # but improved cell libraries + lower VDD).
+  hp_logic:fp32: 1.2
+  hp_logic:bf16: 0.6
+  hp_logic:int8: 0.15
+  balanced_logic:fp32: 0.95
+  balanced_logic:bf16: 0.48
+  balanced_logic:int8: 0.11
+  balanced_logic:int4: 0.065
+  lp_logic:int8: 0.085
+
+# SRAM access ~15% lower than N7 (lower VDD).
+sram_access_pj_per_byte:
+  sram_hd: 0.13
+  sram_hc: 0.22
+  sram_hp: 0.36
+
+# DRAM PHY energy similar to N7 (PHY dominated by package, not the
+# logic node). LPDDR4X/LPDDR5 are typical pairings for mobile/edge SoCs.
+dram_io_pj_per_byte: 4.8
+
+# NoC: slight improvement over N7 (~10%).
+noc_pj_per_flit_per_hop:
+  hp_logic: 0.68
+  balanced_logic: 0.45
+
+em_j_max_by_temp_c:
+  85: 2.1e6
+  105: 1.4e6
+  125: 9.0e5
+
+routing_metal_width_um:
+  hp_logic: 0.040
+  balanced_logic: 0.040
+  sram_hd: 0.026
+
+m0_pitch_nm: 40
+m1_pitch_nm: 40
+
+cooling_compatible:
+  - passive_fanless
+  - passive_heatsink_small
+  - passive_heatsink_large
+  - active_fan
+  - vapor_chamber
+
+source: "TSMC N6 design rule scaling vs N7; widely reported mobile-SoC characteristics"
+confidence: theoretical
+last_updated: "2026-05-18"
+notes: |
+  TSMC N6: enhanced N7 process introduced 2020. DUV-only (no EUV layers
+  like N5+). Same metal stack and design rules as N7 -- N7 designs can
+  be ported to N6 with minimal effort for ~12% density + ~15% energy
+  improvement. Widely used for mobile SoCs (Qualcomm QCS6490 / Snapdragon
+  778G / 695G / 480) and edge-AI accelerators that don't need EUV's
+  density advantage at higher cost.
