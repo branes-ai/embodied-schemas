@@ -1,0 +1,306 @@
+# Qualcomm SA8775P (Snapdragon Ride) -- automotive ADAS SoC.
+#
+# Eighth DSP SKU in the catalog. Opens batch 3 of the DSP follow-up
+# sprint (graphs#223): Qualcomm family. Most complex DSP YAML yet:
+#   - **First 3-profile DVFS DSP**: 20W / 30W / 45W
+#   - **First TSMC N5 DSP**: 5nm process
+#   - HVX vector + HMX tensor multi-fabric (Hexagon architecture)
+#   - Mixed precision: INT4 / INT8 / INT16 / FP16
+#
+# SA8775P is Qualcomm's mid-range automotive ADAS SoC, ASIL-D safety
+# certified. Targets ADAS Level 2+/3, automotive cockpit (HMI/voice/
+# driver monitoring), and robotics (AMR, AGVs, inspection robots).
+# Competitor to Jetson Orin AGX and Mobileye EyeQ5H.
+#
+# Data sourced from:
+#   - Qualcomm SA8775P Snapdragon Ride Product Brief
+#   - Hexagon DSP / HVX / HMX architecture documentation
+#   - graphs/src/graphs/hardware/models/automotive/qualcomm_sa8775p.py
+#
+# Confidence: theoretical.
+#   - 32 TOPS INT8 is Qualcomm's marketed peak.
+#   - HMX (Hexagon Matrix eXtensions) ops/cycle estimated from 30 TOPS
+#     dominant share at 2.0 GHz across 2 units = 7500 ops/unit/cycle.
+#   - HVX (1024-bit SIMD) ops/cycle derived from element-width arithmetic.
+#   - 5nm TSMC process per Qualcomm's official docs.
+#   - LPDDR5 bandwidth (90 GB/s) is automotive-grade typical.
+#
+# Fabric ordering: HMX first (the primary INT8 path, 94% of total TOPS;
+# loader's pick-first convention puts HMX on chip-level surfaces).
+#
+# **BOMCostProfile** is OUT OF SCOPE for the YAML (none of the existing
+# *Block YAMLs carry BOM). The graphs-side cleanup wrapper attaches
+# BOM as an overlay -- see graphs PR for SA8775P cleanup.
+
+id: qualcomm_sa8775p
+name: Qualcomm SA8775P (Snapdragon Ride)
+vendor: qualcomm
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: fcbga              # automotive-grade flip-chip BGA
+
+lifecycle: production
+
+dies:
+- die_id: sa8775p_die
+  die_role: compute
+  process_node_id: tsmc_n5         # **first DSP SKU on 5nm**
+  die_size_mm2: 160.0              # full automotive SoC; multiple subsystems
+  transistors_billion: 15.0        # 5nm density + ASIL-D safety features
+  silicon_bin:
+    blocks:
+    - name: hmx_tensor_units
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 2500.0
+      notes: 2x HMX (Hexagon Matrix eXtensions) tensor accelerators
+    - name: hvx_vector_units
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1200.0
+      notes: 4x HVX (Hexagon Vector eXtensions) 1024-bit SIMD units
+    - name: hexagon_dsp_control
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 500.0
+      notes: Hexagon DSP control + scalar VLIW + scheduling
+    - name: l1_l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: 128 KB L1/unit + 8 MB shared L2
+    - name: lpddr5_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 500.0
+      notes: LPDDR5 controller PHY (~90 GB/s)
+    - name: arm_cluster
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 4000.0
+      notes: Snapdragon ARM cluster (out of scope for DSPBlock)
+    - name: gpu_adreno
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3000.0
+      notes: Adreno GPU (out of scope for DSPBlock)
+    - name: safety_island
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1200.0
+      notes: ASIL-D functional safety island (lockstep + ECC)
+    - name: peripherals
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 1500.0
+      notes: ISP + MCAN + Ethernet + PCIe + display + misc
+  clocks:
+    base_clock_mhz: 1000.0          # 1.0 GHz minimum
+    boost_clock_mhz: 2400.0         # 2.4 GHz peak boost
+  blocks:
+  - kind: dsp
+    deployment_kind: soc_integrated
+    compute_fabrics:
+    # Fabric 1: HMX tensor accelerator (PRIMARY INT8 path; loader picks
+    # fabric[0] for chip-level compute_units / energy)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 2                  # Dual HMX units
+      ops_per_unit_per_clock:
+        int4: 15000                 # 2x INT8
+        int8: 7500                  # 32 units * 7500 ops/cycle @ 2.0 GHz dominates the 32 TOPS marketing
+        int16: 3750
+        fp16: 1875
+      energy_per_op_fp32_pj: 1.27   # 5nm tensor_core baseline
+      energy_scaling:
+        int4: 0.08                  # INT4 ultra-efficient
+        int8: 0.15
+        int16: 0.25
+        fp16: 0.50
+    # Fabric 2: HVX vector path (1024-bit SIMD for activations / pre/post)
+    - fabric_kind: vector_simd
+      circuit_class: balanced_logic
+      num_units: 4                  # Quad HVX vector units
+      ops_per_unit_per_clock:
+        int4: 512                   # 1024-bit / 2-bit = 512 INT4 ops/cycle
+        int8: 256                   # 1024-bit / 4-bit = 256 INT8 ops/cycle
+        int16: 128                  # 1024-bit / 8-bit = 128 INT16 ops/cycle
+        fp16: 64                    # Emulated FP16
+      energy_per_op_fp32_pj: 1.35   # 5nm simd_packed baseline
+      energy_scaling:
+        int4: 0.08
+        int8: 0.15
+        int16: 0.25
+        fp16: 0.50
+    memory:
+      l1_size_bytes_per_unit: 131072    # 128 KiB per unit
+      l2_size_bytes_total: 8388608      # 8 MiB L2
+      l2_bandwidth_gbps: 200.0
+      has_external_dram: true
+      external_dram_type: lpddr5
+      external_dram_size_gb: 16.0       # automotive-grade LPDDR5
+      external_dram_bandwidth_gbps: 90.0
+      external_dram_bandwidth_kind: measured
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 10.0   # LPDDR5 5nm-integrated
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 1000000000.0
+      boost_hz: 2400000000.0
+      sustained_hz: 2000000000.0        # 2.0 GHz @ 30W default profile
+    # **First 3-profile DVFS DSP SKU**: 20W passive + 30W active + 45W max
+    thermal_profiles:
+    - name: '20W'                        # Cockpit compute (passive)
+      tdp_watts: 20.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 1600.0                  # 67% of 2.4 GHz boost
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int4: 0.45
+        int8: 0.50                       # 50% effective utilization
+        int16: 0.45
+        fp16: 0.42
+      instruction_efficiency_by_precision:
+        int4: 0.88
+        int8: 0.88
+        int16: 0.85
+        fp16: 0.80
+      memory_bottleneck_factor_by_precision:
+        int4: 0.65
+        int8: 0.65                       # LPDDR5 throughput limit at low clock
+        int16: 0.60
+        fp16: 0.55
+      vdd_v: 0.75
+    - name: '30W'                        # ADAS + cockpit (active fan)
+      tdp_watts: 30.0
+      cooling_solution_id: active_fan
+      clock_mhz: 2000.0                  # 83% of 2.4 GHz boost
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int4: 0.52
+        int8: 0.58                       # 58% effective utilization
+        int16: 0.52
+        fp16: 0.50
+      instruction_efficiency_by_precision:
+        int4: 0.90
+        int8: 0.90
+        int16: 0.88
+        fp16: 0.85
+      memory_bottleneck_factor_by_precision:
+        int4: 0.70
+        int8: 0.70
+        int16: 0.65
+        fp16: 0.60
+      vdd_v: 0.8
+    - name: '45W'                        # Max performance (L3 autonomous)
+      tdp_watts: 45.0
+      cooling_solution_id: active_fan    # enhanced cooling; same cooling slot
+      clock_mhz: 2300.0                  # 96% of 2.4 GHz boost
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int4: 0.60
+        int8: 0.65                       # 65% effective utilization
+        int16: 0.58
+        fp16: 0.55
+      instruction_efficiency_by_precision:
+        int4: 0.92
+        int8: 0.92
+        int16: 0.90
+        fp16: 0.88
+      memory_bottleneck_factor_by_precision:
+        int4: 0.75
+        int8: 0.75
+        int16: 0.70
+        fp16: 0.65
+      vdd_v: 0.9
+    default_thermal_profile_name: '30W'  # Most common ADAS deployment
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int4: 64000000000000.0           # 64 TOPS INT4 (2x INT8)
+        int8: 32000000000000.0           # 32 TOPS INT8 (Qualcomm-marketed)
+        int16: 16000000000000.0          # 16 TOPS INT16
+        fp16: 8000000000000.0            # 8 TFLOPS FP16
+    default_precision: int8
+    multi_precision_alu:
+    - int4
+    - int8
+    - int16
+    - fp16
+    # Multi-task scheduling for automotive workloads (ADAS + cockpit
+    # concurrent execution)
+    min_occupancy: 0.5
+    max_concurrent_kernels: 16          # Multi-task workload
+    wave_quantization: 4
+    vliw_issue_width: 4                  # Hexagon DSP is 4-issue VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+performance:
+  int8_tops: 32.0
+  bf16_tflops: 0.0                       # not supported on Hexagon DSP
+  fp32_tflops: 0.0                       # not supported (only FP16)
+  int4_tops: 64.0
+
+power:
+  tdp_watts: 30.0                        # default profile
+  max_power_watts: 50.0                  # 45W + boost headroom
+  min_power_watts: 8.0
+  idle_power_watts: 1.0
+  default_thermal_profile: '30W'
+  thermal_profiles:
+  - name: '20W'
+    tdp_watts: 20.0
+    clock_mhz: 1600.0
+    cooling_solution_id: passive_fanless
+  - name: '30W'
+    tdp_watts: 30.0
+    clock_mhz: 2000.0
+    cooling_solution_id: active_fan
+  - name: '45W'
+    tdp_watts: 45.0
+    clock_mhz: 2300.0
+    cooling_solution_id: active_fan
+
+market:
+  launch_date: '2023-01-01'
+  target_market: embodied
+  product_family: Snapdragon-Ride
+  model_tier: high                       # high-end ADAS (L2+/L3)
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Qualcomm SA8775P (Snapdragon Ride) -- mid-range automotive ADAS
+  SoC. Eighth DSP SKU in the catalog, opens Qualcomm batch (3/3 of
+  graphs#223).
+
+  Most complex DSP YAML to date: **first 3-profile DVFS** (20W/30W/45W),
+  **first TSMC N5** DSP, HVX + HMX multi-fabric Hexagon architecture
+  with INT4/INT8/INT16/FP16 mixed precision.
+
+  ASIL-D safety certified. Targets ADAS Level 2+/3 (highway pilot,
+  parking assist), automotive cockpit (HMI/voice/driver monitoring),
+  and robotics (AMR, AGVs, inspection robots). Competes with Jetson
+  Orin AGX and Mobileye EyeQ5H.
+
+  Fabric ordering: HMX first (the primary INT8 path; 30 TOPS of the
+  32 TOPS total; loader's pick-first convention puts HMX on chip-
+  level compute_units / energy_per_flop surfaces).
+
+  BOMCostProfile populated on the graphs-side wrapper as an overlay
+  (no *Block YAML in the catalog carries BOM today).
+
+  model_tier='high' (vs other automotive SoCs: TDA4VH=high,
+  TDA4VM/AL=mid, TDA4VL=entry).
+last_updated: '2026-05-18'
