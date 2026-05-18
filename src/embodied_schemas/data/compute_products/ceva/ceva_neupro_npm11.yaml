@@ -1,0 +1,212 @@
+# CEVA NeuPro-M NPM11 -- licensable neural processing IP core.
+#
+# Third DSP IP-core SKU in the catalog (joins Cadence Vision Q8 and
+# Synopsys ARC EV7x). Second multi-fabric DSP SKU. Closes 2 of 9
+# follow-up SKUs tracked at graphs#223 (batch 1 of 3: IP cores).
+#
+# NeuPro-M is CEVA's neural processing IP family; NPM11 is the
+# single-engine configuration. Licensable IP designed for edge AI
+# SoC integration (mobile, automotive, IoT). The bandwidth + thermal
+# numbers in this YAML are typical mobile SoC integration estimates,
+# not measured silicon.
+#
+# Data sourced from:
+#   - CEVA NeuPro-M Product Brief
+#   - NPM11 configuration specifications
+#   - CEVA press releases (2021-2024)
+#   - graphs/src/graphs/hardware/models/ip_cores/ceva_neupro_npm11.py
+#     (the well-validated graphs mapper, the migration source)
+#
+# Confidence: theoretical.
+#   - Peak performance (20 TOPS INT8 / 10 TFLOPS FP16) is from
+#     CEVA product brief.
+#   - 64-unit tensor + 64-unit vector decomposition matches the
+#     graphs hand-coded factory.
+#   - 16nm TSMC is the typical integration node for this generation.
+#   - INT4 capability (40 TOPS) is fabric-level; CEVA doesn't market
+#     INT4 explicitly but the architecture supports 2x INT8 throughput.
+#
+# Fabric ordering: tensor fabric is FIRST (fabric[0]) so the loader's
+# pick-first convention puts the canonical INT8 path (20 TOPS) on
+# the chip-level compute_units / energy_per_flop_fp32 surface.
+
+id: ceva_neupro_m_npm11
+name: CEVA NeuPro-M NPM11
+vendor: ceva
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: ip_core
+
+lifecycle: production
+
+dies:
+- die_id: neupro_npm11_die
+  die_role: compute
+  process_node_id: tsmc_n16
+  die_size_mm2: 6.0           # estimate for single-engine NPM11
+  transistors_billion: 0.15
+  silicon_bin:
+    blocks:
+    - name: tensor_engine
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 70.0
+      notes: 64-unit tensor fabric (INT4 / INT8 / INT16)
+    - name: vector_engine
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: 64-unit vector fabric (FP16)
+    - name: l1_l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 25.0
+      notes: 64 KB/unit L1 + 2 MB shared L2
+    - name: scalar_control
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 5.0
+      notes: Scalar control + dispatch
+  clocks:
+    base_clock_mhz: 800.0     # 800 MHz minimum
+    boost_clock_mhz: 1250.0   # 1.25 GHz peak
+  blocks:
+  - kind: dsp
+    deployment_kind: standalone_ip
+    # Multi-fabric: tensor FIRST (the primary INT8 path; loader uses
+    # fabric[0] for chip-level surfaces -- compute_units, energy).
+    compute_fabrics:
+    # Fabric 1: tensor path (INT4 / INT8 / INT16)
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 64
+      ops_per_unit_per_clock:
+        int4: 624                # 624 INT4 MACs/cycle/unit (2x INT8)
+        int8: 312                # 312 INT8 MACs/cycle/unit -> 20 TOPS @ 1 GHz
+        int16: 156               # 156 INT16 MACs/cycle/unit
+      energy_per_op_fp32_pj: 2.295   # 16nm tensor_core baseline
+      energy_scaling:
+        int4: 0.06               # INT4 ultra-efficient
+        int8: 0.12               # INT8 very efficient
+        int16: 0.20              # INT16
+    # Fabric 2: vector path (FP16 only)
+    - fabric_kind: vector_simd
+      circuit_class: balanced_logic
+      num_units: 64
+      ops_per_unit_per_clock:
+        fp16: 156                # 156 FP16 MACs/cycle/unit -> 10 TFLOPS @ 1 GHz
+      energy_per_op_fp32_pj: 2.43    # 16nm simd_packed baseline
+      energy_scaling:
+        fp16: 0.40
+    memory:
+      l1_size_bytes_per_unit: 65536    # 64 KiB per unit
+      l2_size_bytes_total: 2097152     # 2 MiB shared L2
+      l2_bandwidth_gbps: 80.0          # on-chip SRAM bandwidth (estimate)
+      has_external_dram: true
+      external_dram_type: lpddr5       # mobile SoC pairing
+      external_dram_size_gb: 8.0
+      external_dram_bandwidth_gbps: 50.0   # typical (NOT measured)
+      external_dram_bandwidth_kind: typical
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 12.0   # LPDDR5 typical
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 800000000.0
+      boost_hz: 1250000000.0
+      sustained_hz: 1000000000.0
+    thermal_profiles:
+    - name: '2W'
+      tdp_watts: 2.0
+      cooling_solution_id: passive_fanless
+      clock_mhz: 1000.0
+      dvfs_enabled: false
+      efficiency_factor_by_precision:
+        int4: 0.75               # INT4 highest efficiency
+        int8: 0.70
+        int16: 0.65
+        fp16: 0.60
+      instruction_efficiency_by_precision:
+        int4: 0.92
+        int8: 0.90
+        int16: 0.88
+        fp16: 0.85
+      memory_bottleneck_factor_by_precision:
+        int4: 0.80
+        int8: 0.75
+        int16: 0.70
+        fp16: 0.70
+      vdd_v: 0.8                 # 16nm nominal
+    default_thermal_profile_name: '2W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int4: 40000000000000.0   # 40 TOPS (2x INT8 throughput; fabric capability)
+        int8: 20000000000000.0   # 20 TOPS INT8 (marketed)
+        int16: 10000000000000.0  # 10 TOPS INT16
+        fp16: 10000000000000.0   # 10 TFLOPS FP16
+    default_precision: int8
+    multi_precision_alu:
+    - int4
+    - int8
+    - int16
+    - fp16
+    min_occupancy: 0.70
+    max_concurrent_kernels: 8
+    wave_quantization: 4
+    vliw_issue_width: null       # NeuPro-M is not VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+# Chip-level performance roll-up at the 2W operating point:
+#   INT8: 64 tensor units * 312 ops/cycle * 1.0 GHz = 19.97 TOPS (~20 marketed)
+#   FP16: 64 vector units * 156 ops/cycle * 1.0 GHz = 9.98 TFLOPS (~10 marketed)
+performance:
+  int8_tops: 20.0
+  bf16_tflops: 0.0    # not supported on NPM11
+  fp32_tflops: 0.0    # not supported (only FP16 on vector path)
+  int4_tops: 40.0     # 2x INT8 throughput
+
+power:
+  tdp_watts: 2.0
+  max_power_watts: 2.5      # at 1.25 GHz boost
+  min_power_watts: 1.0      # at 800 MHz base
+  idle_power_watts: 0.15
+  default_thermal_profile: '2W'
+  thermal_profiles:
+  - name: '2W'
+    tdp_watts: 2.0
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_fanless
+
+market:
+  launch_date: '2021-06-01'
+  target_market: embodied         # mobile + automotive + IoT + smart cameras
+  product_family: NeuPro-M
+  model_tier: ip_core
+  is_available: true              # licensable today via CEVA
+
+confidence: theoretical
+notes: >
+  CEVA NeuPro-M NPM11 (single-engine config) -- third DSP IP-core
+  SKU in the catalog (joins Cadence Vision Q8 and Synopsys ARC EV7x).
+  Second multi-fabric DSP SKU; tensor + vector pairing canonical
+  for NPM11 (tensor handles INT4/INT8/INT16; vector handles FP16).
+
+  Used in mobile devices (always-on AI), automotive ADAS (sensor
+  fusion), IoT devices, smart cameras and drones. Licensable IP;
+  SoC integrator chooses the surrounding DDR + cooling + ISP.
+  Bandwidth numbers are typical-integration estimates (mobile LPDDR5
+  reference).
+
+  Fabric ordering matches the loader's pick-first convention: tensor
+  fabric is first so the chip-level compute_units / energy_per_flop_fp32
+  surfaces mirror the canonical INT8 path.
+
+  Closes 2 of 9 follow-up SKUs at graphs#223 (batch 1 of 3 complete:
+  IP cores).
+last_updated: '2026-05-18'

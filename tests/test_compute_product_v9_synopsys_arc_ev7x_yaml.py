@@ -55,12 +55,14 @@ def test_catalog_includes_synopsys_arc_ev7x(all_products):
 
 
 def test_catalog_dsp_count_is_now_two(all_products):
-    """Cadence Vision Q8 + Synopsys ARC EV7x = 2 DSP SKUs."""
+    """Cadence Vision Q8 + Synopsys ARC EV7x lands the DSP count
+    to at least 2 at this SKU's PR baseline. Subset semantics so
+    further DSP follow-ups (graphs#223) don't regress this test."""
     dsp_count = sum(
         1 for cp in all_products.values()
         if cp.dies[0].blocks[0].kind == "dsp"
     )
-    assert dsp_count == 2
+    assert dsp_count >= 2
 
 
 # ---------------------------------------------------------------------------
