@@ -1,0 +1,251 @@
+# Texas Instruments TDA4VH (Jacinto 7 Very High Performance) -- automotive ADAS SoC.
+#
+# Sixth DSP SKU in the catalog. Third TI TDA4 family member (after
+# TDA4VM and TDA4AL). DSP batch #223 batch 2 SKU 3 of 4.
+#
+# TDA4VH is the high-end Jacinto 7 variant for Level 3-4 autonomy:
+# 4x C7x DSP cores + 4x MMAv2 accelerators (= 4x TDA4VM's compute).
+# Targets 8-12 camera surround view, lidar+radar+camera fusion,
+# highway/urban pilot deployments.
+#
+# Data sourced from:
+#   - TI TDA4VH Product Brief
+#   - graphs/src/graphs/hardware/models/automotive/ti_tda4vh.py
+#
+# Key TDA4VH vs TDA4VM deltas:
+#   - 4x more compute: 32 TOPS INT8 + 320 GFLOPS FP32 (vs 8/80)
+#   - 4x C7x cores: 32 (vs 8); 4x MMAv2 units: 4 (vs 1)
+#   - Larger L2: 16 MiB MSMC (vs 8 MiB)
+#   - Higher main memory: 16 GiB LPDDR5 (vs 8 GiB LPDDR4x)
+#   - Higher bandwidth: 100 GB/s LPDDR5 (vs 60 GB/s LPDDR4x)
+#   - Higher thermals: 20W + 35W (vs 10W + 20W)
+#   - Lower min_occupancy: 0.60 (vs 0.70) -- multi-accelerator coordination cost
+#   - More concurrency: max_concurrent_kernels=8, wave_quantization=8
+#   - 8x Cortex-A72 control complex (out of scope for DSPBlock)
+
+id: ti_tda4vh
+name: Texas Instruments TDA4VH (Jacinto 7 Very High Performance)
+vendor: ti
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: fcbga
+
+lifecycle: production
+
+dies:
+- die_id: tda4vh_die
+  die_role: compute
+  process_node_id: tsmc_n16      # 16nm FinFET (corrected from hand-coded's buggy 28nm)
+  die_size_mm2: 200.0            # ~2x TDA4VM (more cores + larger cache + 8x A72)
+  transistors_billion: 10.0
+  silicon_bin:
+    blocks:
+    - name: c7x_dsp_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3200.0
+      notes: 32x C7x VLIW DSP cores (4x TDA4VM)
+    - name: mma_v2_accelerators
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1800.0
+      notes: 4x MMAv2 tensor accelerators (4x TDA4VM)
+    - name: msmc_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: 16 MiB MSMC on-chip SRAM (2x TDA4VM)
+    - name: l1d_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 48 KB L1D per C7x core (32x)
+    - name: lpddr5_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: LPDDR5 controller PHY (~100 GB/s)
+    - name: cortex_a72_cluster
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3000.0
+      notes: 8x Cortex-A72 @ 2.0 GHz (out of scope for DSPBlock)
+    - name: r5f_safety_cores
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: R5F safety cores for ASIL-D
+    - name: peripherals
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 400.0
+      notes: ISP + Ethernet + PCIe + display + misc
+  clocks:
+    base_clock_mhz: 700.0
+    boost_clock_mhz: 1000.0
+  blocks:
+  - kind: dsp
+    deployment_kind: soc_integrated
+    compute_fabrics:
+    # Fabric 1: 4x C7x DSP cluster = 32 cores total
+    - fabric_kind: vliw_scalar
+      circuit_class: balanced_logic
+      num_units: 32                     # 4x TDA4VM's 8 cores
+      ops_per_unit_per_clock:
+        fp32: 10
+        fp16: 20
+      energy_per_op_fp32_pj: 2.43       # 16nm simd_packed baseline (corrected)
+      energy_scaling:
+        fp16: 0.50
+        int8: 0.15
+    # Fabric 2: 4x MMAv2 tensor accelerators
+    - fabric_kind: tensor_matrix
+      circuit_class: balanced_logic
+      num_units: 4                      # 4x MMAv2 units
+      ops_per_unit_per_clock:
+        int8: 8000                      # 32 TOPS / 4 / 1.0 GHz = 8000 ops/cycle
+        int16: 4000
+      energy_per_op_fp32_pj: 2.295      # 16nm tensor_core baseline (corrected)
+      energy_scaling:
+        int8: 0.15
+        int16: 0.25
+    memory:
+      l1_size_bytes_per_unit: 49152
+      l2_size_bytes_total: 16777216     # 16 MiB MSMC (2x TDA4VM)
+      l2_bandwidth_gbps: 200.0          # higher to match the multi-accelerator load
+      has_external_dram: true
+      external_dram_type: lpddr5        # **first DSP SKU with LPDDR5**
+      external_dram_size_gb: 16.0
+      external_dram_bandwidth_gbps: 100.0   # LPDDR5 @ 6400 MT/s (measured)
+      external_dram_bandwidth_kind: measured
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 15.0   # LPDDR5 more efficient than LPDDR4x
+      coherence_protocol: none
+    clock_domain:
+      base_hz: 700000000.0
+      boost_hz: 1000000000.0
+      sustained_hz: 850000000.0         # 850 MHz @ 20W default profile
+    thermal_profiles:
+    - name: '20W'                        # Multi-camera L2+ ADAS
+      tdp_watts: 20.0
+      cooling_solution_id: active_fan
+      clock_mhz: 850.0
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.70                       # Lower than TDA4VM/AL (multi-accelerator coordination)
+        int16: 0.65
+        fp16: 0.55
+        fp32: 0.50
+      instruction_efficiency_by_precision:
+        int8: 0.93
+        int16: 0.90
+        fp16: 0.78
+        fp32: 0.85
+      memory_bottleneck_factor_by_precision:
+        int8: 0.75
+        int16: 0.70
+        fp16: 0.65
+        fp32: 0.60
+      vdd_v: 0.8
+    - name: '35W'                        # Full L3-4 autonomy
+      tdp_watts: 35.0
+      cooling_solution_id: active_fan    # Could be "enhanced" -- using standard cooling slot
+      clock_mhz: 950.0
+      dvfs_enabled: true
+      efficiency_factor_by_precision:
+        int8: 0.78
+        int16: 0.72
+        fp16: 0.62
+        fp32: 0.55
+      instruction_efficiency_by_precision:
+        int8: 0.95
+        int16: 0.92
+        fp16: 0.82
+        fp32: 0.88
+      memory_bottleneck_factor_by_precision:
+        int8: 0.80
+        int16: 0.75
+        fp16: 0.70
+        fp32: 0.65
+      vdd_v: 0.9
+    default_thermal_profile_name: '20W'
+    theoretical_performance:
+      peak_ops_per_sec_by_precision:
+        int8: 32000000000000.0          # 32 TOPS INT8 (4x TDA4VM; 4x MMAv2)
+        int16: 16000000000000.0         # 16 TOPS INT16
+        fp16: 640000000000.0            # 640 GFLOPS FP16
+        fp32: 320000000000.0            # 320 GFLOPS FP32
+    default_precision: int8
+    multi_precision_alu:
+    - int8
+    - int16
+    - fp16
+    - fp32
+    min_occupancy: 0.60                 # Lower than TDA4VM/AL (multi-accelerator coordination)
+    max_concurrent_kernels: 8           # 4x accelerators allow more parallelism
+    wave_quantization: 8                # Higher than TDA4VM/AL (4x MMAv2 grouping)
+    vliw_issue_width: 8                 # C7x is 8-wide VLIW
+    noc_confidence: theoretical
+  interconnects: []
+
+performance:
+  int8_tops: 32.0
+  bf16_tflops: 0.0
+  fp32_tflops: 0.32
+  int4_tops: 0.0
+
+power:
+  tdp_watts: 20.0
+  max_power_watts: 38.0                 # at 35W profile + boost headroom
+  min_power_watts: 8.0
+  idle_power_watts: 1.0
+  default_thermal_profile: '20W'
+  thermal_profiles:
+  - name: '20W'
+    tdp_watts: 20.0
+    clock_mhz: 850.0
+    cooling_solution_id: active_fan
+  - name: '35W'
+    tdp_watts: 35.0
+    clock_mhz: 950.0
+    cooling_solution_id: active_fan
+
+market:
+  launch_date: '2022-06-01'
+  target_market: embodied
+  product_family: Jacinto-7
+  model_tier: high                      # high-end ADAS (vs TDA4VM/AL's mid)
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Texas Instruments TDA4VH (Jacinto 7 Very High Performance) -- sixth
+  DSP SKU in the catalog, third TI TDA4 family member. High-end
+  Jacinto 7 variant for Level 3-4 autonomy: 4x C7x DSP cores + 4x
+  MMAv2 accelerators (= 4x TDA4VM's compute).
+
+  **First DSP SKU with LPDDR5** (100 GB/s, vs the LPDDR4x at 60 GB/s
+  used by TDA4VM and TDA4AL). Larger L2 cache (16 MiB vs 8 MiB) and
+  main memory (16 GiB vs 8 GiB) reflect the multi-accelerator
+  workload.
+
+  Higher thermal envelope: 20W + 35W profiles (vs TDA4VM's 10W + 20W).
+  Lower min_occupancy (0.60 vs 0.70) reflects multi-accelerator
+  coordination overhead.
+
+  Used in 8-12 camera surround view, lidar+radar+camera fusion,
+  highway pilot, urban pilot. model_tier=high (vs TDA4VM/AL's mid).
+
+  Process node correction: hand-coded factory uses 28nm; YAML uses
+  16nm per TI's official Jacinto 7 docs (same correction as VM/AL).
+last_updated: '2026-05-18'
