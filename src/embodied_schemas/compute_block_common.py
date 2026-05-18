@@ -19,6 +19,10 @@ Unified types landed so far:
     only the architecture-specific ``topology`` enum. Inheritance-
     based (vs alias) because each block kind has its own topology
     enum that must stay validated.
+  - ``DramAttachment`` enum -- v11 sprint (graphs#219). Cross-kind
+    discriminator for chip-attached vs host-bus external DRAM. Used
+    by ``*MemorySubsystem`` ``dram_attachment`` fields (added in v11
+    PR 2 as Optional; CGRA rename + Plasticine YAML migration in PR 3).
 
 This module is **additive only**. Existing block modules continue to
 work unchanged:
@@ -40,17 +44,21 @@ Backward-compat guarantees:
   4. Every serialized JSON round-trips unchanged.
   5. graphs-side YAML loaders work unchanged.
 
-Out of scope for v10:
+Out of scope for v11:
 
   - KPU schema unification (oldest module; pre-dates the pattern;
     12 SKUs would need migration; KPUThermalProfile is doubly-purposed
     as chip-level ``Power.thermal_profiles`` -- defer to v12+)
-  - ``MemorySubsystem`` / ``ComputeFabric`` unification (KEEP_SEPARATE
-    -- architectural variations are meaningful)
+  - ``MemorySubsystem`` / ``ComputeFabric`` class-level unification
+    (KEEP_SEPARATE -- architectural variations are meaningful;
+    v11 adds a shared discriminator FIELD but does not unify the
+    classes)
   - Per-architecture fabric kind enums (NPUDataflowKind, NPUNoCTopology
     etc.) -- intentionally architecture-specific
-  - ``has_external_dram`` vs ``has_host_dram`` naming reconciliation
-    (touches SKU YAMLs; defer to v11)
+  - Backfilling ``dram_attachment=chip_attached`` on the 4 chip-attached
+    YAMLs (hailo_10h, vitis_ai_b4096, tpu_v4, cadence_vision_q8) --
+    defer to a follow-up after v11 closes; making the field required
+    when ``has_external_dram=True`` is v12+ candidate
 
 See:
   - ``graphs/docs/designs/v8-compute-block-common-unification.md``
@@ -60,6 +68,9 @@ See:
   - ``graphs/docs/designs/v10-on-die-fabric-unification.md``
     (v10 paper exercise: 6-class audit + OnDieFabric base + endpoint-
     count naming reconciliation)
+  - ``graphs/docs/designs/v11-dram-attachment-discriminator.md``
+    (v11 paper exercise: 5-class audit + DramAttachment enum + CGRA
+    naming reconciliation)
 """
 
 from __future__ import annotations
@@ -72,12 +83,52 @@ from __future__ import annotations
 # use this module as a single canonical import point.
 # ---------------------------------------------------------------------------
 
+from enum import Enum
+
 from embodied_schemas.process_node import (
     CircuitClass,
     DataConfidence,
 )
 from embodied_schemas.gpu import MemoryType
 from embodied_schemas.gpu_block import ClockDomain
+
+
+# ---------------------------------------------------------------------------
+# DRAM attachment discriminator (v11 unification, graphs#219 PR 2)
+#
+# Captures the architectural distinction the v8/v9/v10 paper exercises
+# flagged: external DRAM can be chip-attached (chip has its own DRAM
+# controller; bandwidth gated by HBM/DDR PHY) or reached via host bus
+# (chip uses PCIe + host CPU memory subsystem; bandwidth gated by PCIe
+# + host RAM). These different bandwidth + energy models matter for
+# roofline analysis.
+#
+# Today: NPU/DPU/TPU/DSP populate CHIP_ATTACHED; CGRA (Plasticine v2)
+# populates HOST_BUS. v11 PR 3 will rename CGRA's host_dram_* fields
+# to external_dram_* to match the 5-of-6 convention + set
+# dram_attachment=host_bus explicitly to preserve the semantic.
+#
+# In v11 the field is OPTIONAL (default None) on all *MemorySubsystem
+# classes for backward compat. A future sprint (v12+) may require it
+# when has_external_dram=True after the 4 chip-attached YAMLs are
+# backfilled to populate the discriminator.
+# ---------------------------------------------------------------------------
+
+class DramAttachment(str, Enum):
+    """How external DRAM is attached to the compute chip.
+
+    CHIP_ATTACHED: the chip has its own DRAM controller; bandwidth is
+      gated by the chip's HBM/DDR/LPDDR PHY. Energy/byte is the chip's
+      own DRAM access cost. Typical: TPU + HBM2e; DSP + LPDDR4 (typical-
+      integration); DPU + DDR4; NPU + LPDDR4X.
+    HOST_BUS: the chip reaches DRAM via the host CPU's memory subsystem
+      (PCIe + host DRAM controllers). Bandwidth is gated by PCIe lane
+      count * link speed. Energy/byte includes PCIe transit + host
+      DRAM access. Typical: CGRA accelerator cards (Plasticine v2).
+    """
+
+    CHIP_ATTACHED = "chip_attached"
+    HOST_BUS = "host_bus"
 
 
 # ---------------------------------------------------------------------------
@@ -328,4 +379,6 @@ __all__ = [
     "ThermalProfile",
     # Inheritance base (v10)
     "OnDieFabric",
+    # Cross-kind discriminator enum (v11)
+    "DramAttachment",
 ]

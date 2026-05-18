@@ -35,6 +35,8 @@ from embodied_schemas import (
     DPUOnDieFabric,
     DPUTheoreticalPerformance,
     DPUThermalProfile,
+    # v11 cross-kind discriminator from compute_block_common
+    DramAttachment,
     DSPThermalProfile,
     GPUOnDieFabric,
     GPUTheoreticalPerformance,
@@ -689,3 +691,122 @@ def test_isinstance_double_direction_for_on_die_fabric():
     )
     assert isinstance(tpu_fabric, TPUOnDieFabric)
     assert isinstance(tpu_fabric, OnDieFabric)
+
+
+# ---------------------------------------------------------------------------
+# 9. v11: DramAttachment discriminator + dram_attachment field on the
+# 5 *MemorySubsystem classes (CGRA still uses host_dram_* naming in
+# this PR; PR 3 of v11 renames CGRA fields).
+# ---------------------------------------------------------------------------
+
+def test_compute_block_common_exports_dram_attachment():
+    """The new v11 ``DramAttachment`` enum is importable from both
+    compute_block_common and the top-level package."""
+    from embodied_schemas.compute_block_common import (
+        DramAttachment as common_DramAttachment,
+    )
+    assert DramAttachment is common_DramAttachment
+
+
+def test_dram_attachment_has_two_values():
+    """Values: CHIP_ATTACHED (NPU/DPU/TPU/DSP) and HOST_BUS (CGRA)."""
+    values = {v.value for v in DramAttachment}
+    assert values == {"chip_attached", "host_bus"}
+
+
+def test_dram_attachment_value_strings():
+    """Pin the string values used in YAML serialization."""
+    assert DramAttachment.CHIP_ATTACHED.value == "chip_attached"
+    assert DramAttachment.HOST_BUS.value == "host_bus"
+
+
+def test_all_five_memory_subsystems_carry_dram_attachment_field():
+    """v11 PR 2: every ``*MemorySubsystem`` with external/host DRAM
+    has the new ``dram_attachment`` optional field. Pin this with
+    a positive assertion so any future regression (removing the
+    field, renaming it) fails loudly."""
+    from embodied_schemas.npu_block import NPUMemorySubsystem
+    from embodied_schemas.dpu_block import DPUMemorySubsystem
+    from embodied_schemas.tpu_block import TPUMemorySubsystem
+    from embodied_schemas.dsp_block import DSPMemorySubsystem
+    from embodied_schemas.cgra_block import CGRAMemorySubsystem
+
+    for cls in (NPUMemorySubsystem, DPUMemorySubsystem,
+                TPUMemorySubsystem, DSPMemorySubsystem,
+                CGRAMemorySubsystem):
+        assert "dram_attachment" in cls.model_fields, (
+            f"{cls.__name__} is missing the v11 dram_attachment field"
+        )
+
+
+def test_dram_attachment_field_defaults_to_none():
+    """Backward compat: in v11 the field is optional with None
+    default so existing YAMLs (NPU/DPU/TPU/DSP/CGRA) validate
+    unchanged without populating the discriminator."""
+    from embodied_schemas.tpu_block import TPUMemorySubsystem
+    memory = TPUMemorySubsystem(
+        on_chip_bandwidth_gbps=2000.0,
+        unified_buffer_size_kib=32 * 1024,
+        unified_buffer_access_energy_pj_per_byte=0.5,
+        has_external_dram=True,
+        external_dram_type=MemoryType.HBM2,
+        external_dram_size_gb=32.0,
+        external_dram_bandwidth_gbps=1200.0,
+        external_dram_access_energy_pj_per_byte=10.0,
+    )
+    # No dram_attachment passed -> defaults to None
+    assert memory.dram_attachment is None
+
+
+def test_dram_attachment_field_accepts_chip_attached():
+    """When populated, dram_attachment accepts CHIP_ATTACHED."""
+    from embodied_schemas.tpu_block import TPUMemorySubsystem
+    memory = TPUMemorySubsystem(
+        on_chip_bandwidth_gbps=2000.0,
+        unified_buffer_size_kib=32 * 1024,
+        unified_buffer_access_energy_pj_per_byte=0.5,
+        has_external_dram=True,
+        external_dram_type=MemoryType.HBM2,
+        external_dram_size_gb=32.0,
+        external_dram_bandwidth_gbps=1200.0,
+        external_dram_access_energy_pj_per_byte=10.0,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
+    )
+    assert memory.dram_attachment == DramAttachment.CHIP_ATTACHED
+
+
+def test_dram_attachment_field_accepts_host_bus():
+    """When populated, dram_attachment accepts HOST_BUS (CGRA's case)."""
+    from embodied_schemas.cgra_block import CGRAMemorySubsystem
+    memory = CGRAMemorySubsystem(
+        on_chip_bandwidth_gbps=200.0,
+        pmu_kib_per_pcu=64,
+        shared_sram_kib=2048,
+        has_host_dram=True,
+        host_dram_type=MemoryType.DDR4,
+        host_dram_size_gb=4.0,
+        host_dram_bandwidth_gbps=25.6,
+        pmu_access_energy_pj_per_byte=12.0,
+        host_dram_access_energy_pj_per_byte=20.0,
+        dram_attachment=DramAttachment.HOST_BUS,
+    )
+    assert memory.dram_attachment == DramAttachment.HOST_BUS
+
+
+def test_dram_attachment_round_trips_through_json():
+    """Pydantic JSON round-trip uses the enum value string."""
+    from embodied_schemas.dsp_block import DSPMemorySubsystem
+    memory = DSPMemorySubsystem(
+        l1_size_bytes_per_unit=32 * 1024,
+        has_external_dram=True,
+        external_dram_type=MemoryType.LPDDR4,
+        external_dram_size_gb=4.0,
+        external_dram_bandwidth_gbps=40.0,
+        external_dram_bandwidth_kind="typical",
+        external_dram_access_energy_pj_per_byte=12.0,
+        dram_attachment=DramAttachment.CHIP_ATTACHED,
+    )
+    payload = memory.model_dump(mode="json")
+    assert payload["dram_attachment"] == "chip_attached"
+    rebuilt = DSPMemorySubsystem.model_validate(payload)
+    assert rebuilt.dram_attachment == DramAttachment.CHIP_ATTACHED
