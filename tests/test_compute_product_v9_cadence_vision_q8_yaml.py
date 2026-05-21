@@ -97,7 +97,7 @@ def test_other_vendors_unaffected_by_cadence_addition(all_products):
     assert counts_by_vendor.get("hailo") == 2
     assert counts_by_vendor.get("stanford") == 1
     assert counts_by_vendor.get("xilinx") == 1
-    assert counts_by_vendor.get("google") == 2
+    assert counts_by_vendor.get("google") == 3  # +google_tpu_v1 (sprint #72 PR 3)
     # New cadence/ vendor directory
     assert counts_by_vendor.get("cadence") == 1
 

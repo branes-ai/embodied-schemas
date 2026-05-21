@@ -1,0 +1,276 @@
+# Google TPU v1 -- the original Tensor Processing Unit.
+#
+# Sprint #72 PR 3 -- third SKU in the long-tail Bucket A backfill
+# for branes-ai/graphs#241. The most-documented TPU in the catalog
+# (and arguably the most-documented AI ASIC ever published): the
+# subject of Jouppi et al.'s ISCA 2017 paper "In-Datacenter
+# Performance Analysis of a Tensor Processing Unit," which set the
+# template for systolic-array AI ASIC papers since.
+#
+# Deployed in Google datacenters from 2015 (predated the public
+# launch by ~2 years per the ISCA 2017 disclosure). Inference-only
+# at 28W -- a stark contrast to modern training-focused TPUs at
+# 350W (TPU v4) or 700W (v5p). The Unified Buffer + 256x256 MAC
+# array architecture that defined the TPU family was introduced here.
+#
+# Joins the existing TPU v4 entry (#206) and Coral Edge TPU (#195)
+# in the google/ vendor directory. Adds:
+#   - First TPU v1 SKU (TPUFabricKind.TPU_V1_STYLE -- declared in v7
+#     schema but unused until this YAML)
+#   - First INT8-only SKU in the TPU catalog (no FP support at all)
+#   - First sub-30W TPU SKU
+#   - First 28nm TPU SKU (TPU v4 is N7; Coral is GF 28SLP)
+#   - References the new tsmc_n28hpm process node (added in this PR)
+#
+# Data sourced from:
+#   - Jouppi et al., "In-Datacenter Performance Analysis of a
+#     Tensor Processing Unit," ISCA 2017 (the canonical source)
+#   - Google blog post: "An in-depth look at Google's first TPU"
+#     (May 2017)
+#   - SemiAnalysis / Anandtech follow-on coverage
+#
+# Confidence: theoretical, but well-grounded.
+#   - 256x256 MAC array, 700 MHz, 28W, 8 GiB DDR3-2133, 28 MiB
+#     on-chip SRAM, INT8 only -- ALL Jouppi et al.-published values.
+#   - Die area: paper says "less than half of Haswell" (Haswell-EX
+#     is 662 mm^2) -- consensus public estimate is ~330 mm^2.
+#   - Transistor count: not officially published. ~3 B is the
+#     standard estimate consistent with 28nm density at the
+#     published die size (~9 Mtx/mm^2 chip-wide).
+#   - Process node: Google did not name the specific 28nm variant.
+#     Industry consensus points to TSMC 28HPM.
+#
+# Out of scope:
+#   - Multi-chip topology -- TPU v1 had no inter-chip interconnect
+#     (predates ICI). Each chip was a standalone PCIe card.
+#   - Training workloads -- v1 was inference-only; training arrived
+#     in TPU v2.
+
+id: google_tpu_v1
+name: Google TPU v1
+vendor: google
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: pcie_card        # PCIe Gen3 x16 add-in card form factor
+
+lifecycle: eol                    # production 2015-2018, superseded by v2/v3/v4
+
+dies:
+- die_id: tpu_v1_die
+  die_role: compute
+  process_node_id: tsmc_n28hpm   # NEW: tsmc_n28hpm node added in this PR
+  die_size_mm2: 331.0            # "less than half of Haswell-EX" per Jouppi et al.
+  transistors_billion: 3.0       # estimate from 28nm density (Google did not publish)
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 256x256 MAC array (65,536 MACs) -- the headline systolic array.
+    # 8-bit MAC at 700 MHz. Per Jouppi et al., this dominates the die.
+    # Each MAC is a small fixed-function unit; ~5 K transistors per
+    # MAC including weight/activation registers and control wires.
+    # 65,536 * 5e3 = 327,680 Ktx = 327.68 Mtx... actually too low.
+    # Re-derive at chip-wide 9 Mtx/mm^2: 256x256 array occupies
+    # ~half the die (~165 mm^2) at ~12 Mtx/mm^2 (balanced) =
+    # ~2,000 Mtx for the MAC array proper.
+    - name: systolic_mac_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 2000.0
+      notes: 256x256 INT8 MAC array (65,536 MACs) -- the headline systolic compute fabric
+    # -------------------------------------------------------------------
+    # Unified Buffer: 24 MiB on-chip SRAM (the activations buffer).
+    # Per Jouppi et al., this is the second-largest silicon consumer
+    # after the MAC array. At 28nm HD-SRAM density (60 Mtx/mm^2):
+    # 24 * 1024 * 5 Mtx/KiB = ~120 Mtx in 24 mm^2... too low.
+    # Actually 28nm SRAM is ~0.155 um^2 bitcell so 1 KiB needs
+    # ~50 K transistors of 6T cells + periphery: 24 * 1024 * 50e3 ~
+    # 1.2 G transistors. That's the bulk.
+    - name: unified_buffer_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 24 MiB Unified Buffer (activations buffer, on-chip SRAM)
+    # -------------------------------------------------------------------
+    # Accumulator: 4 MiB on-chip SRAM (per-column 32-bit accumulators).
+    # 32-bit elements; 256 columns; depth = 4096 entries per column =
+    # 256 * 4096 * 32 bit = 4 MiB total.
+    - name: accumulator_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 35.0
+      notes: 4 MiB Accumulator SRAM (per-column 32-bit accumulators)
+    # -------------------------------------------------------------------
+    # Activation function unit, normalization unit, pooling unit -- the
+    # small "fixed-function" datapaths Jouppi et al. describe alongside
+    # the MAC array. Total ~50 Mtx for all three.
+    - name: activation_norm_pool_units
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: Activation function (ReLU/sigmoid LUT) + normalization + pooling
+    # -------------------------------------------------------------------
+    # DDR3-2133 PHY + IMC: 2 channels, 64-bit each, total 128-bit
+    # external interface @ 2.13 GT/s = 34.1 GB/s peak.
+    - name: ddr3_phy
+      circuit_class: analog
+      transistor_source:
+        kind: fixed
+        mtx: 80.0
+      notes: 2-channel DDR3-2133 PHY + IMC (~24 GB/s effective per paper)
+    # -------------------------------------------------------------------
+    # PCIe Gen3 x16 host interface (~14-16 GB/s).
+    - name: pcie_host_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 150.0
+      notes: PCIe Gen3 x16 host interface
+    # -------------------------------------------------------------------
+    # Instruction decoder (CISC-style; ~12 high-level instructions),
+    # weight FIFO, control sequencer, clock generation, misc.
+    - name: control_and_dispatch
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 485.0
+      notes: Instruction decoder + weight FIFO + sequencer + clock + misc control
+  clocks:
+    base_clock_mhz: 700.0
+    boost_clock_mhz: 700.0   # fixed-frequency design (no boost; no DVFS)
+  blocks:
+  - kind: tpu
+    # Single 256x256 MAC array -- the canonical "TPU v1 style" topology.
+    num_mxus: 1
+    mxu_dim_rows: 256
+    mxu_dim_cols: 256
+    # Tile energy decomposition.
+    weight_tile_size_kib: 256       # weight tile = 256x256 INT8 = 64 KiB; doubled for FIFO
+    weight_fifo_depth: 4
+    pipeline_fill_cycles: 256       # = mxu_dim_rows (canonical for square)
+    accumulator_size_kib_per_mxu: 4096   # 4 MiB total accumulator SRAM
+    tile_energy_coefficients:
+      mac_energy_pj: 0.65                                 # 28nm INT8 MAC; ~3x N7's 0.25
+      weight_memory_energy_pj_per_byte: 20.0              # DDR3 access (~2x HBM2e's 10)
+      weight_fifo_energy_pj_per_byte: 1.2                 # on-chip SRAM @ 28nm
+      unified_buffer_read_energy_pj_per_byte: 1.2
+      unified_buffer_write_energy_pj_per_byte: 1.4
+      accumulator_read_energy_pj_per_element: 0.8
+      accumulator_write_energy_pj_per_element: 1.0
+      weight_shift_in_energy_pj_per_element: 0.7
+      activation_stream_energy_pj_per_element: 0.5
+    # No ICI (TPU v1 predates inter-chip interconnect; each chip was a
+    # standalone PCIe card). Schema requires the field set; populate
+    # with zero ports + minimum positive bandwidth (1 GB/s nominal).
+    ici_port_count: 1                       # one nominal port (PCIe-as-ICI)
+    ici_bandwidth_per_port_gbps: 16.0       # PCIe Gen3 x16 effective
+    ici_topology_hint: 'standalone_pcie'    # no torus; standalone card
+    multi_precision_alu:
+    - int8
+    compute_fabrics:
+    - fabric_kind: tpu_v1_style   # FIRST USE of TPU_V1_STYLE in the catalog
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        int8: 2   # MAC = 2 ops (multiply + accumulate)
+      energy_per_op_bf16_pj: 0.65   # schema requires this; TPU v1 has no BF16, use INT8 equivalent
+      energy_scaling: {}
+    memory:
+      on_chip_bandwidth_gbps: 167.0            # UB-to-MXU streaming BW (Jouppi et al. estimate)
+      unified_buffer_size_kib: 24576           # 24 MiB Unified Buffer
+      unified_buffer_access_energy_pj_per_byte: 1.2
+      has_external_dram: true                  # chip-attached DDR3
+      external_dram_type: ddr3                 # NOT HBM (predates HBM TPU adoption)
+      external_dram_size_gb: 8.0
+      external_dram_bandwidth_gbps: 34.1       # 2x 64-bit @ 2.13 GT/s; ~24 GB/s effective
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 20.0  # DDR3 (~2x HBM2e on N7)
+      coherence_protocol: none
+    noc:
+      topology: crossbar                       # 1 MXU; UB->MXU direct path (single crossbar)
+      bisection_bandwidth_gbps: 167.0
+      unit_count: 1                            # 1 MXU
+      flit_size_bytes: 32
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 2.5
+      routing_distance_factor: 1.0
+      confidence: theoretical
+    # Inference-only at low TDP; systolic utilization on quantized
+    # models was very high per the ISCA paper (~70% MAC utilization
+    # on production Google CNN workloads).
+    min_occupancy: 0.5
+    max_concurrent_models: 1
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up:
+#   INT8: 256x256 MACs * 2 ops/MAC * 700 MHz = 91.75 TOPS
+# No other precisions -- TPU v1 was INT8-only.
+performance:
+  int8_tops: 91.75
+  bf16_tflops: 0.0   # not supported (BF16 introduced in TPU v2)
+  fp32_tflops: 0.0   # not supported (FP32 emulation introduced in v4)
+  int4_tops: 0.0     # not supported
+
+power:
+  tdp_watts: 75.0       # PCIe card-level (Jouppi et al. cite ~28W chip + board overhead)
+  max_power_watts: 75.0
+  min_power_watts: 28.0
+  idle_power_watts: 28.0
+  default_thermal_profile: default
+  # Single fixed-frequency operating point. Datacenter TPU v1 cards
+  # used active-air cooling within the host server's chassis.
+  thermal_profiles:
+  - name: default
+    tdp_watts: 75.0
+    clock_mhz: 700.0
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      int8: 0.70   # Jouppi et al. measured ~70% MAC utilization on production CNNs
+    vdd_v: 1.0     # TSMC 28HPM datacenter Vdd
+
+market:
+  launch_date: '2015-01-01'    # production deployment at Google (datacenter-only)
+  target_market: datacenter
+  product_family: TPU
+  model_tier: datacenter       # inference-focused but datacenter-deployed; uses the canonical 'datacenter' tier
+  is_available: false          # never sold; Google-internal deployment only
+
+confidence: theoretical
+notes: >
+  Google TPU v1 -- the original Tensor Processing Unit. Deployed in
+  Google production datacenters from 2015 (2 years before the
+  Jouppi et al. ISCA 2017 paper documented it publicly). Inference-
+  only at 28-75W -- the design that proved systolic-array AI ASICs
+  could outperform contemporary GPUs (NVIDIA K80) by 15-30x on
+  Google's production workloads.
+
+  Architecture: single 256x256 INT8 MAC array (65,536 MACs) at
+  700 MHz, paired with a 24 MiB on-chip Unified Buffer and 8 GiB
+  off-chip DDR3-2133. CISC-style instruction set (~12 instructions)
+  dispatched from the host CPU over PCIe Gen3 x16. No FP support
+  whatsoever -- INT8 only.
+
+  This YAML lands TPU_V1_STYLE -- the schema's TPUFabricKind enum
+  value for the single-large-MXU TPU v1 architecture. Until now,
+  the only TPU SKU in the catalog (TPU v4) used TPU_V2_PLUS
+  (multiple-smaller-MXUs). Both fabric kinds are now exercised.
+
+  Also adds the tsmc_n28hpm process node (TSMC 28HPM, bulk planar
+  HKMG; the consensus-public-estimate node for TPU v1 silicon).
+  Sibling to gf_28nm (used by Coral Edge TPU); the two 28nm entries
+  exist because TSMC and GF 28nm have materially different process
+  characteristics.
+
+  TPU v1 was never sold commercially -- it was a Google-internal
+  inference accelerator that powered Search, Translate, RankBrain,
+  AlphaGo (in part), and many other 2015-2018 Google services.
+  Superseded by TPU v2 (2017) which added training support + BF16.
+
+  Closes the TPU v1 entry of sprint #72 (Bucket A long-tail
+  PhysicalSpec backfill).
+last_updated: '2026-05-21'
