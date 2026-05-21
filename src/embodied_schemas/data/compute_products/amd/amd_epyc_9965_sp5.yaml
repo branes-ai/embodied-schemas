@@ -1,0 +1,316 @@
+# AMD EPYC 9965 (Turin Dense, Zen 5c, 192-core flagship datacenter SKU).
+#
+# Third AMD SKU in data/compute_products/ catalog. First Zen 5
+# entry. Migrates the legacy data/cpus/amd/epyc_9965_sp5.yaml.
+#
+# Sprint #62 PR 3 (third of 5 AMD/Ampere datacenter CPU SKUs in
+# the batch -- see embodied-schemas#62 and branes-ai/graphs#130).
+#
+# Matches the graphs hand-coded mapper at
+# graphs/.../models/datacenter/amd_epyc_turin.py (192 cores, 500W
+# TDP). EPYC 9965 is AMD's 5th-gen flagship "Turin Dense" cloud-
+# native SKU, launched Oct 2024.
+#
+# What's different from EPYC 9754 (Bergamo) -- the closest peer:
+#   - **Zen 5c** core variant (vs Zen 4c). Same ISA family
+#     (AVX-512 + AVX-512_BF16 + AVX-512_VNNI), but Zen 5 ships a
+#     **full-width 512-bit AVX-512 datapath** instead of Zen 4's
+#     double-pumped 256-bit datapath. At the same clock, Zen 5
+#     sustains ~2x the FP32 / INT8 throughput per core. Also:
+#       - L1D enlarged to 48 KB (vs Zen 4's 32 KB)
+#       - 2x decode width vs Zen 4
+#       - Improved branch predictor + larger ROB
+#   - 192 cores in 12 Zen 5c CCDs (16 cores per CCD, same density
+#     as Zen 4c CCD).
+#   - 384 MB total L3 (vs Bergamo's 128 MB) -- Zen 5c retains the
+#     full 32 MB / CCD L3 size from Zen 5 classic.
+#   - DDR5-6000 (vs Bergamo's DDR5-4800) -- new (or respun) IOD
+#     supporting faster memory. 12 channels * 6000 MT/s = 576 GB/s.
+#   - TDP 500W (vs Bergamo's 360W) -- higher core count drives
+#     higher envelope. cTDP 400-550W.
+#   - MSRP $14,813 (vs Bergamo's $10,632).
+#
+# What's the same: SP5 socket (unchanged from Genoa/Bergamo --
+# Turin is socket-compatible with Genoa platforms after firmware
+# update), 12-channel DDR5, 128 PCIe Gen5 lanes, CXL 1.1.
+#
+# Data sourced from:
+#   - AMD Turin launch press kit (Oct 10, 2024)
+#   - AMD Hot Chips 2024 Zen 5 architecture deep dive
+#   - Wikichip Zen 5 / Zen 5c microarchitecture pages
+#   - graphs/src/graphs/hardware/models/datacenter/amd_epyc_turin.py
+#     (well-validated graphs mapper -- the migration source)
+#
+# Confidence: theoretical.
+#   - Operational specs (cores, threads, cache, TDP, memory, clocks,
+#     MSRP, launch date) are AMD-published datasheet values.
+#   - Per-Zen-5c-CCD die figures (~73 mm^2, ~11 B tx) are estimates
+#     based on AMD's Hot Chips 2024 disclosures and the published
+#     Zen 5 transistor-per-core uplift over Zen 4 (denser layout
+#     plus wider FMA + larger L1D).
+#   - IOD figures (~400 mm^2, ~13 B tx) are estimates -- AMD has not
+#     disclosed whether the Turin IOD is a new die (most likely,
+#     given the DDR5-6000 jump) or a metal-only respin of Genoa's.
+#     If it's a respin, ~12 B tx is more accurate; if a new die,
+#     ~13-14 B. Used midpoint 13 B as the working estimate.
+#   - Energy coefficients reuse Zen 4's AVX-512 figure (1.35 pJ/FMA,
+#     TSMC N5/N4P logic) from the graphs hand-coded factory. Zen 5's
+#     full-width datapath may shift this slightly (more concurrent
+#     switching per cycle), but the per-FMA op energy at the
+#     fabric level is similar.
+#
+# Process-node ambiguity (KNOWN, documented as follow-up):
+#   - AMD's Oct 2024 launch coverage cites TSMC N3E for the Zen 5c
+#     CCDs on Turin Dense, with N4P for Zen 5 classic.
+#   - The embodied-schemas catalog currently has N4P (which the
+#     N4P YAML's notes already claim "hosts AMD Zen5"). N3E is not
+#     yet added to data/process-nodes/tsmc/.
+#   - This YAML uses tsmc_n4p as the closest available node,
+#     matching the catalog convention. Re-author to tsmc_n3e once
+#     the node lands. This affects per-mm^2 density math but not
+#     the headline die_size_mm2 / transistors_billion values.
+#
+# Chiplet modeling note (KNOWN SCHEMA LIMITATION -- shared with
+# #62 PR 1-2): The schema's AnyBlock union lacks an IOBlock kind,
+# so this YAML uses the same single-virtual-die approximation as
+# EPYC 9654 / 9754, with silicon_bin decomposing across CCDs + IOD.
+# packaging.num_dies=13 and packaging.kind=chiplet remain accurate.
+#
+# Out of scope:
+#   - EPYC 9755 (Zen 5 classic, 128-core) -- separate SKU, future
+#     follow-up YAML.
+#   - EPYC 9575F (Zen 5 high-frequency 64-core w/ V-Cache) --
+#     separate follow-up.
+#   - Turin's confidential-computing extensions (SEV-SNP improvements).
+
+id: amd_epyc_9965_sp5
+name: AMD EPYC 9965
+vendor: amd
+kind: chip
+packaging:
+  kind: chiplet
+  num_dies: 13              # 12 Zen 5c CCDs + 1 Turin IOD
+  package_type: sp5
+
+lifecycle: production
+
+dies:
+- die_id: epyc_9965_virtual_die
+  die_role: compute
+  # Primary process node = Zen 5c CCDs. See header for the N4P-vs-N3E
+  # provenance discussion; we use the available tsmc_n4p here.
+  process_node_id: tsmc_n4p
+  # Total package silicon area: 12 * 73 mm^2 (Zen 5c CCDs) + 400 mm^2
+  # (Turin IOD estimate) = 1276 mm^2 total.
+  die_size_mm2: 1276.0
+  # 12 * 11 B (Zen 5c CCDs estimate) + ~13 B (Turin IOD estimate)
+  # = 145 B transistors total.
+  transistors_billion: 145.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 12 Zen 5c CCDs on TSMC N4P (working assumption; see header for
+    # the N3E provenance note). Each CCD: 16 cores + 32 MB L3 + L2 +
+    # L1 + IFOP. Per-CCD ~11 B tx -- Zen 5c is slightly larger than
+    # Zen 4c per core because of wider FMA pipes + larger L1D, even
+    # before counting denser-process gains. Total: 12 * 11 = 132 B.
+    - name: zen5c_ccds
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 132000.0
+      notes: 12x Zen 5c CCDs @ ~11 B tx each (estimate). Each CCD = 16 cores + 32 MB L3 + IFOP. Wider FMA pipes (2x 512-bit, no double-pumping) + 48 KB L1D.
+    # -------------------------------------------------------------------
+    # Per-CCD caches included in zen5c_ccds above (informational entry
+    # at 0 for the silicon_bin sum reconciliation).
+    - name: ccd_caches_informational
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 0.0
+      notes: Per-CCD caches (48 KB L1D + 32 KB L1I + 1 MB L2 per core + 32 MB shared L3) -- included in zen5c_ccds, not double-counted.
+    # -------------------------------------------------------------------
+    # Turin IOD on TSMC N6. Estimated ~13 B transistors (mid-range
+    # between the Genoa IOD's ~12 B and a possible all-new design at
+    # ~14 B). Adds DDR5-6000 support over Genoa's DDR5-4800; same
+    # 12-channel IMC + 128 PCIe Gen5 + 4x G-link + Infinity Fabric
+    # + AMD security processor (PSP).
+    - name: turin_iod
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 13000.0
+      notes: Turin IOD on TSMC N6 ~400 mm^2 -- DDR5-6000 IMC (vs Genoa's DDR5-4800) + 128 PCIe Gen5 + 4x G-link + Infinity Fabric + PSP. Possibly new die, possibly metal-only respin of Genoa IOD.
+  clocks:
+    base_clock_mhz: 2250.0
+    boost_clock_mhz: 3700.0
+  blocks:
+  - kind: cpu
+    total_effective_cores: 192
+    simd_width_lanes: 16
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    - int4
+    core_clusters:
+    # -------------------------------------------------------------------
+    # Single homogeneous cluster of 192 Zen 5c cores. Same overall
+    # SoC presentation as Genoa / Bergamo: one flat core topology to
+    # the OS. Zen 5c ships the same ISA as Zen 5 classic (full AVX-
+    # 512 + AVX-512_BF16 + AVX-512_VNNI + Zen 5's new AVX-512 decoder
+    # uplifts). The "c" suffix is again a physical-layout choice for
+    # density.
+    - cluster_kind: homogeneous
+      num_cores: 192
+      smt_threads: 2
+      aggregate_weight: 1.0
+      compute_fabrics:
+      - isa_extension: avx512_bf16
+        circuit_class: hp_logic
+        # NOTE: Zen 5 has 2x full-width 512-bit AVX-512 FMA pipes per
+        # core (vs Zen 4/4c's 1x 256-bit pipe double-pumped to 512-bit).
+        # At the same clock, Zen 5 sustains ~2x Zen 4's per-core FP32 /
+        # INT8 throughput. The ops_per_core_per_clock values below
+        # follow the "peak issue rate per cycle assuming the natural
+        # FMA width" convention used by EPYC 9654 / 9754, but for Zen 5
+        # these are sustained-per-cycle rates rather than amortized
+        # over 2 cycles. The chip-level performance roll-up below
+        # reflects this gain.
+        ops_per_core_per_clock:
+          fp64: 8
+          fp32: 16
+          fp16: 32
+          bf16: 32
+          int8: 64
+          int4: 128
+        # Per-FMA energy ~unchanged from Zen 4 (same logic structure;
+        # N4P vs N5 doesn't materially shift FMA energy).
+        energy_per_flop_fp32_pj: 1.35
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 0.55
+          bf16: 0.55
+          int8: 0.30
+          int4: 0.18
+      l1_kib_per_core: 48          # Zen 5 enlarged L1D from 32 KB to 48 KB
+      l2_layout: private_per_core
+      l2_kib_per_core: 1024        # 1 MB private L2 per core (unchanged from Zen 4)
+      l2_kib_shared: 0
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 6144.0      # 12 channels max
+      memory_bus_bits: 768        # 12 channels * 64 bits/channel
+      memory_bandwidth_gbps: 576.0   # 12 * 6000 MT/s * 8 B = 576 GB/s (faster than Genoa's 460.8)
+      memory_controllers: 12
+      l3_present: true
+      l3_total_kib: 393216        # 384 MB shared L3 (32 MB per CCD * 12 CCDs)
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: directory_mesi
+      # DDR5-6000 access energy ~slightly lower per-byte than DDR5-4800
+      # (faster signaling, similar physical interface):
+      read_energy_pj_per_byte: 26.0
+      write_energy_pj_per_byte: 30.0
+    noc:
+      topology: io_die_plus_ccd
+      bisection_bandwidth_gbps: 2048.0   # IFOP per-CCD * 12 CCDs (matches 9654's CCD count)
+      unit_count: 12                       # CCD count
+      flit_size_bytes: 32
+      hop_latency_ns: 5.0                  # CCD -> IOD -> CCD typical
+      pj_per_flit_per_hop: 18.0
+      routing_distance_factor: 2.0
+    simd_efficiency_by_op_kind:
+      elementwise: 0.92            # slightly higher than Zen 4 (wider FMA, better OoO)
+      matrix: 0.78
+      default: 0.68
+    min_occupancy: 0.5
+    max_concurrent_threads: 384    # 192 cores * 2 SMT
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 500W TDP profile, all-core
+# boost of 3.4 GHz, with Zen 5's full-width FMA accounted for:
+#   FP32: 192 cores * 16 ops/clk * 3.4e9 = 10.44 TFLOPS
+#   INT8: 192 cores * 64 ops/clk * 3.4e9 = 41.78 TOPS
+#   BF16: 192 cores * 32 ops/clk * 3.4e9 = 20.89 TFLOPS
+#   INT4: 192 cores * 128 ops/clk * 3.4e9 = 83.55 TOPS
+# That's ~2x EPYC 9754's chip-level peak: +50% cores (192 vs 128)
+# and +28% clock (3.4 vs 2.65 GHz). Per-core throughput is also ~2x
+# at the same clock thanks to Zen 5's full-width FMA -- this offsets
+# the modest clock advantage of Zen 4c on the 9754.
+performance:
+  fp32_tflops: 10.44
+  bf16_tflops: 20.89
+  int8_tops: 41.78
+  int4_tops: 83.55
+
+power:
+  tdp_watts: 500.0             # higher than 9654 / 9754 due to +33% cores + Zen 5 perf uplift
+  max_power_watts: 550.0       # cTDP up
+  min_power_watts: 400.0       # cTDP down
+  idle_power_watts: 110.0      # estimate, scaled from 9754's 95W per +33% cores
+  default_thermal_profile: 500W-default
+  thermal_profiles:
+  - name: 500W-default
+    tdp_watts: 500.0
+    clock_mhz: 3400.0          # all-core sustained boost
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      fp32: 0.50               # Zen 5's wider decode + full-width FMA -> better sustained efficiency
+      fp16: 0.35
+      bf16: 0.55
+      int8: 0.60
+    vdd_v: 1.05
+
+market:
+  launch_date: '2024-10-10'
+  launch_msrp_usd: 14813.0
+  target_market: datacenter
+  product_family: EPYC
+  model_tier: datacenter
+  is_available: true
+
+confidence: theoretical
+notes: >
+  AMD EPYC 9965 -- third AMD SKU in the catalog and first Zen 5
+  entry. Turin Dense (5th-gen EPYC cloud-native), 192 Zen 5c cores
+  in 12 CCDs paired with a refined Turin IOD on TSMC N6 (or
+  possibly a metal-only respin of the Genoa IOD supporting the new
+  DDR5-6000 envelope). SP5 socket-compatible with Genoa / Bergamo
+  platforms via firmware update.
+
+  Zen 5 / Zen 5c architectural uplifts relative to Zen 4 / Zen 4c:
+  full-width 2x 512-bit AVX-512 FMA pipes (no double-pumping),
+  enlarged 48 KB L1D, 2x decode width, improved branch predictor,
+  larger ROB. ISA-level it's full AVX-512 + AVX-512_BF16 + AVX-512_
+  VNNI as before, plus Zen 5's decoder-level uplifts. Same micro-
+  architecture as Zen 5 classic; "c" suffix is again a physical-
+  layout choice for density.
+
+  Memory: 12-channel DDR5-6000 (576 GB/s peak, vs Genoa / Bergamo's
+  460.8 GB/s on DDR5-4800). L3 LLC 384 MB total, distributed 32 MB
+  per CCD across 12 CCDs. 128 PCIe Gen5 + 4x G-link + CXL 1.1
+  (likely from a refreshed IOD; possibly Genoa IOD metal respin).
+
+  Power: 500W default TDP (vs 360W on 9654/9754). cTDP 400-550W.
+  Idle estimated ~110W (scaled from 9754's 95W by the +33% core
+  count uplift).
+
+  PROCESS NODE: This YAML uses tsmc_n4p; AMD's Oct 2024 launch
+  coverage cites TSMC N3E for the Zen 5c CCDs specifically. N3E
+  is not yet in the embodied-schemas process-node catalog; re-
+  author once it lands. The headline die_size_mm2 / transistors_
+  billion figures are unaffected; only per-mm^2 density math would
+  shift.
+
+  CHIPLET MODELING (see header): Same single-virtual-die
+  approximation as #63 / #64. 13 dies (12 CCDs + IOD) modeled as
+  one die with silicon_bin decomposition; packaging.num_dies and
+  packaging.kind=chiplet remain accurate. Re-author once an
+  IOBlock kind lands.
+last_updated: '2026-05-20'

@@ -113,7 +113,7 @@ def test_catalog_has_15_total_products(all_products):
     # v4 data PR (#26-pending) adds hailo_hailo_8 as the first NPU SKU;
     # the catalog total grew from 15 to 16 then. This assertion
     # tolerates that addition while still pinning the KPU/GPU/CPU counts.
-    expected_subset = {"kpu": 12, "gpu": 2, "cpu": 3}
+    expected_subset = {"kpu": 12, "gpu": 2, "cpu": 4}
     for kind, count in expected_subset.items():
         assert counts_by_kind.get(kind, 0) == count, (
         f"unexpected catalog composition: {counts_by_kind}"
