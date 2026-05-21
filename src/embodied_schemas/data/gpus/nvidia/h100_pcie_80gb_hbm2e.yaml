@@ -1,0 +1,150 @@
+# NVIDIA H100 PCIe 80GB -- Hopper datacenter GPU, PCIe form factor.
+#
+# Joins the H100 SXM5 80GB (already in catalog). Same GH100 silicon
+# as the SXM5 variant but a different bin and a different memory
+# / power envelope:
+#   - 114 SMs enabled (vs SXM5's 132) -- standard yield/power bin
+#   - 1.755 GHz boost (vs SXM5's 1.98 GHz) -- PCIe power envelope
+#   - 80 GB HBM2e @ 2.0 TB/s (vs SXM5's HBM3 @ 3.35 TB/s) -- HBM2e
+#     stacks are paired with the PCIe SKU
+#   - 350W TDP (vs SXM5's 700W) -- PCIe slot power constraints
+#
+# Sprint #72 PR 1 (first of 6 SKUs in the long-tail Bucket A
+# backfill for branes-ai/graphs#241).
+#
+# Source: https://www.nvidia.com/en-us/data-center/h100/
+#         NVIDIA H100 Tensor Core GPU datasheet
+#         (datasheet has both SXM5 and PCIe spec columns)
+
+id: nvidia_h100_pcie_80gb_hbm2e
+name: NVIDIA H100 PCIe 80GB
+vendor: nvidia
+
+die:
+  gpu_name: GH100
+  architecture: Hopper
+  architecture_codename: Hopper
+  foundry: tsmc
+  process_nm: 4
+  process_name: N4
+  transistors_billion: 80.0   # same GH100 die as SXM5
+  die_size_mm2: 814.0          # same GH100 die as SXM5
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  # PCIe is the standard yield bin: 114 of 132 physical SMs enabled.
+  # SM count: 132 (full GH100) - 18 (disabled in PCIe bin) = 114.
+  # The remaining silicon is on-die but inaccessible.
+  shaders: 14592               # 114 SMs * 128 CUDA cores/SM
+  cuda_cores: 14592
+  streaming_multiprocessors: 114
+  tmus: 456                    # 114 SMs * 4 TMUs/SM
+  rops: 24                     # tied to memory partitions, not SMs
+  tensor_cores: 456            # 114 SMs * 4 4th-gen TCs/SM
+  tensor_core_gen: 4
+  warp_size: 32
+  max_warps_per_sm: 64
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 1095          # base (PCIe variant runs lower than SXM5)
+  boost_clock_mhz: 1755         # PCIe boost (vs SXM5's 1980)
+  # HBM2e DDR5-style clock; effective ~3.2 Gbps per pin
+  memory_clock_mhz: 1593
+  memory_effective_gbps: 3.2
+
+memory:
+  memory_size_gb: 80.0
+  memory_type: hbm2e            # HBM2e on PCIe variant (vs SXM5's HBM3)
+  memory_bus_bits: 5120         # 5 HBM stacks * 1024-bit each (same as SXM5 silicon)
+  memory_bandwidth_gbps: 2000.0 # 2 TB/s -- 60% of SXM5's 3.35 TB/s
+  l2_cache_mb: 50.0             # same 50 MB L2 (silicon-level)
+  ecc_support: true
+
+# Chip-level performance at 1.755 GHz boost, 114 SMs.
+# CUDA peak: 114 SMs * 128 CUDA cores * 2 ops/clk (FMA) * 1.755 GHz
+#   = 51.2 TFLOPS FP32
+# Tensor peak (4th gen TCs, dense FP16): per-NVIDIA datasheet 756 TFLOPS
+# Tensor peak FP8 (E4M3 or E5M2): 1513 TFLOPS dense, 3026 TFLOPS sparse
+# Per NVIDIA H100 Tensor Core GPU datasheet (PCIe column).
+performance:
+  fp32_tflops: 51.2
+  fp16_tflops: 102.4
+  fp64_tflops: 25.6
+  bf16_tflops: 102.4
+  int8_tops: 204.8
+  tensor_tflops_fp16: 756.0
+  tensor_tflops_fp16_sparse: 1513.0
+  tensor_tflops_int8: 1513.0
+  tensor_tflops_fp8: 3026.0
+  pixel_rate_gpixels: 42.1
+  texture_rate_gtexels: 800.3
+
+power:
+  tdp_watts: 350                # PCIe slot power envelope (vs SXM5's 700W)
+  max_power_watts: 350
+  idle_power_watts: 50.0
+  # PCIe variant takes a single 16-pin 12VHPWR power connector
+  # (CEM5; capable of 600W). NVIDIA caps at 350W on this SKU.
+  power_connectors:
+    - "12VHPWR"
+  slot_power_watts: 75
+  recommended_psu_watts: 750
+
+board:
+  form_factor: PCIe dual-slot full-height
+  slot_width: 2.0               # dual-slot
+  length_mm: 268
+  pcie_interface: pcie_5.0      # PCIe Gen5 x16
+
+features:
+  directx: "12.2"
+  opengl: "4.6"
+  vulkan: "1.3"
+  opencl: "3.0"
+  shader_model: "6.7"
+  cuda_compute: "9.0"
+  nvenc: false
+  nvdec: false
+  dlss: false
+  max_displays: 0
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2022-09-20"     # general availability alongside SXM5
+  launch_msrp_usd: 25000.0      # PCIe MSRP (per channel pricing; SXM5 was ~30k+)
+  target_market: datacenter
+  product_family: NVIDIA H100
+  model_tier: flagship
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+notes: |
+  H100 PCIe is the add-in-card variant of the Hopper datacenter GPU.
+  Shares the GH100 die with H100 SXM5 (814 mm^2, 80B tx, TSMC N4)
+  but uses a different bin and a different memory / power envelope:
+
+    - 114 of 132 SMs enabled (standard yield bin; the disabled silicon
+      is on-die but inaccessible). 14,592 CUDA cores + 456 Tensor Cores.
+    - 80 GB HBM2e instead of HBM3 -- the headline silicon-level
+      difference. HBM2e operates at a lower data rate (~3.2 Gbps/pin
+      vs HBM3's ~6.4 Gbps/pin), so memory bandwidth drops to 2.0 TB/s
+      (vs SXM5's 3.35 TB/s).
+    - 350W TDP via 16-pin PCIe CEM5 connector. SXM5 variant is 700W
+      via direct baseboard connection.
+    - Same 4th-gen Tensor Cores with FP8 support, Transformer Engine.
+
+  Chip-level peak FP32: 51.2 TFLOPS (vs SXM5's 66.9). Peak tensor FP16
+  dense: 756 TFLOPS (vs SXM5's 989.4). The PCIe variant lands at ~76%
+  of SXM5's compute throughput at half the power -- meaningfully better
+  perf/W on the PCIe card.
+
+  Supports MIG (Multi-Instance GPU) like the SXM5 variant. NVLink not
+  available on the PCIe SKU; multi-GPU scale-out uses PCIe Gen5 x16.
+
+datasheet_url: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
+techpowerup_url: https://www.techpowerup.com/gpu-specs/h100-pcie-80-gb.c3899
+last_updated: "2026-05-21"
