@@ -1,0 +1,144 @@
+# TSMC 28HPM (28nm High Performance Mobile) -- bulk planar HKMG.
+#
+# Precursor for the Google TPU v1 YAML (branes-ai/graphs#241 long-tail
+# Bucket A, sprint #72 PR 3). TPU v1 deployed in Google datacenters
+# from 2015; Jouppi et al. ISCA 2017 paper documents the design but
+# does not name the specific 28nm variant. Industry consensus
+# (Anandtech, ServeTheHome, SemiAnalysis analyses) is TSMC 28HPM --
+# the performance-mobile flavor that NVIDIA also used for GK104/GK110
+# (Kepler datacenter) and Apple A7. The HP variant runs at higher
+# Vdd; the HPM variant is the better fit for TPU v1's 28W envelope.
+#
+# Sibling to gf_28nm (28SLP, used by Coral Edge TPU). The two 28nm
+# entries exist because TSMC and GF are distinct foundries with
+# materially different process characteristics at the same node.
+#
+# Bulk planar HKMG (high-K metal gate), structurally older than the
+# FinFET generations (TSMC 16FF+ onwards) already in the catalog.
+# Densities are ~2.5x lower than 16FF+ per equivalent library, but
+# the energy-per-op is only ~2x worse because 28HPM is tuned for
+# performance-per-watt at the time.
+
+id: tsmc_n28hpm
+foundry: tsmc
+node_name: 28HPM
+node_nm: 28
+transistor_topology: bulk_planar   # bulk CMOS HKMG; pre-FinFET
+body_bias_supported: false         # bulk planar has no body terminal
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 0.9                  # 28HPM nominal; HP variant runs at 1.0V
+
+# Per-library densities (Mtx/mm^2). 28nm is bulk planar, so densities
+# are dramatically lower than the FinFET nodes already in the catalog.
+# Cross-checked against NVIDIA GK104 (28nm TSMC HKMG): ~3.54 B
+# transistors in 294 mm^2 = ~12 Mtx/mm^2 chip-wide average. TPU v1
+# itself: ~3 B / 330 mm^2 = ~9 Mtx/mm^2 (lower because of large
+# Unified Buffer SRAM dragging the average down).
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 10.0
+    library_name: "28HPM HP"
+    confidence: theoretical
+    source: "Wikichip 28nm; cross-referenced TSMC 28HPM product brief"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 13.0
+    library_name: "28HPM HD"
+    confidence: theoretical
+    source: "Wikichip 28nm; NVIDIA Kepler die-shot analysis"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 15.0
+    library_name: "28HPM ULP"
+    confidence: theoretical
+    source: "Estimated; LP variant for power-gated edge logic"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 60.0
+    library_name: "28HPM HD-SRAM (~0.155 um^2 6T cell)"
+    confidence: theoretical
+    source: "TSMC 28nm SRAM bitcell publication (ISSCC 2010)"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 45.0
+    library_name: "28HPM HC-SRAM"
+    confidence: theoretical
+    source: "Estimated"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 32.0
+    library_name: "28HPM HP-SRAM (dual-port)"
+    confidence: theoretical
+    source: "Estimated"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 4.0
+    confidence: theoretical
+    source: "Analog scales poorly with node"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.5
+    confidence: theoretical
+    source: "Pad ring estimate; DDR3 / PCIe Gen3 IO"
+
+leakage_w_per_mm2:
+  hp_logic: 0.090
+  balanced_logic: 0.050
+  lp_logic: 0.022
+  sram_hd: 0.015
+  sram_hc: 0.020
+  sram_hp: 0.035
+  analog: 0.0050
+  io: 0.0020
+
+energy_per_op_pj:
+  hp_logic:fp32: 4.5
+  hp_logic:bf16: 2.3
+  hp_logic:int8: 0.60
+  balanced_logic:fp32: 3.4
+  balanced_logic:bf16: 1.7
+  balanced_logic:int8: 0.42
+  balanced_logic:int4: 0.25
+  lp_logic:int8: 0.32
+
+em_j_max_by_temp_c:
+  85: 1.4e6
+  105: 0.9e6
+  125: 0.55e6
+
+routing_metal_width_um:
+  hp_logic: 0.090
+  balanced_logic: 0.090
+  sram_hd: 0.060
+
+m0_pitch_nm: 90
+m1_pitch_nm: 90
+
+cooling_compatible:
+  - passive_heatsink_large
+  - active_fan
+  - vapor_chamber
+  - datacenter_direct_to_chip
+
+source: "TSMC 28HPM process brief; Wikichip 28nm; NVIDIA Kepler die-shot analyses; Jouppi et al. ISCA 2017 (TPU v1 paper)"
+confidence: theoretical
+last_updated: "2026-05-21"
+notes: |
+  TSMC 28HPM (28nm High Performance Mobile) is the bulk-planar HKMG
+  flavor targeted at performance-per-watt datacenter / mobile-SoC
+  workloads circa 2012-2016. Hosted NVIDIA Kepler (GK104, GK110)
+  datacenter GPUs, Apple A7, and most importantly here -- the Google
+  TPU v1 (per consensus industry analysis; Google did not officially
+  name the variant).
+
+  Key contrasts with the FinFET nodes already in the catalog:
+    - Density: ~2.5x lower Mtx/mm^2 than TSMC N16 per equivalent
+      library (bulk planar has no fin fingers).
+    - Energy per op: ~2x higher than N16 for equivalent precision.
+    - Leakage: higher than N16 at the same circuit class.
+
+  Sibling 28nm entry to gf_28nm (GF 28SLP, used by Coral Edge TPU).
+  Distinct entries because TSMC and GF 28nm have materially
+  different transistor characteristics despite the matching marketing
+  node.
