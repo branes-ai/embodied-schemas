@@ -498,6 +498,8 @@ def test_v7_does_not_break_existing_catalog():
     assert counts["dpu"] == 1
     # tpu_count was 0 at the v7 schema PR baseline; the TPU v4 data
     # PR bumped it to 1 (first google/ TPU SKU; joins Coral in the
-    # existing google/ vendor directory).
-    assert counts["tpu"] == 1
+    # existing google/ vendor directory). google_tpu_v1 (sprint #72
+    # PR 3 Bucket A long-tail) bumped it to 2 -- first
+    # TPUFabricKind.TPU_V1_STYLE SKU.
+    assert counts["tpu"] == 2
     assert sum(counts.values()) == len(products)
