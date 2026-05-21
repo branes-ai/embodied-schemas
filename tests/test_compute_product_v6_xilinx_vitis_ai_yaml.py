@@ -95,7 +95,7 @@ def test_other_vendors_unaffected_by_xilinx_addition(all_products):
         counts_by_vendor[cp.vendor] = counts_by_vendor.get(cp.vendor, 0) + 1
     assert counts_by_vendor.get("stillwater") == 12
     assert counts_by_vendor.get("nvidia") == 2
-    assert counts_by_vendor.get("intel") == 3  # i7-12700k + Xeon 8490H + Xeon 8592+ (sprint #68 PR 1-2)
+    assert counts_by_vendor.get("intel") == 4  # i7-12700k + 3 Xeons: 8490H + 8592+ + 6980P (sprint #68 PR 1-3)
     assert counts_by_vendor.get("hailo") == 2
     assert counts_by_vendor.get("google") >= 1
     assert counts_by_vendor.get("stanford") == 1

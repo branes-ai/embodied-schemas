@@ -1,0 +1,147 @@
+# Intel 3 -- Intel's second-generation EUV node (successor to Intel 4
+# / Meteor Lake's CPU tile). Intel's final FinFET node before the
+# Intel 18A GAA (Gate-All-Around / RibbonFET) transition. Mass
+# production launched 2024.
+#
+# Despite the "3" in the name, this is a 5nm-class node by foundry
+# convention. Intel claims ~18% performance-per-watt improvement
+# over Intel 4 at the same Vdd, achieved primarily via metal-stack
+# refinement, increased EUV layer count, and high-NA EUV pilot
+# usage on contact layers. Density is meaningfully higher than Intel
+# 4 -- closer to TSMC N3 than to TSMC N5.
+#
+# Hosts: Granite Rapids (Xeon 6 6900P series, 6-th gen Xeon
+# Scalable), Sierra Forest (Xeon 6 efficient-core variant, 144-cores
+# E-core only). Successor: Intel 18A (RibbonFET GAA + PowerVia
+# backside power delivery; Panther Lake / Clearwater Forest / future
+# Xeon).
+#
+# Sprint #68 PR 3 first entry to add a new Intel process node since
+# intel_7 was added with the i7-12700k in #24.
+#
+# Densities estimated from Intel's HC36 (Hot Chips 2024) Granite
+# Rapids disclosures + Intel 3 product brief. SRAM cell area is
+# ~0.024 um^2 (HD) per Intel ISSCC 2024 -- modest reduction from
+# Intel 7's 0.0312 um^2, in line with industry-wide SRAM scaling
+# stagnation.
+
+id: intel_3
+foundry: intel
+node_name: Intel 3
+node_nm: 5
+transistor_topology: finfet
+body_bias_supported: false
+vt_options: [ULVT, LVT, SVT, HVT, eLVT]
+nominal_vdd_v: 0.70
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 135.0
+    library_name: "Intel 3 HPC (Granite Rapids server-core datapath)"
+    confidence: theoretical
+    source: "Intel HC36 2024 Granite Rapids deep dive; +18% PPW over Intel 4"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 160.0
+    library_name: "Intel 3 6T HD"
+    confidence: theoretical
+    source: "Intel 3 process brief; scaled from Intel 4 density"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 180.0
+    library_name: "Intel 3 ULP (Sierra Forest E-core datapath)"
+    confidence: theoretical
+    source: "Estimated; LP variant for atom-class cores (Sierra Forest)"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 320.0
+    library_name: "Intel 3 HD-SRAM (~0.024 um^2 bitcell)"
+    confidence: theoretical
+    source: "Intel ISSCC 2024 disclosure; modest improvement from Intel 7's 0.0312 um^2"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 265.0
+    library_name: "Intel 3 HC-SRAM (L3 slices)"
+    confidence: theoretical
+    source: "Estimated"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 200.0
+    library_name: "Intel 3 HP-SRAM (dual-port register files)"
+    confidence: theoretical
+    source: "Estimated"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 9.0
+    confidence: theoretical
+    source: "Analog scales poorly; slight density gain over Intel 7"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 2.3
+    confidence: theoretical
+    source: "Pad ring estimate; DDR5 / PCIe Gen5 IO"
+
+leakage_w_per_mm2:
+  hp_logic: 0.062
+  balanced_logic: 0.028
+  lp_logic: 0.011
+  sram_hd: 0.007
+  sram_hc: 0.010
+  sram_hp: 0.018
+  analog: 0.0028
+  io: 0.0011
+
+energy_per_op_pj:
+  hp_logic:fp32: 0.85
+  hp_logic:bf16: 0.45
+  hp_logic:int8: 0.12
+  balanced_logic:fp32: 0.65
+  balanced_logic:bf16: 0.34
+  balanced_logic:int8: 0.080
+  balanced_logic:int4: 0.048
+  lp_logic:int8: 0.060
+
+em_j_max_by_temp_c:
+  85: 2.5e6
+  105: 1.6e6
+  125: 0.95e6
+
+routing_metal_width_um:
+  hp_logic: 0.030
+  balanced_logic: 0.030
+  sram_hd: 0.021
+
+m0_pitch_nm: 30
+m1_pitch_nm: 30
+
+cooling_compatible:
+  - active_fan
+  - vapor_chamber
+  - liquid_cooled
+  - datacenter_direct_to_chip
+
+source: "Intel 3 process brief (2024); Intel HC36 Granite Rapids deep dive; Intel ISSCC 2024 SRAM bitcell disclosure"
+confidence: theoretical
+last_updated: "2026-05-21"
+notes: |
+  Intel's second EUV node (after Intel 4) and final FinFET node
+  before the Intel 18A GAA/RibbonFET transition. Mass production
+  launched 2024. Hosts Granite Rapids (Xeon 6 P-core flagship) and
+  Sierra Forest (Xeon 6 E-core efficient variant).
+
+  Density positioning: between TSMC N5 (~145 Mtx/mm^2 HP) and TSMC
+  N4P (~151 Mtx/mm^2 HP) for logic. SRAM density (~320 Mtx/mm^2 HD)
+  is modestly better than Intel 7 but still well behind TSMC N3's
+  ~410 Mtx/mm^2 HD -- the industry-wide SRAM scaling wall continues.
+
+  Power numbers reflect the +18%% performance-per-watt improvement
+  Intel claims for Intel 3 vs Intel 4 at the same Vdd. Nominal Vdd
+  reduced to 0.70V (vs Intel 7's 0.75V) thanks to better transistor
+  characteristics + tighter SRAM Vmin.
+
+  Successor (Intel 18A): RibbonFET (Gate-All-Around) + PowerVia
+  (backside power delivery) -- the first major architectural shift
+  in Intel manufacturing since the FinFET introduction with 22nm in
+  2011. Adds an additional ~15-20%% PPW. Future SKU YAMLs will
+  reference a new ``intel_18a`` process node entry once available.
