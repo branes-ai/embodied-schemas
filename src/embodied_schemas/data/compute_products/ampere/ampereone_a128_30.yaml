@@ -1,0 +1,278 @@
+# Ampere AmpereOne A128-30 -- 128-core custom-ARM datacenter SKU.
+#
+# Second Ampere SKU in data/compute_products/. Same architecture as
+# the A192-32X (#66): same physical die, same custom Ampere ARM
+# v8.6 cores, same NEON-only ISA, same monolithic packaging. The
+# A128-30 is a lower-bin SKU with 64 cores disabled, lower clock
+# (3.0 GHz boost vs A192's 3.2 GHz), and lower TDP (200-250W vs
+# A192's 350W).
+#
+# Sprint #62 PR 5 (FINAL SKU in the 5-SKU AMD/Ampere batch -- see
+# embodied-schemas#62 and branes-ai/graphs#130).
+#
+# What's different from AmpereOne A192-32X (#66):
+#   - 128 cores active (vs 192). Same physical die; 64 cores
+#     disabled / fused off per Ampere's binning. The silicon_bin
+#     below still represents the full 192-core silicon budget
+#     because the die area / transistor count are physical
+#     properties unchanged by binning.
+#   - All-core boost 3.0 GHz (per the "-30" suffix), vs A192-32X's
+#     3.2 GHz. The "-30" naming pattern follows Ampere's published
+#     SKU stack (A192-32X, A176-30X, A160-32X, A128-30, A96-30).
+#   - 250W TDP (vs A192's 350W). Lower core count + slightly lower
+#     clock reduces the envelope. Per the graphs hand-coded mapper.
+#   - Lower launch MSRP (~$3,888 distributor pricing estimate vs
+#     A192's $5,555).
+#
+# What's the same: 440 mm^2 monolithic die on TSMC N5, 55 B
+# transistors, 64 MB shared SLC, 8-channel DDR5-5200 (332.8 GB/s),
+# 128 PCIe Gen5 lanes, CXL 2.0, ARM CMN-700 mesh, Ampere LGA-5964
+# socket, no SMT.
+#
+# Data sourced from:
+#   - Ampere AmpereOne family product brief (2023)
+#   - Ampere distributor pricing pages (MSRP estimate)
+#   - graphs/src/graphs/hardware/models/datacenter/ampere_ampereone_128.py
+#     (well-validated graphs mapper -- the migration source;
+#     uses scalar_freq_ghz=3.6 as a placeholder, but Ampere's
+#     official A128-30 spec is 3.0 GHz boost -- this YAML uses
+#     the official 3.0)
+#
+# Confidence: theoretical. Same die area / transistor estimates
+# as A192-32X (see #66 for the derivation walkthrough).
+#
+# Mesh modeling note: the physical die has a 12x16 mesh serving
+# 192 mesh stops, but only 128 are active on this SKU (64 stops
+# host disabled cores). The YAML's noc.unit_count = 128 represents
+# the active mesh participation; mesh_rows=8, mesh_cols=16 is a
+# clean dimensional match (8*16=128). The physical layout retains
+# the full 192-stop mesh -- documented in the YAML notes.
+#
+# MONOLITHIC -- like A192-32X (no chiplet workaround needed).
+#
+# Out of scope:
+#   - Other AmpereOne SKUs (A176-30X, A160-32X, A96-30) -- separate
+#     follow-up YAMLs if/when needed by graphs.
+#   - AmpereOne Aurora / Siryn (next-gen with SVE2).
+
+id: ampere_ampereone_a128_30
+name: Ampere AmpereOne A128-30
+vendor: ampere
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: lga5964
+
+lifecycle: production
+
+dies:
+- die_id: ampereone_die
+  die_role: compute
+  process_node_id: tsmc_n5
+  # Same physical die as A192-32X (440 mm^2, 55 B transistors).
+  # 64 cores disabled / fused off; the silicon is still present.
+  die_size_mm2: 440.0
+  transistors_billion: 55.0
+  silicon_bin:
+    # Silicon bin represents the PHYSICAL die (all 192 cores worth
+    # of silicon), since die_size_mm2 and transistors_billion are
+    # physical properties unchanged by binning. The CPUBlock below
+    # represents the SKU's exposed functionality (128 cores).
+    blocks:
+    - name: ampere_custom_cores
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 38400.0
+      notes: 192x custom Ampere ARM v8.6 cores @ ~200 Mtx each (physical silicon; 64 disabled on this SKU). NEON 2x 128-bit FMA pipes per core, no SMT, no SVE.
+    - name: l1_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 9400.0
+      notes: 192 cores * (64 KB L1I + 64 KB L1D) = 24 MiB L1 total (physical; 64 cores' L1 inactive).
+    - name: l2_sram
+      circuit_class: sram_hc
+      transistor_source:
+        kind: fixed
+        mtx: 4000.0
+      notes: 192 cores * 2 MiB private L2 = 384 MiB total (physical).
+    - name: slc_64mb
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 2500.0
+      notes: 64 MiB shared SLC -- chip-wide LLC equivalent (same as A192, full SLC active).
+    - name: cmn700_mesh
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 350.0
+      notes: ARM CMN-700 mesh, full 12x16 physical topology (only 128 mesh stops active).
+    - name: ddr5_phy
+      circuit_class: analog
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 8x 64-bit DDR5-5200 PHY + IMC = 332.8 GB/s peak.
+    - name: pcie_gen5_and_cxl
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 100.0
+      notes: 128 PCIe Gen5 lanes + CXL 2.0.
+    - name: management_and_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: Management / security / PMIC / clock-gen / fixed-function.
+  clocks:
+    base_clock_mhz: 2600.0
+    boost_clock_mhz: 3000.0
+  blocks:
+  - kind: cpu
+    total_effective_cores: 128
+    simd_width_lanes: 4               # NEON 128-bit = 4 FP32 lanes
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    core_clusters:
+    - cluster_kind: homogeneous
+      num_cores: 128
+      smt_threads: 1                  # no SMT (same as A192)
+      aggregate_weight: 1.0
+      compute_fabrics:
+      - isa_extension: neon
+        circuit_class: hp_logic
+        # NEON ops/cycle for custom Ampere cores (same as A192 -- same
+        # core design):
+        ops_per_core_per_clock:
+          fp64: 4
+          fp32: 8
+          fp16: 16
+          bf16: 16
+          int8: 32
+        energy_per_flop_fp32_pj: 0.85
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 0.55
+          bf16: 0.55
+          int8: 0.30
+      l1_kib_per_core: 64
+      l2_layout: private_per_core
+      l2_kib_per_core: 2048
+      l2_kib_shared: 0
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 8192.0
+      memory_bus_bits: 512
+      memory_bandwidth_gbps: 332.8
+      memory_controllers: 8
+      l3_present: true
+      l3_total_kib: 65536             # 64 MiB SLC (full, regardless of active cores)
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: directory_mesi
+      read_energy_pj_per_byte: 22.0
+      write_energy_pj_per_byte: 26.0
+    noc:
+      topology: mesh_2d
+      # Mesh bisection scales roughly with active mesh stops.
+      # A192 had 1600 GB/s at 192 stops; A128 has ~1067 GB/s at 128.
+      bisection_bandwidth_gbps: 1067.0
+      unit_count: 128                 # active mesh stops (physical 192, 64 disabled)
+      mesh_rows: 8                    # clean 8*16 = 128 layout for active stops
+      mesh_cols: 16
+      flit_size_bytes: 32
+      hop_latency_ns: 2.0
+      pj_per_flit_per_hop: 4.0
+      routing_distance_factor: 1.5
+    simd_efficiency_by_op_kind:
+      elementwise: 0.85
+      matrix: 0.70
+      default: 0.60
+    min_occupancy: 0.5
+    max_concurrent_threads: 128       # 128 cores * 1 (no SMT)
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 250W TDP profile, all-core
+# boost of 3.0 GHz:
+#   FP32: 128 cores * 8 ops/clk * 3.0e9 = 3.07 TFLOPS
+#   INT8: 128 cores * 32 ops/clk * 3.0e9 = 12.29 TOPS
+#   BF16: 128 cores * 16 ops/clk * 3.0e9 = 6.14 TFLOPS
+# Roughly 0.62x the A192-32X chip-level peak (4.92 TFLOPS FP32),
+# matching the 128/192 * 3.0/3.2 = 0.625 core+clock ratio.
+performance:
+  fp32_tflops: 3.07
+  bf16_tflops: 6.14
+  int8_tops: 12.29
+
+power:
+  tdp_watts: 250.0               # graphs factory's value (Ampere brief cites 200W max for A128-30; 250W is the working envelope)
+  max_power_watts: 300.0
+  min_power_watts: 200.0
+  idle_power_watts: 60.0         # estimate, scaled from A192's 80W by core ratio
+  default_thermal_profile: 250W-default
+  thermal_profiles:
+  - name: 250W-default
+    tdp_watts: 250.0
+    clock_mhz: 3000.0            # all-core sustained boost
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      fp32: 0.55
+      fp16: 0.45
+      bf16: 0.50
+      int8: 0.60
+    vdd_v: 0.85
+
+market:
+  launch_date: '2023-09-18'      # same family launch as A192
+  launch_msrp_usd: 3888.0        # distributor pricing estimate
+  target_market: datacenter
+  product_family: AmpereOne
+  model_tier: datacenter
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Ampere AmpereOne A128-30 -- second Ampere SKU in the catalog and
+  final entry in sprint #62. Same physical die as A192-32X (440 mm^2
+  monolithic on TSMC N5, 55 B transistors), but with 64 cores
+  disabled / fused off and a lower clock + TDP envelope -- standard
+  Ampere binning for the SKU stack.
+
+  The silicon_bin reflects the PHYSICAL die (192 cores' worth of
+  silicon), not the active functional units (128 cores). die_size_mm2
+  and transistors_billion are physical properties unchanged by
+  binning. The CPUBlock represents the SKU's exposed 128 cores.
+
+  Mesh: the physical CMN-700 mesh is 12x16 = 192 stops, but only
+  128 are active on this SKU. unit_count=128 and an 8x16 cluster of
+  active stops models this cleanly.
+
+  All other architectural details inherited from the A192-32X YAML
+  (#66): ARM v8.6-A custom Ampere cores, NEON only (no SVE), no
+  SMT, 2 MB L2 per core, 64 MB SLC, 8-channel DDR5-5200, 128 PCIe
+  Gen5 + CXL 2.0, LGA-5964 socket. See #66 for the architectural
+  walkthrough.
+
+  Chip-level peak FP32 is ~62% of A192-32X (3.07 vs 4.92 TFLOPS),
+  matching the (128/192) * (3.0/3.2) = 0.625 core+clock ratio.
+
+  TDP: 250W default (graphs factory's value). Ampere's product brief
+  cites 200W as the A128-30 maximum; 250W is the conservative
+  working envelope used by the graphs mapper. cTDP 200-300W.
+
+  Closes sprint #62: 5 datacenter CPU ComputeProduct YAMLs across
+  3 generations of AMD EPYC (Genoa / Bergamo / Turin Dense) and
+  2 Ampere AmpereOne SKUs. Downstream graphs#130 PhysicalSpec
+  wiring is the final step after this PR merges.
+last_updated: '2026-05-20'
