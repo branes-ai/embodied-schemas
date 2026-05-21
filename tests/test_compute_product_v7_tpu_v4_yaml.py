@@ -96,7 +96,7 @@ def test_other_vendors_unaffected_by_tpu_v4_addition(all_products):
         counts_by_vendor[cp.vendor] = counts_by_vendor.get(cp.vendor, 0) + 1
     assert counts_by_vendor.get("stillwater") == 12
     assert counts_by_vendor.get("nvidia") == 2
-    assert counts_by_vendor.get("intel") == 1
+    assert counts_by_vendor.get("intel") == 2  # i7-12700k + Xeon 8490H (sprint #68 PR 1)
     assert counts_by_vendor.get("hailo") == 2
     assert counts_by_vendor.get("stanford") == 1
     assert counts_by_vendor.get("xilinx") == 1
