@@ -66,19 +66,21 @@ memory:
 
 # Chip-level performance at 1.59 GHz boost, 40 SMs.
 # CUDA peak FP32: 2560 cores * 2 ops/clk * 1.59 GHz = 8.14 TFLOPS
-# Tensor peak FP16: 320 TCs * 256 ops/TC/clk * 1.59 GHz = 130.3 TFLOPS
-#   (NVIDIA datasheet quotes 65 TFLOPS dense / 130 TFLOPS sparse;
-#    our calc matches the sparse path -- the dense rate is 65 TF.)
-# Tensor INT8: 320 TCs * 512 ops/TC/clk * 1.59 GHz = 260.6 TOPS
-# Tensor INT4: 320 TCs * 1024 ops/TC/clk * 1.59 GHz = 521.3 TOPS
+# NVIDIA-published Tensor Core figures (dense; Turing predates Ampere's
+# structured sparsity, so no separate sparse path applies):
+#   Tensor FP16 dense: 65 TFLOPS
+#   Tensor INT8 dense: 130 TOPS
+#   Tensor INT4 dense: 260 TOPS
+# Source: NVIDIA Tesla T4 product brief (PB-09017-001_v06, Aug 2019).
 performance:
   fp32_tflops: 8.14
-  fp16_tflops: 16.28           # CUDA-core FP16, half-rate of tensor FP16
-  fp64_tflops: 0.25            # FP64 emulated, very low throughput (Turing didn't have full FP64)
-  bf16_tflops: 0.0             # Turing does NOT support BF16 (first NVIDIA BF16 was Ampere)
-  int8_tops: 260.0
+  fp16_tflops: 16.28           # CUDA-core FP16, packed-math 2x FP32 rate
+  fp64_tflops: 0.25            # 1/32 rate (Turing doesn't have full FP64 throughput)
+  bf16_tflops: 0.0             # Turing does NOT support BF16 (BF16 first appeared on Ampere)
+  int8_tops: 130.0             # dense Tensor INT8 (NVIDIA-published headline figure for T4)
   tensor_tflops_fp16: 65.0
   tensor_tflops_int8: 130.0
+  tensor_tflops_int4: 260.0
   pixel_rate_gpixels: 101.8
   texture_rate_gtexels: 254.4
 
@@ -104,8 +106,8 @@ features:
   opencl: "3.0"
   shader_model: "6.4"
   cuda_compute: "7.5"
-  nvenc: false
-  nvdec: false
+  nvenc: true                  # T4 has 1 NVENC engine (H.264 / H.265 / VP9)
+  nvdec: true                  # T4 has 1 NVDEC engine (H.264 / H.265 / VP9 / JPEG)
   dlss: false
   max_displays: 0
   hdr_support: false
