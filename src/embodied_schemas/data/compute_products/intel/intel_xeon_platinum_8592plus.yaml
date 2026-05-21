@@ -1,0 +1,281 @@
+# Intel Xeon Platinum 8592+ -- 64-core Emerald Rapids datacenter SKU.
+#
+# Third Intel SKU in the catalog. Joins the i7-12700k (#24, desktop
+# Alder Lake) and Xeon Platinum 8490H (#69, Sapphire Rapids
+# datacenter). Second datacenter Xeon. Same Intel 7 process node
+# as 8490H; refined Emerald Rapids microarchitecture with a
+# substantially larger L3 LLC and faster memory.
+#
+# Sprint #68 PR 2 (second of 3 Intel Xeon SKUs in the batch -- see
+# embodied-schemas#68 and branes-ai/graphs#130).
+#
+# What's different from Xeon 8490H (#69, Sapphire Rapids):
+#   - **2-tile XCC** chiplet packaging (vs 8490H's 4-tile XCC).
+#     Emerald Rapids consolidated the SPR 4-tile layout into 2
+#     larger tiles; each tile carries ~32 cores instead of ~15.
+#     Fewer EMIB hops, shorter cross-tile latency.
+#   - **64 cores** (vs 60). More cores in fewer tiles.
+#   - **L3 5 MB per core** (vs SPR's 1.875 MB per core). Total 320
+#     MB shared LLC -- 2.85x SPR's 112.5 MB. The big jump that
+#     defines Emerald Rapids' AI-inference value proposition.
+#   - **DDR5-5600** 8-channel (vs SPR's DDR5-4800). 358.4 GB/s
+#     peak, +17% over SPR.
+#   - All-core boost 3.2 GHz (vs SPR's 2.9 GHz). +10% from process
+#     refinement at the same Intel 7 node.
+#   - MSRP $11,600 (vs SPR's $17,000). Emerald Rapids brought
+#     Xeon back to more competitive datacenter pricing.
+#
+# What's the same: Intel 7 process, AVX-512 + AMX_BF16 fabrics,
+# LGA-4677 socket, 350W TDP, 80 PCIe Gen5 lanes, snoopy MESI
+# coherence over Intel server 2D mesh.
+#
+# Data sourced from:
+#   - Intel Xeon Platinum 8592+ ARK page
+#   - Intel Emerald Rapids architecture brief (Dec 2023)
+#   - Anandtech Emerald Rapids deep-dive
+#   - Wikichip Emerald Rapids page
+#   - graphs/src/graphs/hardware/models/datacenter/intel_xeon_platinum_8592plus.py
+#     (well-validated graphs mapper -- the migration source)
+#
+# Confidence: theoretical.
+#   - Operational specs (cores, threads, cache, TDP, memory, clocks,
+#     MSRP, launch date) are Intel-published datasheet values.
+#   - Per-tile die area (~763 mm^2) and transistor count (~31 B) are
+#     estimates from Anandtech die-shot analysis -- Intel disclosed
+#     the per-tile area envelope but not the exact transistor count
+#     for the 2-tile XCC variant. The total ~62 B is consistent with
+#     Intel's "60+ billion transistors" Hot Chips 35 figure.
+#   - Energy coefficients inherited from 8490H (same Intel 7 node,
+#     same AVX-512/AMX silicon paths).
+#
+# Chiplet modeling note (KNOWN SCHEMA LIMITATION -- shared with
+# all chiplet entries since sprint #62 PR 1):
+#   Single virtual die approximation due to schema lacking an
+#   IOBlock kind. packaging.num_dies=2 and packaging.kind=chiplet
+#   remain accurate.
+#
+# Out of scope:
+#   - 8592V (V-suffix, optimized for virtualization)
+#   - 8592M (M-suffix, larger DRAM support)
+#   - SGX / TME confidential-computing modes
+#   - Per-tile DVFS
+
+id: intel_xeon_platinum_8592plus
+name: Intel Xeon Platinum 8592+
+vendor: intel
+kind: chip
+packaging:
+  kind: chiplet
+  num_dies: 2              # 2-tile XCC variant of Emerald Rapids
+  package_type: lga4677
+
+lifecycle: production
+
+dies:
+- die_id: emr_xcc_virtual_die
+  die_role: compute
+  process_node_id: intel_7
+  # Total package silicon: 2 tiles * ~763 mm^2 = ~1526 mm^2.
+  # Slightly smaller than 8490H's 4-tile package (1600 mm^2)
+  # despite 4 more cores -- larger per-tile L3 slices are densely
+  # packed and Emerald Rapids' tile layout is more area-efficient
+  # than SPR's.
+  die_size_mm2: 1526.0
+  # 2 tiles * ~31 B tx = ~62 B. Consistent with Intel HC35
+  # "60+ billion transistors" disclosure for Emerald Rapids XCC.
+  transistors_billion: 62.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 2 Emerald Rapids XCC compute tiles on Intel 7. Each tile
+    # carries 32 cores (64 / 2), per-core L1+L2, 160 MB L3 slice
+    # (320 / 2), and mesh stops. Per-tile ~31 B tx.
+    # Total 2*31000 = 62000 Mtx.
+    - name: emr_compute_tiles
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 62000.0
+      notes: 2x Emerald Rapids XCC compute tiles on Intel 7 @ ~31 B tx each. Each tile = 32 cores + L1/L2 + 160 MB L3 slice + mesh stops. Larger per-tile silicon than SPR's HCC die (2.15x more cores + 5.3x more L3 per tile).
+    # -------------------------------------------------------------------
+    # Per-tile caches included in emr_compute_tiles above (0 here for
+    # silicon_bin sum reconciliation).
+    - name: tile_caches_informational
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 0.0
+      notes: Per-tile caches (48 KB L1D + 32 KB L1I + 2 MB L2 per core + 160 MB L3 slice per tile) -- included in emr_compute_tiles, not double-counted.
+  clocks:
+    base_clock_mhz: 1900.0
+    boost_clock_mhz: 3900.0   # single-core boost (slightly higher than 8490H's 3.5 GHz)
+  blocks:
+  - kind: cpu
+    total_effective_cores: 64
+    simd_width_lanes: 16        # full AVX-512 (unchanged from 8490H)
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    - int4
+    core_clusters:
+    # -------------------------------------------------------------------
+    # Single homogeneous cluster of 64 Emerald Rapids server cores.
+    # Same Golden Cove-derived microarch as Sapphire Rapids (no
+    # core-arch change at Emerald; refinement is at the SoC level --
+    # bigger L3, faster DDR5, larger ROB tuning).
+    # Same two-fabric layout as 8490H (AVX-512 + AMX).
+    - cluster_kind: homogeneous
+      num_cores: 64
+      smt_threads: 2
+      aggregate_weight: 1.0
+      compute_fabrics:
+      # ------------------------------------------------------------------
+      # AVX-512 SIMD fabric -- byte-for-byte the same as 8490H
+      # (same Intel 7 silicon path).
+      - isa_extension: avx512_bf16
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          fp64: 16
+          fp32: 32             # 2 pipes * 16 lanes * 1 FMA
+          fp16: 64
+          bf16: 64
+          int8: 128
+          int4: 256
+        energy_per_flop_fp32_pj: 1.5
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 0.55
+          bf16: 0.55
+          int8: 0.30
+          int4: 0.18
+      # ------------------------------------------------------------------
+      # AMX fabric -- same 2-tile-per-core layout as 8490H. Same
+      # 16x16 BF16 / 16x16x64 INT8 matrix per cycle per tile.
+      - isa_extension: amx_bf16
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          bf16: 2048           # 2 tiles * 1024 ops/tile/cycle
+          int8: 4096           # 2 tiles * 2048 ops/tile/cycle
+          int4: 8192
+        energy_per_flop_fp32_pj: 0.75
+        energy_scaling:
+          bf16: 1.0
+          int8: 0.30
+          int4: 0.18
+      l1_kib_per_core: 48
+      l2_layout: private_per_core
+      l2_kib_per_core: 2048
+      l2_kib_shared: 0
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 8192.0          # 8 channels * 1 TB per slot, max
+      memory_bus_bits: 512            # 8 channels * 64 bits/channel
+      memory_bandwidth_gbps: 358.4    # 8 * 5600 MT/s * 8 B = 358.4 GB/s
+      memory_controllers: 8
+      l3_present: true
+      l3_total_kib: 327680            # 320 MiB (5 MB per core * 64 cores) -- 2.85x 8490H
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: snoopy_mesi
+      read_energy_pj_per_byte: 28.0   # slightly better than 8490H DDR5-4800
+      write_energy_pj_per_byte: 33.0
+    noc:
+      topology: mesh_2d
+      # 2-tile XCC has fewer EMIB crossings than 8490H's 4-tile XCC.
+      # Bisection bandwidth slightly higher per-core due to fewer hops.
+      bisection_bandwidth_gbps: 2800.0
+      unit_count: 64                  # one mesh stop per core
+      mesh_rows: 8                    # rough 8x8 layout
+      mesh_cols: 8
+      flit_size_bytes: 32
+      hop_latency_ns: 2.5             # lower than 8490H's 3.0 (fewer EMIB hops)
+      pj_per_flit_per_hop: 7.5        # slightly lower than 8490H's 8.0
+      routing_distance_factor: 1.5    # 1.5-hop average (vs 8490H's 1.8 due to 4-tile)
+    simd_efficiency_by_op_kind:
+      elementwise: 0.85
+      matrix: 0.87                    # slightly higher than 8490H due to larger L3 hit rate
+      default: 0.65
+    min_occupancy: 0.5
+    max_concurrent_threads: 128       # 64 cores * 2 SMT
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 350W TDP profile, all-core
+# sustained boost of 3.2 GHz:
+#   FP32 (AVX-512): 64 cores * 32 ops/clk * 3.2e9 = 6.55 TFLOPS
+#   BF16 (AMX): 64 cores * 2048 ops/clk * 3.2e9 = 419.4 TFLOPS
+#   INT8 (AMX): 64 cores * 4096 ops/clk * 3.2e9 = 838.9 TOPS
+# AMX BF16 is +17.7% over 8490H (60 cores @ 2.9 GHz -> 64 cores @
+# 3.2 GHz). The L3 jump (1.875 -> 5 MB/core) and DDR5-5600 widen
+# this gap on memory-bound AI workloads.
+performance:
+  fp32_tflops: 6.55
+  bf16_tflops: 419.4
+  int8_tops: 838.9
+  int4_tops: 1677.7
+
+power:
+  tdp_watts: 350.0             # same envelope as 8490H
+  max_power_watts: 420.0       # PL2 turbo
+  min_power_watts: 280.0
+  idle_power_watts: 85.0       # slightly higher than 8490H (more L3 leakage)
+  default_thermal_profile: 350W-default
+  thermal_profiles:
+  - name: 350W-default
+    tdp_watts: 350.0
+    clock_mhz: 3200.0          # all-core sustained boost
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      fp32: 0.48                # slightly better than 8490H's 0.45 (larger L3)
+      fp16: 0.32
+      bf16: 0.58
+      int8: 0.62
+    vdd_v: 1.10
+
+market:
+  launch_date: '2023-12-14'
+  launch_msrp_usd: 11600.0
+  target_market: datacenter
+  product_family: Xeon Platinum
+  model_tier: datacenter
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Intel Xeon Platinum 8592+ -- third Intel SKU in the catalog and
+  second datacenter Xeon. 5th-gen Xeon Scalable (Emerald Rapids):
+  64 cores in 2 EMIB-joined tiles on Intel 7, refined microarch over
+  Sapphire Rapids with substantially larger L3 LLC (320 MB vs 112.5
+  MB) and faster memory (DDR5-5600 vs DDR5-4800).
+
+  Architecture: Same Golden Cove-derived server core microarch as
+  Sapphire Rapids. The Emerald Rapids "refresh" is SoC-level (tile
+  consolidation 4 -> 2, larger L3 per tile, faster DDR5) -- no core-
+  microarchitecture change. AVX-512 + AMX fabrics identical to 8490H.
+  SMT=2. LGA-4677 socket-compatible with Sapphire Rapids.
+
+  Memory: 8-channel DDR5-5600, 358.4 GB/s peak. 320 MB L3 LLC (5 MB
+  per core, vs 8490H's 1.875 MB per core). The L3 jump is the
+  defining Emerald Rapids feature for AI inference workloads --
+  larger working sets stay on-chip.
+
+  Power: 350W TDP (same envelope as 8490H). cTDP 280-420W.
+
+  CHIPLET MODELING: same single-virtual-die approximation as 8490H
+  and the AMD entries (no IOBlock kind yet). packaging.num_dies=2
+  and packaging.kind=chiplet remain accurate.
+
+  Chip-level peak BF16 (AMX): 419.4 TFLOPS, +17.7% over 8490H's
+  356.4 TFLOPS at the same TDP. The L3 + DDR5 uplifts further widen
+  this gap on memory-bound workloads (not captured in the peak
+  roll-up; efficiency_factor_by_precision absorbs it).
+
+  Note: the graphs hand-coded factory uses DDR5-4800 (307.2 GB/s) for
+  this SKU but Intel's published spec is DDR5-5600 (358.4 GB/s); this
+  YAML uses the official spec. Follow-up to align the graphs factory.
+last_updated: '2026-05-21'
