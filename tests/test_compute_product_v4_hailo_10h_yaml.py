@@ -88,7 +88,7 @@ def test_other_vendors_unaffected_by_hailo10h_addition(all_products):
     intel = [s for s, cp in all_products.items() if cp.vendor == "intel"]
     assert len(stillwater) == 12
     assert len(nvidia) == 2
-    assert len(intel) == 1
+    assert len(intel) == 2  # i7-12700k + Xeon 8490H (sprint #68 PR 1)
 
 
 # ---------------------------------------------------------------------------

@@ -457,7 +457,7 @@ def test_v5_does_not_break_existing_catalog():
 
     assert counts["kpu"] == 12
     assert counts["gpu"] == 2
-    assert counts["cpu"] == 6   # i7-12700k + EPYC 9654/9754/9965 + AmpereOne A192/A128 (sprint #62 PR 1-5)
+    assert counts["cpu"] == 7   # i7 + 3 EPYC + 2 AmpereOne (sprint #62) + Xeon 8490H Sapphire Rapids (sprint #68 PR 1)
     assert counts["npu"] == 3
     # cgra_count was 0 at the v5 schema PR baseline; the Plasticine v2
     # data PR bumped it to 1 (first stanford/ vendor SKU; first
