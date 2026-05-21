@@ -492,7 +492,7 @@ def test_v7_does_not_break_existing_catalog():
 
     assert counts["kpu"] == 12
     assert counts["gpu"] == 2
-    assert counts["cpu"] == 4   # i7-12700k + EPYC 9654 + 9754 + 9965 Turin Dense (sprint #62 PR 1-3)
+    assert counts["cpu"] == 5   # i7-12700k + EPYC 9654/9754/9965 + AmpereOne A192 (sprint #62 PR 1-4)
     assert counts["npu"] == 3
     assert counts["cgra"] == 1
     assert counts["dpu"] == 1
