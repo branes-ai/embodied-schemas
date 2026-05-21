@@ -101,7 +101,11 @@ def test_catalog_now_includes_one_cpu_sku(all_products):
     first Xeon (Sapphire Rapids 8490H). intel/ vendor directory now
     carries 2 SKUs."""
     intel_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "intel")
-    assert intel_skus == ["intel_core_i7_12700k", "intel_xeon_platinum_8490h"]
+    assert intel_skus == [
+        "intel_core_i7_12700k",
+        "intel_xeon_platinum_8490h",
+        "intel_xeon_platinum_8592plus",
+    ]
 
 
 def test_catalog_has_15_total_products(all_products):
@@ -115,7 +119,7 @@ def test_catalog_has_15_total_products(all_products):
     # v4 data PR (#26-pending) adds hailo_hailo_8 as the first NPU SKU;
     # the catalog total grew from 15 to 16 then. This assertion
     # tolerates that addition while still pinning the KPU/GPU/CPU counts.
-    expected_subset = {"kpu": 12, "gpu": 2, "cpu": 7}
+    expected_subset = {"kpu": 12, "gpu": 2, "cpu": 8}
     for kind, count in expected_subset.items():
         assert counts_by_kind.get(kind, 0) == count, (
         f"unexpected catalog composition: {counts_by_kind}"
