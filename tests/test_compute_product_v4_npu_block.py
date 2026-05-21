@@ -420,7 +420,7 @@ def test_v4_does_not_break_existing_catalog():
 
     assert kpu_count == 12
     assert gpu_count == 2
-    assert cpu_count == 4   # i7-12700k + EPYC 9654 + 9754 + 9965 Turin Dense (sprint #62 PR 1-3)
+    assert cpu_count == 5   # i7-12700k + EPYC 9654/9754/9965 + AmpereOne A192 (sprint #62 PR 1-4)
     # NPU count history: 0 at the v4 schema PR (#25); Hailo-8 (#26)
     # brought it to 1; Hailo-10H (#31, first KVCacheSpec user from #30)
     # brought it to 2; Coral Edge TPU (#33) brought it to 3. CGRA

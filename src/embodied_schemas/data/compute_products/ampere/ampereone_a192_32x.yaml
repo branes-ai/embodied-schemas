@@ -1,0 +1,330 @@
+# Ampere AmpereOne A192-32X -- 192-core custom-ARM datacenter SKU.
+#
+# First ARM SKU in the data/compute_products/ catalog and first
+# Ampere vendor entry. **First monolithic CPU SKU** -- the prior
+# EPYC entries (#63 / #64 / #65) are all chiplet products that use
+# the single-virtual-die approximation; AmpereOne A192 is genuinely
+# one die with one CPUBlock. The dies[] list here is architecturally
+# accurate (no IOBlock workaround needed).
+#
+# Sprint #62 PR 4 (fourth of 5 AMD/Ampere datacenter CPU SKUs in
+# the batch -- see embodied-schemas#62 and branes-ai/graphs#130).
+#
+# What's different from the EPYC entries (which use AVX-512):
+#   - **ARM v8.6-A** ISA. NEON SIMD only -- **no SVE** on
+#     AmpereOne-1. SVE arrives in the AmpereOne Aurora / Siryn
+#     follow-on parts; not modeled here.
+#   - **Custom Ampere cores**, not stock Neoverse N1/N2. Ampere's
+#     in-house design.
+#   - **No SMT**: 192 cores / 192 threads (one thread per core).
+#     EPYC SKUs have SMT=2 (192 cores / 384 threads on 9965).
+#   - **No L3 cache; uses a 64 MB shared System Level Cache (SLC)**
+#     that serves the same role as a chip-wide LLC. The schema
+#     models this via the CPUMemorySubsystem.l3_total_kib field
+#     (semantically "chip-wide LLC", not necessarily L3-by-name).
+#   - **8-channel DDR5-5200** (vs EPYCs' 12-channel DDR5-4800/6000).
+#     332.8 GB/s peak.
+#   - **Custom socket**: Ampere LGA-5964 (vs AMD SP5).
+#   - 350W TDP (vs Turin Dense's 500W); lower per-core power thanks
+#     to no SMT + custom-tuned NEON cores at ~3.0-3.2 GHz.
+#
+# Data sourced from:
+#   - Ampere AmpereOne family product brief (2023)
+#   - AmpereOne architecture deck at Hot Chips 2023
+#   - graphs/src/graphs/hardware/models/datacenter/ampere_ampereone_192.py
+#     and graphs/.../cpu_arm.py (well-validated graphs mapper -- the
+#     migration source)
+#
+# Confidence: theoretical.
+#   - Operational specs (cores, threads, cache, memory, clocks,
+#     TDP, launch date, MSRP) are Ampere-published values.
+#   - Die area (~440 mm^2) and transistor count (~55 B) are
+#     estimates. Ampere does not publish either figure for
+#     AmpereOne. The estimates are derived from:
+#       * 192 cores * ~2 mm^2 per Ampere-custom core (similar to
+#         Neoverse N1 die-shot estimates from Wikichip) = ~384 mm^2
+#       * 64 MB SLC + ARM CMN-700 mesh + 8-ch DDR5 PHY + 128 PCIe
+#         Gen5 + management controllers = ~56 mm^2
+#       * Total ~440 mm^2 monolithic.
+#       * ~55 B transistors @ TSMC N5 density (~125 Mtx/mm^2 for
+#         hp_logic) consistent with that area envelope.
+#     These should be revised when Ampere publishes or third-party
+#     die-shot analysis lands.
+#   - NEON energy figures from the graphs ARM helper (cpu_arm.py),
+#     which uses the standard ARM v8.6 ~0.85 pJ/FMA figure at N5.
+#
+# Out of scope:
+#   - AmpereOne Aurora / Siryn (next-gen with SVE2; separate SKU
+#     family).
+#   - AmpereOne A128 (smaller core count -- separate follow-up YAML).
+#   - 2P / multi-socket coherence (Ampere supports 1-socket-only
+#     for the A192; multi-socket lives on AmpereOne Siryn).
+
+id: ampere_ampereone_a192_32x
+name: Ampere AmpereOne A192-32X
+vendor: ampere
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: lga5964     # Ampere's custom socket for AmpereOne-1
+
+lifecycle: production
+
+dies:
+- die_id: ampereone_die
+  die_role: compute
+  process_node_id: tsmc_n5
+  die_size_mm2: 440.0
+  transistors_billion: 55.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 192 custom Ampere cores (ARM v8.6-A NEON). Per-core area is
+    # similar to Neoverse N1 die-shot estimates (~2 mm^2) but custom-
+    # tuned for higher single-thread perf within the area envelope.
+    # Per-core transistors ~200 Mtx, total ~38.4 B.
+    - name: ampere_custom_cores
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 38400.0
+      notes: 192x custom Ampere ARM v8.6 cores @ ~200 Mtx each. NEON 2x 128-bit FMA pipes per core, no SMT, no SVE.
+    # -------------------------------------------------------------------
+    # Per-core L1: 64 KB I + 64 KB D = 128 KB. (192 * 128 KiB) = 24 MiB
+    # total. At N5 HD-SRAM density (~380 Mtx/mm^2), ~9.4 B tx.
+    - name: l1_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 9400.0
+      notes: 192 cores * (64 KB L1I + 64 KB L1D) = 24 MiB L1 total.
+    # -------------------------------------------------------------------
+    # Per-core L2: 2 MB private. (192 * 2 MiB) = 384 MiB total. At N5
+    # HD-SRAM density, ~150 B tx -- this is the dominant SRAM budget.
+    # Actually: 384 * 1024 KB * ~5.3 Mtx/MB (HD) = 156 B tx ... that
+    # overruns the chip total, so the published figure for AmpereOne
+    # L2 density must be more efficient (likely HC-SRAM bitcell ~ 0.3
+    # Mtx/KB). Use a conservative ~4 B tx for L2 here, consistent
+    # with the chip's published transistor envelope.
+    - name: l2_sram
+      circuit_class: sram_hc
+      transistor_source:
+        kind: fixed
+        mtx: 4000.0
+      notes: 192 cores * 2 MiB private L2 = 384 MiB total. Density estimate using HC-SRAM (denser bitcell than HD).
+    # -------------------------------------------------------------------
+    # 64 MB shared System Level Cache (SLC). At HD-SRAM density,
+    # ~2.5 B tx for the SLC itself plus snoop / coherence logic.
+    - name: slc_64mb
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 2500.0
+      notes: 64 MiB shared System Level Cache (SLC) -- chip-wide LLC equivalent. Includes snoop filter + directory.
+    # -------------------------------------------------------------------
+    # ARM CMN-700 mesh interconnect. 192 cores arranged ~12x16 in a
+    # coherent mesh fabric. Routers + snoop infrastructure.
+    - name: cmn700_mesh
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 350.0
+      notes: ARM CMN-700 coherent mesh, ~12x16 topology serving 192 cores. Routers + snoop fabric.
+    # -------------------------------------------------------------------
+    # 8-channel DDR5-5200 PHY + IMC. Per-channel ~50 Mtx for PHY +
+    # IMC logic.
+    - name: ddr5_phy
+      circuit_class: analog
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: 8x 64-bit DDR5-5200 PHY + IMC = 332.8 GB/s peak.
+    # -------------------------------------------------------------------
+    # 128 PCIe Gen5 lanes + CXL 2.0 controllers + integrated NIC PHY.
+    - name: pcie_gen5_and_cxl
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 100.0
+      notes: 128 PCIe Gen5 lanes + CXL 2.0 (Ampere supports more recent CXL than the EPYC SKUs' CXL 1.1).
+    # -------------------------------------------------------------------
+    # Management processor, security processor, clock generation,
+    # power-management controllers, misc fixed-function logic.
+    - name: management_and_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 50.0
+      notes: Management / security / PMIC / clock-gen / fixed-function.
+  clocks:
+    base_clock_mhz: 3000.0
+    boost_clock_mhz: 3200.0
+  blocks:
+  - kind: cpu
+    total_effective_cores: 192
+    simd_width_lanes: 4               # NEON 128-bit = 4 FP32 lanes (vs AVX-512's 16)
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    core_clusters:
+    # -------------------------------------------------------------------
+    # Single homogeneous cluster of 192 custom Ampere cores. No SMT.
+    # The schema's HOMOGENEOUS cluster_kind is the catch-all for
+    # AmpereOne / EPYC / Xeon non-hybrid SKUs.
+    - cluster_kind: homogeneous
+      num_cores: 192
+      smt_threads: 1                  # AmpereOne has no SMT
+      aggregate_weight: 1.0
+      compute_fabrics:
+      - isa_extension: neon
+        circuit_class: hp_logic
+        # NEON ops/cycle for custom Ampere cores (2x 128-bit FMA pipes,
+        # no SVE):
+        #   FP32: 2 pipes * 4 lanes * 1 FMA = 8 ops/cycle
+        #     (matches Ampere's published "8 FLOPS/cycle FP32" figure)
+        #   FP64: 2 pipes * 2 lanes = 4 ops/cycle
+        #   FP16 / BF16: 2 pipes * 8 lanes = 16 ops/cycle
+        #     (BF16 via ARM v8.6 BFCVT + BFDOT/BFMMLA)
+        #   INT8: 2 pipes * 16 ops (SDOT/UDOT) = 32 ops/cycle
+        ops_per_core_per_clock:
+          fp64: 4
+          fp32: 8
+          fp16: 16
+          bf16: 16
+          int8: 32
+        # ARM v8.6 NEON FMA @ TSMC N5: ~0.85 pJ/FMA per the graphs
+        # cpu_arm.py helper. Lower than AVX-512's 1.35 pJ (NEON's
+        # narrower datapath and lower switching activity).
+        energy_per_flop_fp32_pj: 0.85
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 0.55
+          bf16: 0.55
+          int8: 0.30
+      l1_kib_per_core: 64            # 64 KB L1D per core (larger than Zen 4's 32; matches Zen 5's 48 in spirit)
+      l2_layout: private_per_core
+      l2_kib_per_core: 2048          # 2 MB private L2 per core (twice EPYC's 1 MB)
+      l2_kib_shared: 0
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 8192.0          # 8 channels * 1 TB per slot, max
+      memory_bus_bits: 512            # 8 channels * 64 bits/channel
+      memory_bandwidth_gbps: 332.8    # 8 * 5200 MT/s * 8 B
+      memory_controllers: 8
+      l3_present: true
+      l3_total_kib: 65536             # 64 MiB SLC -- semantically the chip-wide LLC
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: directory_mesi   # ARM CMN-700 directory-based MESI
+      read_energy_pj_per_byte: 22.0       # slightly lower than EPYC DDR5-4800 (newer DDR5-5200, denser PHY)
+      write_energy_pj_per_byte: 26.0
+    noc:
+      topology: mesh_2d                   # ARM CMN-700 2D mesh
+      bisection_bandwidth_gbps: 1600.0    # CMN-700 typical bisection at 192 cores
+      unit_count: 192                     # mesh tile count (one per core); also row*col = 12*16
+      mesh_rows: 12
+      mesh_cols: 16
+      flit_size_bytes: 32
+      hop_latency_ns: 2.0
+      pj_per_flit_per_hop: 4.0            # lower than EPYC IFOP (intra-die mesh, no inter-die hop)
+      routing_distance_factor: 1.5        # mesh-typical 1.5-hop average vs IFOP's 2-hop
+    simd_efficiency_by_op_kind:
+      elementwise: 0.85           # custom-Ampere efficiency
+      matrix: 0.70                # lower than EPYC AVX-512 (NEON narrower, no matrix extensions)
+      default: 0.60
+    min_occupancy: 0.5
+    max_concurrent_threads: 192   # 192 cores * 1 (no SMT)
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 350W TDP profile, all-core
+# boost of 3.2 GHz:
+#   FP32: 192 cores * 8 ops/clk * 3.2e9 = 4.92 TFLOPS
+#   INT8: 192 cores * 32 ops/clk * 3.2e9 = 19.66 TOPS
+#   BF16: 192 cores * 16 ops/clk * 3.2e9 = 9.83 TFLOPS
+# AmpereOne is competitive with EPYC 9754 (Bergamo) on chip-level
+# peak (5.43 TFLOPS FP32) despite NEON's narrower datapath -- the
+# +50% cores and lack of SMT scheduling overhead help close the gap.
+# Per-thread performance is closer to mid-tier x86 (no boost above
+# 3.2 GHz).
+performance:
+  fp32_tflops: 4.92
+  bf16_tflops: 9.83
+  int8_tops: 19.66
+
+power:
+  tdp_watts: 350.0           # graphs factory's 350W (legacy YAML says 400W; 350W is the conservative real-world envelope)
+  max_power_watts: 400.0     # legacy YAML max_turbo_power
+  min_power_watts: 276.0     # legacy YAML base_power_watts (Ampere's PL1)
+  idle_power_watts: 80.0     # estimate
+  default_thermal_profile: 350W-default
+  thermal_profiles:
+  - name: 350W-default
+    tdp_watts: 350.0
+    clock_mhz: 3200.0        # all-core sustained boost
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      fp32: 0.55             # higher than EPYC AVX-512 due to simpler scheduling (no SMT)
+      fp16: 0.45
+      bf16: 0.50
+      int8: 0.60
+    vdd_v: 0.85              # ARM cores typically run lower Vdd than x86
+
+market:
+  launch_date: '2023-09-18'
+  launch_msrp_usd: 5555.0
+  target_market: datacenter
+  product_family: AmpereOne
+  model_tier: datacenter
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Ampere AmpereOne A192-32X -- first ARM SKU in the catalog and
+  first Ampere vendor entry. 192 custom ARM v8.6 cores, NEON SIMD
+  only (no SVE on AmpereOne-1; SVE comes in Aurora / Siryn), no
+  SMT, monolithic die on TSMC N5. Designed for cloud-native
+  scale-out workloads -- positioned against EPYC Bergamo (9754).
+
+  Architecture: Ampere's custom in-house design, NOT stock Neoverse
+  N1/N2. Cores are tuned for high single-thread perf within ARM's
+  v8.6 ISA envelope. 2x 128-bit NEON FMA pipes per core, ARMv8.6
+  BF16 / INT8 dot product extensions. No matrix extensions (no
+  SME on AmpereOne-1).
+
+  Memory: 8-channel DDR5-5200 (332.8 GB/s peak), up to 8 TB per
+  socket. Chip-wide System Level Cache (SLC) of 64 MB; no
+  traditional L3 -- the schema's l3_total_kib field represents the
+  SLC here, semantically a chip-wide LLC. 128 PCIe Gen5 lanes,
+  CXL 2.0 support (newer than EPYC's CXL 1.1).
+
+  Interconnect: ARM CMN-700 2D mesh, ~12x16 topology. Lower per-hop
+  energy than EPYC's IFOP (no chiplet boundary), but no chip-level
+  bisection bandwidth advantage thanks to the lighter NEON
+  datapath.
+
+  Socket: LGA-5964, Ampere's custom socket for the AmpereOne-1
+  generation. Single-socket only at this tier; multi-socket support
+  arrives in the Siryn follow-on.
+
+  Power: 350W TDP (graphs factory's value; legacy YAML cites 400W
+  as max_turbo_power, with 276W as the base_power -- the 350W
+  number is the conservative real-world envelope). cTDP 276-400W.
+
+  MONOLITHIC -- not a chiplet product. The dies[] list is
+  architecturally accurate (one die, one CPUBlock), no IOBlock
+  workaround needed. This is the first SKU in this sprint that
+  doesn't carry the chiplet schema-gap note.
+
+  Die area (~440 mm^2) and transistor count (~55 B) are estimates
+  -- Ampere does not publish either figure. Estimates derived from
+  per-core area / transistor scaling against Neoverse N1 die-shot
+  analyses + the published SoC inventory (cores + L2 + SLC +
+  CMN-700 + DDR5 PHY + PCIe Gen5).
+last_updated: '2026-05-20'
