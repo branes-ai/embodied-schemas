@@ -1,0 +1,282 @@
+# AMD EPYC 9754 (Bergamo, Zen 4c, 128-core cloud-native datacenter SKU).
+#
+# Second AMD SKU in the data/compute_products/ catalog (joins the
+# Genoa-class EPYC 9654 from sprint #62 PR 1). First Zen 4c core
+# entry. Migrates the legacy data/cpus/amd/epyc_9754_sp5.yaml.
+#
+# Sprint #62 PR 2 (second of 5 AMD/Ampere datacenter CPU SKUs in
+# the batch -- see embodied-schemas#62 and branes-ai/graphs#130).
+#
+# What's different from EPYC 9654 (Genoa):
+#   - **Zen 4c** core variant: physically denser layout (no logic
+#     changes; same AVX-512/BF16/VNNI ISA), ~35% smaller per-core
+#     area than Zen 4.
+#   - 16 cores per CCD (vs Zen 4's 8) -- 8 CCDs total instead of 12.
+#   - 16 MB L3 per CCD (vs Zen 4's 32 MB) -- 128 MB total L3 instead
+#     of 384 MB. Trade-off: more cores at smaller cache per core.
+#   - Lower clocks: base 2.25 GHz / boost 3.10 GHz / all-core ~2.65
+#     GHz (vs 9654's 2.4 / 3.7 / 3.55) -- denser cores hit lower max
+#     frequency.
+#   - **Same Genoa IOD** (TSMC N6, ~397 mm^2, ~12 B tx) -- Bergamo
+#     reuses the Genoa IOD silicon unchanged. The SP5 socket, 12-
+#     channel DDR5-4800 IMC, 128 PCIe Gen5 lanes, and Infinity
+#     Fabric topology are inherited 1:1.
+#   - Slightly cheaper MSRP ($10,632 vs $11,805) despite more cores
+#     -- positioned as the cloud-native scale-out SKU.
+#
+# What's the same: SP5 socket, 12-channel DDR5-4800 (460.8 GB/s),
+# 128 PCIe Gen5 lanes, CXL 1.1, MOESI-directory coherence over
+# Infinity Fabric, 360W TDP (configurable 320-400W cTDP), AMD
+# SEV-SNP.
+#
+# Data sourced from:
+#   - AMD Bergamo launch press kit (June 2023)
+#   - AnandTech Bergamo deep-dive coverage
+#   - Wikichip Zen 4c microarchitecture page
+#   - graphs/src/graphs/hardware/models/datacenter/amd_epyc_9754.py
+#     (the well-validated graphs mapper -- migration source)
+#
+# Confidence: theoretical.
+#   - Operational specs (cores, threads, cache, TDP, memory, clocks,
+#     MSRP) are AMD-published datasheet values.
+#   - Per-Zen-4c-CCD die area (72.7 mm^2) and transistor count
+#     (~9.7 B) come from AMD's published Bergamo material -- AMD
+#     disclosed both per-CCD figures at launch.
+#   - IOD figures inherited from EPYC 9654 (same physical IOD die);
+#     ~12 B IOD transistor estimate scaled from Milan IOD per the
+#     9654 YAML's reasoning.
+#   - Energy coefficients reuse Zen 4 AVX-512 (1.35 pJ/FMA) from
+#     the graphs hand-coded factory; Zen 4c's denser layout doesn't
+#     change the per-fabric energy materially (logic structure is
+#     identical; differences are in the per-stage pipeline timing
+#     allowed by the smaller area, which net out at the FMA level).
+#
+# Chiplet modeling note (KNOWN SCHEMA LIMITATION -- shared with #62 PR 1):
+#   The schema's AnyBlock union still lacks an IOBlock/MemoryBlock
+#   kind, so this YAML mirrors the EPYC 9654 approach: a single
+#   virtual die with the silicon_bin decomposing across 8 CCDs +
+#   the Genoa IOD. packaging.num_dies=9 and packaging.kind=chiplet
+#   remain accurate; per-die process_node distinction (CCDs on N5,
+#   IOD on N6) lives in silicon_bin comments. Re-author once an
+#   IOBlock kind lands.
+#
+# Out of scope:
+#   - 3D V-Cache Bergamo variant (none ships at present).
+#   - EPYC 9684X / 9384X (Genoa-X) -- separate follow-up.
+#   - AMD SEV-SNP confidential computing modes (security tier).
+
+id: amd_epyc_9754_sp5
+name: AMD EPYC 9754
+vendor: amd
+kind: chip
+packaging:
+  kind: chiplet
+  num_dies: 9          # 8 Zen 4c CCDs + 1 Genoa IOD
+  package_type: sp5
+
+lifecycle: production
+
+dies:
+- die_id: epyc_9754_virtual_die
+  die_role: compute
+  # Primary process node = CCDs (TSMC N5; same as Zen 4 / Genoa CCDs).
+  # IOD on TSMC N6 -- captured in silicon_bin notes pending IOBlock.
+  process_node_id: tsmc_n5
+  # Total package silicon area: 8 * 72.7 mm^2 (Zen 4c CCDs) + 397 mm^2 (IOD)
+  # = 978.6 mm^2 total. ~17% smaller package area than EPYC 9654 because
+  # fewer chiplets despite more cores (16-core Zen 4c vs 8-core Zen 4).
+  die_size_mm2: 978.6
+  # 8 * 9.7 B (Zen 4c CCDs, AMD-disclosed) + ~12 B (IOD, inherited from
+  # 9654 estimate) = 89.6 B transistors. Slightly fewer than 9654's
+  # 90.84 B despite 33% more cores -- the IOD is the dominant
+  # transistor budget across both SKUs.
+  transistors_billion: 89.6
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 8 Zen 4c CCDs on TSMC N5. Each CCD: 16 cores + 16 MB L3 + L2 +
+    # L1 + Infinity Fabric On-Package (IFOP) link. AMD disclosed
+    # ~9.7 B transistors per CCD at the Bergamo launch -- denser
+    # layout fits twice the cores in ~10% more area than Zen 4 CCD.
+    # Total: 8 * 9.7 = 77.6 B for all CCDs.
+    - name: zen4c_ccds
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 77600.0
+      notes: 8x Zen 4c CCDs on TSMC N5 @ ~9.7 B tx each (AMD-disclosed). Each CCD = 16 cores + 16 MB L3 + IFOP. Denser layout vs Zen 4, lower max clock.
+    # -------------------------------------------------------------------
+    # Per-CCD caches (32 KB L1D + 32 KB L1I + 1 MB L2 per core +
+    # 16 MB shared L3 per CCD) are included in the zen4c_ccds total
+    # above. Listed as zero so the silicon_bin sum matches.
+    - name: ccd_caches_informational
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 0.0
+      notes: Per-CCD caches (32 KB L1D + 32 KB L1I + 1 MB L2 per core + 16 MB shared L3 per CCD) -- included in zen4c_ccds, not double-counted.
+    # -------------------------------------------------------------------
+    # Genoa IOD on TSMC N6, identical to the IOD in EPYC 9654 (Bergamo
+    # reuses Genoa's IOD die unchanged). 12 DDR5 IMCs + 128 PCIe Gen5
+    # lanes + 4x G-link + Infinity Fabric routers + AMD security
+    # processor (PSP). ~12 B transistors estimated.
+    - name: genoa_iod
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 12000.0
+      notes: Genoa IOD on TSMC N6 (same physical die as EPYC 9654). ~397 mm^2 -- 12 DDR5 IMC + 128 PCIe Gen5 + 4x G-link + Infinity Fabric + PSP.
+  clocks:
+    base_clock_mhz: 2250.0
+    boost_clock_mhz: 3100.0
+  blocks:
+  - kind: cpu
+    total_effective_cores: 128
+    simd_width_lanes: 16
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    - int4
+    core_clusters:
+    # -------------------------------------------------------------------
+    # Single homogeneous cluster of 128 Zen 4c cores. Like Genoa,
+    # AMD presents one flat 128-core / 256-thread topology to the OS.
+    # Zen 4c shares Zen 4's ISA verbatim (full AVX-512 + AVX-512_BF16
+    # + AVX-512_VNNI) -- the "c" suffix is a physical-layout choice,
+    # not an architectural one.
+    - cluster_kind: homogeneous
+      num_cores: 128
+      smt_threads: 2
+      aggregate_weight: 1.0
+      compute_fabrics:
+      - isa_extension: avx512_bf16
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          fp64: 8
+          fp32: 16
+          fp16: 32
+          bf16: 32
+          int8: 64
+          int4: 128
+        # 1.35 pJ/FMA AVX-512 (SIMD-packed, TSMC N5) -- shared with
+        # Zen 4. Zen 4c's denser layout doesn't change per-FMA energy
+        # at the fabric level; the impact is on the floorplan / clock-
+        # tree, which we don't model here.
+        energy_per_flop_fp32_pj: 1.35
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 0.55
+          bf16: 0.55
+          int8: 0.30
+          int4: 0.18
+      l1_kib_per_core: 32          # 32 KB L1D per core
+      l2_layout: private_per_core
+      l2_kib_per_core: 1024        # 1 MB private L2 per core (same as Zen 4)
+      l2_kib_shared: 0
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 6144.0      # 12 channels * 512 GB per slot, max
+      memory_bus_bits: 768        # 12 channels * 64 bits/channel
+      memory_bandwidth_gbps: 460.8   # 12 * 4800 MT/s * 8 B = 460.8 GB/s
+      memory_controllers: 12
+      l3_present: true
+      l3_total_kib: 131072        # 128 MB shared L3 LLC (16 MB per CCD * 8 CCDs)
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: directory_mesi
+      read_energy_pj_per_byte: 28.0
+      write_energy_pj_per_byte: 32.0
+    noc:
+      topology: io_die_plus_ccd
+      bisection_bandwidth_gbps: 1365.0   # IFOP per-CCD * 8 CCDs (approx; smaller than 9654's 2048 due to fewer chiplets)
+      unit_count: 8                       # CCD count
+      flit_size_bytes: 32
+      hop_latency_ns: 5.0                 # IFOP CCD -> IOD -> CCD typical
+      pj_per_flit_per_hop: 18.0
+      routing_distance_factor: 2.0        # Two-hop typical (CCD -> IOD -> CCD)
+    simd_efficiency_by_op_kind:
+      elementwise: 0.90
+      matrix: 0.75
+      default: 0.65
+    min_occupancy: 0.5
+    max_concurrent_threads: 256   # 128 cores * 2 SMT
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 360W TDP profile, all-core
+# boost of 2.65 GHz:
+#   FP32: 128 cores * 16 ops/clk * 2.65e9 = 5.43 TFLOPS
+#   INT8: 128 cores * 64 ops/clk * 2.65e9 = 21.71 TOPS
+#   BF16: 128 cores * 32 ops/clk * 2.65e9 = 10.86 TFLOPS
+# Note: Roughly the same chip-level peak as EPYC 9654 (5.45 / 21.82
+# TFLOPS / TOPS) -- the extra 33% cores compensate for the ~25%
+# lower all-core clock. Per-core throughput is lower; aggregate is
+# similar; per-thread latency is lower. Bergamo targets thread-count
+# scaling for cloud-native workloads, not per-thread performance.
+performance:
+  fp32_tflops: 5.43
+  bf16_tflops: 10.86
+  int8_tops: 21.71
+  int4_tops: 43.42
+
+power:
+  tdp_watts: 360.0
+  max_power_watts: 400.0       # cTDP up
+  min_power_watts: 320.0       # cTDP down
+  idle_power_watts: 95.0       # slightly higher than 9654 (33% more cores)
+  default_thermal_profile: 360W-default
+  thermal_profiles:
+  - name: 360W-default
+    tdp_watts: 360.0
+    clock_mhz: 2650.0          # all-core sustained boost (denser cores -> lower max)
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      fp32: 0.45
+      fp16: 0.30
+      bf16: 0.50
+      int8: 0.55
+    vdd_v: 1.05                # slightly lower nominal Vdd than Zen 4 (Zen 4c voltage tuning)
+
+market:
+  launch_date: '2023-06-13'
+  launch_msrp_usd: 10632.0
+  target_market: datacenter
+  product_family: EPYC
+  model_tier: datacenter
+  is_available: true
+
+confidence: theoretical
+notes: >
+  AMD EPYC 9754 -- second AMD SKU in the catalog and first Zen 4c
+  entry. Bergamo cloud-native EPYC: 128 Zen 4c cores in 8 CCDs on
+  TSMC N5, paired with the same Genoa IOD on TSMC N6 used by EPYC
+  9654. Positioned as the high-thread-count scale-out SKU; same
+  socket/IMC/memory/PCIe envelope as Genoa, lower per-core L3, and
+  lower max clock.
+
+  Zen 4c shares Zen 4's ISA byte-for-byte (full AVX-512, AVX-512_BF16,
+  AVX-512_VNNI). The "c" suffix indicates a physical-layout choice
+  (denser cells, smaller floorplan, lower max frequency) optimized
+  for core density at the same node, not an architectural reduction.
+  All AI-relevant instructions execute identically to Zen 4.
+
+  Memory: 12-channel DDR5-4800, 460.8 GB/s peak. L3 LLC 128 MB total,
+  distributed 16 MB per CCD across 8 CCDs (vs 384 MB / 32 MB per CCD
+  on Genoa). 128 PCIe Gen5 + 4x G-link + CXL 1.1 (Genoa IOD inherited).
+
+  Power: 360W default TDP (cTDP 320-400W). Idle estimated ~95W (vs
+  ~90W on 9654 -- higher due to 33% more cores).
+
+  CHIPLET MODELING (see header comment): EPYC 9754 is physically 9
+  dies (8 Zen 4c CCDs + 1 Genoa IOD on a different process node).
+  The schema currently lacks an IOBlock / MemoryBlock kind, so this
+  YAML uses the same single-virtual-die approximation as EPYC 9654.
+  packaging.num_dies=9 and packaging.kind=chiplet remain accurate;
+  the dies[] list is the approximation. Re-author once embodied-
+  schemas adds an IOBlock kind.
+last_updated: '2026-05-20'
