@@ -420,7 +420,7 @@ def test_v4_does_not_break_existing_catalog():
 
     assert kpu_count == 12
     assert gpu_count == 2
-    assert cpu_count == 8  # ... + Xeon 8490H + Xeon 8592+ (sprint #68 PR 1-2))
+    assert cpu_count == 9  # ... + Xeon 8490H + Xeon 8592+ (sprint #68 PR 1-3))
     # NPU count history: 0 at the v4 schema PR (#25); Hailo-8 (#26)
     # brought it to 1; Hailo-10H (#31, first KVCacheSpec user from #30)
     # brought it to 2; Coral Edge TPU (#33) brought it to 3. CGRA

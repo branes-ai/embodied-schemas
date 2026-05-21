@@ -1,0 +1,314 @@
+# Intel Xeon 6 6980P (Granite Rapids-AP) -- 128-core 6th-gen Xeon
+# Scalable datacenter flagship.
+#
+# Fourth Intel SKU in the catalog. First Intel 3 SKU. First Xeon 6
+# entry (Intel renamed the brand from "Xeon Scalable" to just "Xeon
+# 6" at the Granite Rapids launch).
+#
+# Sprint #68 PR 3 (final of 3 Intel Xeon SKUs in the batch -- see
+# embodied-schemas#68 and branes-ai/graphs#130).
+#
+# What's different from Xeon 8592+ (#70, Emerald Rapids):
+#   - **Intel 3 process node** (vs Intel 7) -- first SKU on Intel's
+#     2024 EUV refinement node. ~+18% PPW vs Intel 4.
+#   - **128 cores** (vs 64) in **4-tile MCM** packaging. Granite
+#     Rapids-AP returns to the 4-tile layout of Sapphire Rapids
+#     after Emerald Rapids' 2-tile consolidation. The tiles are
+#     larger (32 cores each).
+#   - **AMX_FP16** added to the AMX path (alongside the existing
+#     AMX_BF16 + AMX_INT8). First catalog SKU exercising
+#     CPUISAExtension.AMX_FP16.
+#   - **12-channel DDR5-6400 + MRDIMM** support (MRDIMM = Multiplexed
+#     Rank DIMM, doubles effective bandwidth via rank interleaving).
+#     Peak 614.4 GB/s on standard DDR5-6400; up to ~896 GB/s on
+#     MRDIMM-8800. The YAML reports the standard DIMM figure since
+#     MRDIMM is an optional platform-side enhancement.
+#   - **500W TDP** (vs 350W) -- higher core count drives the bigger
+#     envelope. cTDP 350-550W.
+#   - L3: ~504 MB total for the 128-core 6980P (~3.94 MB per core).
+#     Slightly less per-core than Emerald's 5 MB but ~+57% absolute
+#     thanks to the higher core count.
+#   - 96 PCIe Gen5 lanes (vs SPR/EMR's 80) + 24 CXL 2.0 lanes.
+#
+# Data sourced from:
+#   - Intel Xeon 6 6900P series product brief (Sept 2024)
+#   - Intel HC36 Granite Rapids architecture deep dive
+#   - Anandtech / ServeTheHome Granite Rapids launch coverage
+#   - graphs/src/graphs/hardware/models/datacenter/intel_granite_rapids.py
+#     (well-validated graphs mapper -- 128 cores, 500W TDP)
+#
+# Confidence: theoretical.
+#   - Operational specs (cores, threads, cache, TDP, memory, clocks,
+#     MSRP, launch date) are Intel-published datasheet values for
+#     the 6980P specifically.
+#   - Per-tile die area (~580 mm^2) and transistor count (~20 B) are
+#     estimates from Intel HC36 disclosures + ServeTheHome die-shot
+#     analysis. 4-tile MCM total ~2320 mm^2 / ~80 B tx. Intel did
+#     not publish exact transistor counts at launch.
+#   - Energy coefficients scaled from 8592+ (#70) per Intel 3's
+#     +18%% PPW claim -- AVX-512 @ 1.25 pJ/FMA Intel 3 (vs 1.5 on
+#     Intel 7), AMX matrix path proportionally tightened.
+#
+# SKU disambiguation: The graphs hand-coded factory at
+# graphs/.../models/datacenter/intel_granite_rapids.py uses a
+# generic "Intel-Xeon-Granite-Rapids" name without a specific SKU.
+# The 192-core / 500W shape it models resolves cleanly to the
+# 6980P (the 128-core P-core flagship). Granite Rapids ships in a
+# wider SKU stack (6960P 72c, 6952P 96c, 6960E 144c-efficient, etc.)
+# -- follow-up YAMLs can land per-SKU once needed.
+#
+# Chiplet modeling note (KNOWN SCHEMA LIMITATION):
+#   Single virtual die approximation. packaging.num_dies=4 and
+#   packaging.kind=chiplet remain accurate; dies[] is the
+#   approximation pending an IOBlock kind.
+
+id: intel_xeon_6980p
+name: Intel Xeon 6 6980P
+vendor: intel
+kind: chip
+packaging:
+  kind: chiplet
+  num_dies: 4              # 4-tile MCM (Granite Rapids-AP)
+  package_type: lga4710    # Granite Rapids uses LGA-4710 (vs SPR/EMR's LGA-4677)
+
+lifecycle: production
+
+dies:
+- die_id: gnr_ap_virtual_die
+  die_role: compute
+  process_node_id: intel_3                  # FIRST Intel 3 SKU in the catalog
+  # Total package silicon: 4 tiles * ~580 mm^2 = ~2320 mm^2.
+  # Larger than 8490H's 4-tile SPR (1600 mm^2) -- Granite Rapids
+  # tiles each carry 32 cores (vs SPR's 15) and a much larger L3
+  # slice + AMX_FP16 hardware, so the per-tile area grew despite
+  # the Intel-3 density advantage.
+  die_size_mm2: 2320.0
+  # 4 tiles * ~20 B tx = ~80 B. Intel hasn't published an exact
+  # figure; ~80 B is the consistent estimate across HC36 +
+  # ServeTheHome coverage.
+  transistors_billion: 80.0
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 4 Granite Rapids-AP compute tiles on Intel 3. Each tile carries
+    # 32 P-cores (Redwood Cove server-derivative) + 2 AMX tiles per
+    # core + L1/L2 + ~126 MB L3 slice + mesh stops + EMIB hub.
+    # Per-tile ~20 B tx estimate. Total 4*20000 = 80000 Mtx.
+    - name: gnr_compute_tiles
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 80000.0
+      notes: 4x Granite Rapids-AP compute tiles on Intel 3 @ ~20 B tx each (estimate from HC36 + ServeTheHome). Each tile = 32 cores + 2 AMX tiles/core + 126 MB L3 slice + EMIB hub.
+    # -------------------------------------------------------------------
+    # Per-tile caches included in gnr_compute_tiles above (0 here
+    # for the silicon_bin sum reconciliation).
+    - name: tile_caches_informational
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 0.0
+      notes: Per-tile caches (48 KB L1D + 32 KB L1I + 2 MB L2 per core + 126 MB L3 slice per tile) -- included in gnr_compute_tiles, not double-counted.
+  clocks:
+    base_clock_mhz: 2000.0
+    boost_clock_mhz: 3900.0   # single-core boost
+  blocks:
+  - kind: cpu
+    total_effective_cores: 128
+    simd_width_lanes: 16        # full AVX-512 (unchanged convention)
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    - int4
+    core_clusters:
+    # -------------------------------------------------------------------
+    # Single homogeneous cluster of 128 Redwood Cove server cores.
+    # Same dual-fabric layout as 8490H / 8592+ (AVX-512 + AMX) but
+    # the AMX fabric here ALSO supports FP16 (AMX_FP16 isa extension)
+    # -- a Granite Rapids addition. The schema has CPUISAExtension.
+    # AMX_FP16 already declared; this is the first SKU to use it.
+    #
+    # Modeling choice: since the schema's discriminated union picks
+    # one isa_extension per CPUComputeFabric, we list AMX_BF16 here
+    # (the headline AI path). The FP16 capability is captured in
+    # the same fabric's ops_per_core_per_clock dict (fp16 entry).
+    # When a finer-grained "multi-mode AMX" representation lands in
+    # a future schema iteration, this fabric will split.
+    - cluster_kind: homogeneous
+      num_cores: 128
+      smt_threads: 2
+      aggregate_weight: 1.0
+      compute_fabrics:
+      # ------------------------------------------------------------------
+      # AVX-512 SIMD fabric (same convention as 8490H/8592+ in 32 FP32
+      # ops/cycle/core form). Intel 3's better transistor characteristics
+      # reduce per-FMA energy ~17% vs Intel 7.
+      - isa_extension: avx512_bf16
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          fp64: 16
+          fp32: 32             # 2 pipes * 16 lanes * 1 FMA
+          fp16: 64
+          bf16: 64
+          int8: 128
+          int4: 256
+        # AVX-512 @ Intel 3 ~1.25 pJ/FMA (vs Intel 7's 1.5; -17% per
+        # process refinement)
+        energy_per_flop_fp32_pj: 1.25
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 0.55
+          bf16: 0.55
+          int8: 0.30
+          int4: 0.18
+      # ------------------------------------------------------------------
+      # AMX fabric -- 2 tiles per core (same as SPR/EMR). Granite
+      # Rapids adds **AMX_FP16** support (the AMX engine now executes
+      # 16x16 FP16 matrix multiplies natively, alongside the existing
+      # BF16 + INT8 modes). The schema's CPUISAExtension.AMX_FP16
+      # enum already exists; this YAML is the first to surface it
+      # through the fp16 entry of ops_per_core_per_clock.
+      - isa_extension: amx_bf16
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          fp16: 2048           # NEW: 2 tiles * 1024 ops/tile (AMX_FP16, GNR addition)
+          bf16: 2048           # 2 tiles * 1024 (AMX_BF16, inherited from SPR/EMR)
+          int8: 4096           # 2 tiles * 2048 (AMX_INT8, inherited)
+          int4: 8192
+        energy_per_flop_fp32_pj: 0.65   # tighter than SPR/EMR's 0.75 (Intel 3 + tile-level refinement)
+        energy_scaling:
+          fp16: 1.0
+          bf16: 1.0
+          int8: 0.30
+          int4: 0.18
+      l1_kib_per_core: 48
+      l2_layout: private_per_core
+      l2_kib_per_core: 2048
+      l2_kib_shared: 0
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 12288.0          # 12 channels * 1 TB per slot, max (3 TB typical)
+      memory_bus_bits: 768             # 12 channels * 64 bits/channel
+      memory_bandwidth_gbps: 614.4     # 12 * 6400 MT/s * 8 B = 614.4 GB/s (standard DIMM)
+      memory_controllers: 12           # Granite Rapids-AP returns to 12-channel (SPR/EMR were 8-channel)
+      l3_present: true
+      l3_total_kib: 516096             # 504 MiB (3.94 MB per core * 128 cores; Intel-published L3 for 6980P)
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: snoopy_mesi
+      read_energy_pj_per_byte: 25.0    # Intel 3 + DDR5-6400 PHY refinement vs SPR/EMR
+      write_energy_pj_per_byte: 29.0
+    noc:
+      topology: mesh_2d
+      # 4-tile MCM with refined EMIB. Higher bisection than 8490H's
+      # 4-tile SPR thanks to denser EMIB + 128 cores worth of mesh.
+      bisection_bandwidth_gbps: 4800.0
+      unit_count: 128                  # one mesh stop per core
+      mesh_rows: 8
+      mesh_cols: 16
+      flit_size_bytes: 32
+      hop_latency_ns: 2.8              # between 8490H's 3.0 and 8592+'s 2.5
+      pj_per_flit_per_hop: 6.5         # Intel 3 + refined EMIB
+      routing_distance_factor: 1.7
+    simd_efficiency_by_op_kind:
+      elementwise: 0.86
+      matrix: 0.88                     # higher than 8592+ thanks to L3 +57% absolute
+      default: 0.66
+    min_occupancy: 0.5
+    max_concurrent_threads: 256        # 128 cores * 2 SMT (first 256-thread Xeon in catalog)
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 500W TDP profile, all-core
+# sustained boost of 3.2 GHz (per graphs factory estimate, conservative):
+#   FP32 (AVX-512): 128 cores * 32 ops/clk * 3.2e9 = 13.11 TFLOPS
+#   FP16 (AMX): 128 cores * 2048 ops/clk * 3.2e9 = 838.9 TFLOPS  (NEW for GNR)
+#   BF16 (AMX): 128 cores * 2048 ops/clk * 3.2e9 = 838.9 TFLOPS
+#   INT8 (AMX): 128 cores * 4096 ops/clk * 3.2e9 = 1677.7 TOPS
+# 2x EMR's chip-level peak across all precisions -- the +2x core
+# count carries forward at the same clock. AMX_FP16 adds a brand-new
+# path that EMR / SPR didn't offer (those AMX engines could not
+# accept FP16 inputs natively).
+performance:
+  fp32_tflops: 13.11
+  bf16_tflops: 838.9
+  int8_tops: 1677.7
+  int4_tops: 3355.4
+
+power:
+  tdp_watts: 500.0             # 6980P top bin
+  max_power_watts: 550.0       # cTDP up
+  min_power_watts: 350.0       # cTDP down (lower-TDP Granite SKUs run at this floor)
+  idle_power_watts: 120.0      # estimate, +35% over 8592+ for the larger SoC
+  default_thermal_profile: 500W-default
+  thermal_profiles:
+  - name: 500W-default
+    tdp_watts: 500.0
+    clock_mhz: 3200.0
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      fp32: 0.50                # +5pp over 8592+ thanks to Intel 3 +18% PPW
+      fp16: 0.62                # NEW: AMX_FP16 path is very memory-friendly
+      bf16: 0.62
+      int8: 0.66
+    vdd_v: 0.95                 # lower than Intel 7 SKUs (Intel 3 nominal 0.70V; under load ~0.95V)
+
+market:
+  launch_date: '2024-09-25'
+  launch_msrp_usd: 17800.0     # Xeon 6 6980P launch pricing
+  target_market: datacenter
+  product_family: Xeon 6
+  model_tier: datacenter
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Intel Xeon 6 6980P (Granite Rapids-AP) -- fourth Intel SKU in the
+  catalog and FIRST Intel 3 SKU. Granite Rapids 128-core flagship
+  (P-core variant), launched September 2024 alongside the Xeon 6
+  brand rename. 4-tile MCM on Intel 3 + LGA-4710 socket (NEW socket
+  -- not compatible with SPR/EMR LGA-4677).
+
+  Process: Intel's first major node change since Intel 7. Intel 3
+  brings +18%% PPW over Intel 4 at the same Vdd, FinFET. Last Intel
+  FinFET node before the Intel 18A RibbonFET/GAA transition.
+
+  Architecture: Redwood Cove server-derivative P-cores. AVX-512 +
+  AMX (now with FP16 alongside BF16/INT8 -- the AMX_FP16 mode is
+  Granite Rapids' AMX addition). 2 AMX tiles per core; same 16x16
+  matrix throughput as SPR/EMR but with the additional FP16 input
+  type. Schema's CPUISAExtension.AMX_FP16 was declared in v3; this
+  YAML is the first SKU to use it.
+
+  Memory: 12-channel DDR5-6400 (614.4 GB/s peak). Granite Rapids-AP
+  returns to 12-channel after SPR/EMR's 8-channel layouts -- Intel
+  matched AMD EPYC's channel count. Optional MRDIMM-8800 support
+  pushes effective bandwidth to ~896 GB/s on supporting platforms
+  (not captured in this YAML; platform-side enhancement).
+
+  L3: 504 MB total (3.94 MB per core). Per-core L3 is slightly less
+  than EMR's 5 MB but +57%% absolute thanks to 2x core count.
+
+  Power: 500W default TDP (highest in the catalog so far). cTDP
+  350-550W range covers lower-bin Granite SKUs.
+
+  PROCESS NODE ADDITION: This PR adds the new intel_3 process node
+  YAML at data/process-nodes/intel/intel_3.yaml -- second Intel
+  process node in the catalog after intel_7 (added with the
+  i7-12700k in #24). Future Intel SKUs on Intel 3 (Sierra Forest
+  E-core variant) will reference this same node.
+
+  CHIPLET MODELING: same single-virtual-die approximation as SPR/EMR
+  (no IOBlock kind yet). packaging.num_dies=4 and kind=chiplet
+  remain accurate.
+
+  Closes sprint #68 -- 3 Intel Xeon SKUs across 3 generations
+  (Sapphire Rapids / Emerald Rapids / Granite Rapids) added to the
+  catalog. Downstream graphs#130 PhysicalSpec wiring is the final
+  step.
+last_updated: '2026-05-21'

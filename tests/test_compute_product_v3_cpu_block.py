@@ -537,8 +537,9 @@ def test_v3_does_not_break_existing_catalog():
     # PR 3 -> EPYC 9965 Turin Dense (4), PR 4 -> AmpereOne A192 (5),
     # PR 5 -> AmpereOne A128-30 (6). Sprint #68 adds: PR 1 ->
     # Xeon 8490H Sapphire Rapids (7) -- first AMX SKU, PR 2 ->
-    # Xeon 8592+ Emerald Rapids (8).
-    assert cpu_count == 8
+    # Xeon 8592+ Emerald Rapids (8), PR 3 -> Xeon 6 6980P Granite
+    # Rapids (9) -- first Intel 3 SKU + first AMX_FP16 SKU.
+    assert cpu_count == 9
     # The catalog also has 1 NPU (hailo_hailo_8) added in v4 data PR.
     # We only count KPU/GPU/CPU here; the leftover are other block kinds.
     assert kpu_count + gpu_count + cpu_count <= len(products)
