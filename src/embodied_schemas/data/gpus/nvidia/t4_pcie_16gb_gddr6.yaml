@@ -1,0 +1,149 @@
+# NVIDIA Tesla T4 PCIe 16GB -- Turing inference-optimized datacenter
+# GPU.
+#
+# Sprint #72 PR 2 -- second SKU in the long-tail Bucket A backfill
+# for branes-ai/graphs#241.
+#
+# Distinguishing features in the catalog:
+#   - First Turing (TU104) entry alongside the existing Hopper
+#     (H100), Ampere (A100), Volta (V100), Blackwell (B100) NVIDIA
+#     datacenter GPUs.
+#   - **Lowest TDP in the NVIDIA datacenter catalog**: 70W. Slot-
+#     powered (no auxiliary PCIe power connector); fits the PCIe
+#     slot's 75W max. Passively cooled, single-slot, low-profile.
+#   - **2nd-gen Tensor Cores** with INT8 / INT4 throughput
+#     improvements over Volta (Turing was the first NVIDIA arch to
+#     ship native INT4 in Tensor Cores).
+#   - PCIe Gen3 (older than the H100/A100/B100 entries which are
+#     Gen4/Gen5). Reflects the 2018 Turing launch context.
+#
+# Source: NVIDIA T4 datasheet (PB-09017-001_v06, Aug 2019).
+# Cross-checked against Wikichip TU104 page, TechPowerUp T4 spec.
+
+id: nvidia_t4_pcie_16gb_gddr6
+name: NVIDIA Tesla T4
+vendor: nvidia
+
+die:
+  gpu_name: TU104
+  architecture: Turing
+  architecture_codename: Turing
+  foundry: tsmc
+  process_nm: 12
+  process_name: 12FFN          # NVIDIA-customized 12nm FinFET (same node as V100)
+  transistors_billion: 13.6
+  die_size_mm2: 545.0
+  is_chiplet: false
+  num_dies: 1
+
+compute:
+  # TU104 is a 48-SM die; T4 enables 40 SMs (standard inference bin).
+  # The remaining 8 SMs are on-die but disabled.
+  shaders: 2560                # 40 SMs * 64 CUDA cores/SM
+  cuda_cores: 2560
+  streaming_multiprocessors: 40
+  tmus: 160                    # 40 SMs * 4 TMUs/SM
+  rops: 64                     # tied to memory controllers
+  tensor_cores: 320            # 40 SMs * 8 2nd-gen TCs/SM
+  tensor_core_gen: 2
+  warp_size: 32
+  max_warps_per_sm: 32         # Turing dropped to 32 warps/SM (was 64 on Volta)
+  registers_per_sm_kb: 256
+
+clocks:
+  base_clock_mhz: 585
+  boost_clock_mhz: 1590        # boost ceiling under thermal headroom
+  memory_clock_mhz: 1250       # GDDR6 internal clock; effective 10 Gbps per pin
+  memory_effective_gbps: 10.0
+
+memory:
+  memory_size_gb: 16.0
+  memory_type: gddr6
+  memory_bus_bits: 256         # 8 channels of 32-bit GDDR6
+  memory_bandwidth_gbps: 320.0 # 256-bit * 10 Gbps / 8 = 320 GB/s
+  l2_cache_mb: 4.0             # 4 MB L2 (much smaller than V100's 6 MB or H100's 50 MB)
+  ecc_support: true
+
+# Chip-level performance at 1.59 GHz boost, 40 SMs.
+# CUDA peak FP32: 2560 cores * 2 ops/clk * 1.59 GHz = 8.14 TFLOPS
+# Tensor peak FP16: 320 TCs * 256 ops/TC/clk * 1.59 GHz = 130.3 TFLOPS
+#   (NVIDIA datasheet quotes 65 TFLOPS dense / 130 TFLOPS sparse;
+#    our calc matches the sparse path -- the dense rate is 65 TF.)
+# Tensor INT8: 320 TCs * 512 ops/TC/clk * 1.59 GHz = 260.6 TOPS
+# Tensor INT4: 320 TCs * 1024 ops/TC/clk * 1.59 GHz = 521.3 TOPS
+performance:
+  fp32_tflops: 8.14
+  fp16_tflops: 16.28           # CUDA-core FP16, half-rate of tensor FP16
+  fp64_tflops: 0.25            # FP64 emulated, very low throughput (Turing didn't have full FP64)
+  bf16_tflops: 0.0             # Turing does NOT support BF16 (first NVIDIA BF16 was Ampere)
+  int8_tops: 260.0
+  tensor_tflops_fp16: 65.0
+  tensor_tflops_int8: 130.0
+  pixel_rate_gpixels: 101.8
+  texture_rate_gtexels: 254.4
+
+power:
+  tdp_watts: 70                # the headline T4 spec -- inference-optimized
+  max_power_watts: 70
+  idle_power_watts: 20.0
+  power_connectors:
+    - "none"                   # T4 is slot-powered (75W >= 70W TDP)
+  slot_power_watts: 70
+  recommended_psu_watts: 0     # no auxiliary PSU power draw
+
+board:
+  form_factor: PCIe single-slot low-profile passive
+  slot_width: 1.0              # single-slot
+  length_mm: 167               # half-length, low-profile card
+  pcie_interface: pcie_3.0     # PCIe Gen3 x16
+
+features:
+  directx: "12.1"
+  opengl: "4.6"
+  vulkan: "1.2"
+  opencl: "3.0"
+  shader_model: "6.4"
+  cuda_compute: "7.5"
+  nvenc: false
+  nvdec: false
+  dlss: false
+  max_displays: 0
+  hdr_support: false
+  variable_refresh: false
+
+market:
+  launch_date: "2018-09-13"
+  launch_msrp_usd: 2200.0       # launch MSRP estimate; channel pricing varied 2000-2500
+  target_market: datacenter
+  product_family: NVIDIA Tesla T4
+  model_tier: inference
+  is_available: true
+  is_discontinued: false
+
+reference_design: true
+notes: |
+  NVIDIA T4 is the canonical low-power datacenter inference card.
+  Slot-powered (no auxiliary connector), single-slot, low-profile,
+  passively cooled -- designed to drop into dense inference servers
+  with chassis-level airflow handling the 70W envelope.
+
+  TU104 silicon shared with consumer RTX 2070 / 2080 (different bins).
+  The T4 bin enables 40 of 48 physical SMs, with the lower clock
+  (1.59 GHz boost vs RTX 2080's 1.7+ GHz) tuned for the 70W envelope.
+
+  2nd-gen Tensor Cores: introduced native INT4 support and improved
+  INT8 throughput (2x FP16 rate) over Volta. No BF16 -- that arrived
+  in Ampere (A100). Widely deployed in AWS G4dn, GCP T4, Azure NV4
+  inference instances.
+
+  Memory: 16 GB GDDR6, 320 GB/s bandwidth via 256-bit bus. 4 MB L2
+  (much smaller than V100's 6 MB or H100's 50 MB -- inference
+  workloads run with smaller working sets).
+
+  Note: NVIDIA also briefly shipped an L4 (Ada Lovelace) as a T4
+  successor in 2023; the L4 is a separate SKU (24 GB GDDR6, 72W TDP)
+  not in this catalog yet.
+
+datasheet_url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-product-brief.pdf
+techpowerup_url: https://www.techpowerup.com/gpu-specs/tesla-t4.c3316
+last_updated: "2026-05-21"
