@@ -1,0 +1,291 @@
+# Intel Xeon Platinum 8490H -- 60-core Sapphire Rapids datacenter
+# flagship SKU.
+#
+# First Xeon SKU in the data/compute_products/ catalog. Second Intel
+# entry overall (joins the i7-12700k from sprint #24). First
+# datacenter SKU using **Intel AMX** (Advanced Matrix Extensions) --
+# the AMX_TILE / AMX_BF16 / AMX_INT8 ISA extension values were
+# declared in the v3 schema but had no SKU until this YAML.
+#
+# Sprint #68 PR 1 (first of 3 Intel Xeon SKUs in the batch -- see
+# embodied-schemas#68 and branes-ai/graphs#130).
+#
+# What's different from the i7-12700k (#24):
+#   - **XCC (eXtreme Core Count) chiplet packaging**: 4 tiles joined
+#     by Intel EMIB (embedded multi-die interconnect bridge). The
+#     8490H is the top-bin SPR variant; smaller SKUs use the HCC
+#     (single die) variant of the same architecture.
+#   - **AMX** (Advanced Matrix Extensions): 2 tiles per core, each
+#     16x16x32 BF16 or 16x16x64 INT8 = 1024 BF16 ops/tile or 2048
+#     INT8 ops/tile per cycle. Game-changing for AI inference; this
+#     is the first AMX SKU in the catalog.
+#   - Homogeneous core layout (60x Golden Cove server P-cores). No
+#     hybrid P+E like the i7's desktop Alder Lake.
+#   - DDR5-4800 8-channel @ 307.2 GB/s peak.
+#   - 8-channel LGA-4677 socket (vs i7's LGA-1700 desktop socket).
+#   - 350W TDP (vs i7's 125W).
+#   - 1.875 MB L3 / core, distributed across the mesh (HCC) or
+#     across 4 mesh tiles (XCC), totalling 112.5 MB. Substantially
+#     larger per-core L3 than i7's 2.08 MB / core (25 MB / 12 cores).
+#
+# Data sourced from:
+#   - Intel Xeon Platinum 8490H ARK page
+#   - Intel Sapphire Rapids architecture brief + Hot Chips 34 talk
+#   - Wikichip Sapphire Rapids page (XCC tile die-shot analysis)
+#   - graphs/src/graphs/hardware/models/datacenter/intel_xeon_platinum_8490h.py
+#     (well-validated graphs mapper -- the migration source; provides
+#     ops/clock, energy, AMX tile config ground truth)
+#
+# Confidence: theoretical.
+#   - Operational specs (cores, threads, cache, TDP, memory, clocks,
+#     MSRP, launch date) are Intel-published datasheet values.
+#   - Per-tile die area (~400 mm^2) and transistor count (~14.4 B)
+#     are Intel-disclosed (Hot Chips 34 + Anandtech die-shot
+#     analysis). XCC = 4 tiles, total ~1600 mm^2 / ~57.6 B tx.
+#   - Energy coefficients from the graphs hand-coded factory:
+#     AVX-512 @ 1.5 pJ/FMA (Intel 7), AMX matrix path further
+#     reduced ~2x due to weight-stationary reuse.
+#
+# Chiplet modeling note (KNOWN SCHEMA LIMITATION -- shared with the
+# AMD chiplet entries from sprint #62):
+#   The schema's AnyBlock union lacks an IOBlock / MemoryBlock kind,
+#   so the 4-tile XCC product is modeled as a single virtual die
+#   with silicon_bin decomposing across tiles. packaging.num_dies=4
+#   and packaging.kind=chiplet remain accurate; the dies[] list is
+#   the approximation. Re-author once IOBlock lands.
+#
+# Out of scope:
+#   - MCM tile-to-tile EMIB interconnect modeling (per-link latency,
+#     bandwidth, energy). The CPUBlock noc field carries a unified
+#     mesh-2d topology approximation.
+#   - SGX / TME confidential-computing modes (security tier).
+#   - Per-tile DVFS (each XCC tile has its own clock domain in
+#     hardware; the schema's chip-level Power.thermal_profiles
+#     captures only the rolled-up value).
+
+id: intel_xeon_platinum_8490h
+name: Intel Xeon Platinum 8490H
+vendor: intel
+kind: chip
+packaging:
+  kind: chiplet
+  num_dies: 4              # 4-tile XCC variant of Sapphire Rapids
+  package_type: lga4677
+
+lifecycle: production
+
+dies:
+- die_id: spr_xcc_virtual_die
+  die_role: compute
+  process_node_id: intel_7
+  # Total package silicon: 4 tiles * ~400 mm^2 = ~1600 mm^2
+  die_size_mm2: 1600.0
+  # 4 tiles * ~14.4 B tx = ~57.6 B
+  transistors_billion: 57.6
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 4 SPR-XCC compute tiles on Intel 7. Each tile carries 15 cores
+    # (60 / 4 = 15), per-core L1 + L2, distributed L3 slice, and the
+    # local mesh stop. Per-tile ~14.4 B tx (Intel Hot Chips 34
+    # disclosure for the HCC die, scaled). Total 4*14400 = 57600 Mtx.
+    - name: spr_compute_tiles
+      circuit_class: hp_logic
+      transistor_source:
+        kind: fixed
+        mtx: 57600.0
+      notes: 4x Sapphire Rapids XCC compute tiles on Intel 7 @ ~14.4 B tx each (Intel HCC die-disclosure, scaled to XCC). Each tile = 15 cores + L1/L2/L3 slice + mesh stops.
+    # -------------------------------------------------------------------
+    # Per-tile caches included in spr_compute_tiles above. Listed
+    # at zero for the silicon_bin sum reconciliation.
+    - name: tile_caches_informational
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 0.0
+      notes: Per-tile caches (48 KB L1D + 32 KB L1I + 2 MB L2 per core + 28.125 MB L3 slice per tile) -- included in spr_compute_tiles, not double-counted.
+  clocks:
+    base_clock_mhz: 1900.0
+    boost_clock_mhz: 3500.0   # single-core boost
+  blocks:
+  - kind: cpu
+    total_effective_cores: 60
+    simd_width_lanes: 16        # full AVX-512 (512-bit, not double-pumped like Zen 4)
+    multi_precision_alu:
+    - fp64
+    - fp32
+    - fp16
+    - bf16
+    - int8
+    - int4
+    core_clusters:
+    # -------------------------------------------------------------------
+    # Single homogeneous cluster of 60 Sapphire Rapids server cores
+    # (Golden Cove-class P-cores tuned for server -- larger L2,
+    # adds AMX, full AVX-512 datapath). No hybrid layout. AMX is
+    # modeled as a separate fabric below (per the CPUComputeFabric
+    # convention -- AMX tiles are a distinct compute resource from
+    # AVX-512 SIMD).
+    - cluster_kind: homogeneous
+      num_cores: 60
+      smt_threads: 2
+      aggregate_weight: 1.0
+      compute_fabrics:
+      # ------------------------------------------------------------------
+      # AVX-512 SIMD fabric. Sapphire Rapids restores AVX-512 to the
+      # server line (was fused-off on Alder Lake / Raptor Lake retail).
+      # Full-width 512-bit datapath, 2 FMA pipes per core (unlike Zen
+      # 4's 256-bit double-pumped) -- 32 FP32 ops/cycle native.
+      - isa_extension: avx512_bf16
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          fp64: 16             # 2 FMA pipes * 8 FP64 lanes * 1 FMA = 16
+          fp32: 32             # 2 pipes * 16 FP32 lanes * 1 FMA = 32
+          fp16: 64             # AVX-512_FP16 native (Sapphire Rapids first)
+          bf16: 64             # AVX-512_BF16 VDPBF16PS
+          int8: 128            # AVX-512_VNNI
+          int4: 256            # packed-INT4 via VPDPBUSD
+        # AVX-512 @ Intel 7 ~1.5 pJ/FMA -- slightly higher than TSMC
+        # N5 AVX-512 (1.35 pJ) due to Intel 7's larger SRAM bitcell.
+        energy_per_flop_fp32_pj: 1.5
+        energy_scaling:
+          fp64: 2.0
+          fp32: 1.0
+          fp16: 0.55
+          bf16: 0.55
+          int8: 0.30
+          int4: 0.18
+      # ------------------------------------------------------------------
+      # AMX (Advanced Matrix Extensions). 2 tiles per core, each
+      # 16x16x32 BF16 (= 1024 BF16 MACs/cycle/tile) or 16x16x64 INT8
+      # (= 2048 INT8 MACs/cycle/tile). Massive AI uplift over AVX-512
+      # for matmul-shaped workloads. First AMX SKU in the catalog.
+      # Modeled as a separate AMX_BF16 fabric (alongside the AVX-512
+      # fabric on the same core; multi-fabric cluster, per the
+      # CPUComputeFabric design doc).
+      - isa_extension: amx_bf16
+        circuit_class: hp_logic
+        ops_per_core_per_clock:
+          # 2 AMX tiles per core. Per tile: 16x16x32 BF16 = 1024 ops
+          # (or 16x16x64 INT8 = 2048 ops). 2 tiles per core ->
+          # 2048 BF16 ops or 4096 INT8 ops per cycle per core.
+          # FP32 / FP64 not supported on AMX tile -- AMX_BF16 + AMX_INT8 only.
+          bf16: 2048           # 2 tiles * 1024 ops/tile/cycle
+          int8: 4096           # 2 tiles * 2048 ops/tile/cycle
+          int4: 8192           # packed-INT4 (treat as 2x INT8)
+        # AMX matrix path is ~2x more energy-efficient per op than
+        # AVX-512 due to weight-stationary reuse within the tile.
+        # Per-FMA energy (FP32 baseline) is reported as zero-or-near
+        # since AMX doesn't issue FP32 -- using bf16 as the working
+        # baseline at 0.5x AVX-512's bf16 cost.
+        energy_per_flop_fp32_pj: 0.75   # synthetic baseline; AMX is bf16/int8 only
+        energy_scaling:
+          bf16: 1.0
+          int8: 0.30
+          int4: 0.18
+      l1_kib_per_core: 48              # Sapphire Rapids enlarged L1D vs Alder Lake (same as Zen 5)
+      l2_layout: private_per_core
+      l2_kib_per_core: 2048            # 2 MB private L2 per core (larger than i7's 1.25 MB)
+      l2_kib_shared: 0
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 4096.0          # 8 channels * 512 GB per slot, max
+      memory_bus_bits: 512            # 8 channels * 64 bits/channel
+      memory_bandwidth_gbps: 307.2    # 8 * 4800 MT/s * 8 B = 307.2 GB/s
+      memory_controllers: 8
+      l3_present: true
+      l3_total_kib: 115200            # 112.5 MiB (1.875 MB per core * 60 cores)
+      l4_present: false
+      l4_total_kib: 0
+      l4_kind: ''
+      coherence_protocol: snoopy_mesi   # Intel server mesh uses snoop-broadcast MESI
+      read_energy_pj_per_byte: 30.0
+      write_energy_pj_per_byte: 35.0
+    noc:
+      topology: mesh_2d                  # Sapphire Rapids 2D mesh per tile + EMIB cross-tile
+      # Bisection bandwidth across the 4-tile XCC mesh. Approximate.
+      bisection_bandwidth_gbps: 2400.0
+      unit_count: 60                     # one mesh stop per core; 60 cores -> 60 stops
+      mesh_rows: 6                       # rough 6x10 layout for the XCC arrangement
+      mesh_cols: 10
+      flit_size_bytes: 32
+      hop_latency_ns: 3.0                # higher than monolithic due to EMIB hops
+      pj_per_flit_per_hop: 8.0
+      routing_distance_factor: 1.8       # cross-tile traffic typical
+    simd_efficiency_by_op_kind:
+      elementwise: 0.85
+      matrix: 0.85                       # high efficiency on AMX-friendly shapes
+      default: 0.65
+    min_occupancy: 0.5
+    max_concurrent_threads: 120          # 60 cores * 2 SMT
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 350W TDP profile, all-core
+# sustained boost of 2.9 GHz (lower than the 3.5 GHz single-core
+# boost due to all-core constraints):
+#   FP32 (AVX-512): 60 cores * 32 ops/clk * 2.9e9 = 5.57 TFLOPS
+#   BF16 (AMX): 60 cores * 2048 ops/clk * 2.9e9 = 356.4 TFLOPS
+#   INT8 (AMX): 60 cores * 4096 ops/clk * 2.9e9 = 712.9 TOPS
+# The AMX path is the headline AI capability -- ~22x AVX-512 BF16
+# throughput at the same clock.
+performance:
+  fp32_tflops: 5.57
+  bf16_tflops: 356.4
+  int8_tops: 712.9
+  int4_tops: 1425.8
+
+power:
+  tdp_watts: 350.0
+  max_power_watts: 420.0       # PL2 / max_turbo_power
+  min_power_watts: 280.0       # PL1 lower bound (Intel doesn't publish a true PL_min)
+  idle_power_watts: 80.0       # estimate, datacenter Xeon class
+  default_thermal_profile: 350W-default
+  thermal_profiles:
+  - name: 350W-default
+    tdp_watts: 350.0
+    clock_mhz: 2900.0          # all-core sustained boost
+    cooling_solution_id: datacenter_air
+    efficiency_factor_by_precision:
+      fp32: 0.45
+      fp16: 0.30
+      bf16: 0.55               # higher on AMX-friendly shapes
+      int8: 0.60
+    vdd_v: 1.10
+
+market:
+  launch_date: '2023-01-10'
+  launch_msrp_usd: 17000.0
+  target_market: datacenter
+  product_family: Xeon Platinum
+  model_tier: datacenter
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Intel Xeon Platinum 8490H -- second Intel SKU in the catalog and
+  first datacenter Xeon. 60-core Sapphire Rapids on Intel 7, XCC
+  (4-tile) chiplet variant joined by Intel EMIB. LGA-4677 socket.
+  First SKU in the catalog with **Intel AMX** (Advanced Matrix
+  Extensions): 2 tiles per core, each 16x16 BF16 or INT8 matrix
+  multiply per cycle. The AMX path delivers ~22x AVX-512 BF16
+  throughput on matmul-shaped AI workloads.
+
+  Architecture: Golden Cove server P-cores tuned for datacenter
+  (full AVX-512 datapath + 2 AMX tiles + 2 MB private L2 + larger
+  L3 slice). SMT=2. Sapphire Rapids restores AVX-512 to the server
+  line (was fused-off on retail Alder Lake / Raptor Lake).
+
+  Memory: 8-channel DDR5-4800, 307.2 GB/s peak. 112.5 MB L3 LLC
+  distributed across the mesh (1.875 MB per core). 80 PCIe Gen5 +
+  CXL 1.1.
+
+  Power: 350W TDP (PL1 long-term), 420W PL2 short-term boost. cTDP
+  range narrower than the AMD EPYC SKUs.
+
+  CHIPLET MODELING (see header): 4-tile XCC product modeled as a
+  single virtual die with silicon_bin decomposing across tiles.
+  packaging.num_dies=4 and packaging.kind=chiplet remain accurate.
+  Re-author once an IOBlock kind lands (same caveat as the AMD
+  EPYC entries from sprint #62).
+last_updated: '2026-05-21'
