@@ -1,0 +1,269 @@
+# Google TPU v5p -- performance-class training TPU (5th-gen).
+#
+# Sprint #72 PR 5 -- fifth SKU in the long-tail Bucket A backfill
+# for branes-ai/graphs#241. Joins TPU v1 (#75), v3 (#76), and v4
+# in the google/ vendor directory.
+#
+# TPU v5p is Google's latest performance-class training TPU,
+# announced December 2023 (Google Cloud GA early 2024). The "p"
+# suffix distinguishes it from TPU v5e (efficiency-optimized
+# variant); v5p is the flagship for large-model training.
+#
+# Distinguishing features in the catalog:
+#   - **First FP8 SKU in the TPU catalog** -- v5p added native
+#     FP8 (E4M3) matrix multiply support, doubling the INT8 rate.
+#     Headline AI capability for transformer inference.
+#   - **First HBM3 SKU in the TPU catalog** (v3: HBM2, v4: HBM2e).
+#     95 GiB capacity (vs v4's 32 GiB) -- nearly 3x the on-chip
+#     working set for large-model training.
+#   - **Highest pod scale of any TPU**: 8960-chip pods (vs v4's
+#     4096) via faster 3D-torus ICI fabric.
+#   - **TSMC N4P process** -- first TPU on N4P (v3: N16, v4: N7).
+#
+# Confidence: theoretical, with significant unknowns.
+#   - Performance figures (459 TF BF16 / 918 TOPS INT8 / 1836 TOPS
+#     FP8) are Google-published headline values.
+#   - HBM3 capacity (95 GiB), bandwidth (2.8 TB/s), and pod scale
+#     (8960 chips) are published.
+#   - **Die size, transistor count, exact MXU count, and clock
+#     frequency are NOT publicly disclosed**. Estimates below are
+#     extrapolated from v4's published values + the v5p generation
+#     uplift ratios + TSMC N4P density math. The 2-MXU per-die
+#     modeling convention matches the v3/v4 catalog entries
+#     (per-TensorCore datapath; chip has 2 TCs sharing the die).
+#   - TDP estimate (400W) follows the graphs hand-coded factory's
+#     value; the real number could be higher (some industry
+#     estimates put v5p at 700W given the HBM3 + larger SoC).
+#
+# Out of scope:
+#   - TPU v5e (efficiency variant; separate SKU with different
+#     core count + lower TDP)
+#   - TPU v5p pod (8960-chip 3D torus) -- v8+ system-level concern
+#   - SparseCore details (v5p tripled SparseCore vs v4 per Google,
+#     but the exact silicon-bin allocation isn't public)
+
+id: google_tpu_v5p
+name: Google TPU v5p
+vendor: google
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: datacenter_oam
+
+lifecycle: production         # Google Cloud GA early 2024
+
+dies:
+- die_id: tpu_v5p_die
+  die_role: compute
+  process_node_id: tsmc_n4p   # N4P consensus estimate (Google hasn't disclosed)
+  die_size_mm2: 720.0         # estimate: ~1.2x v4's 600 mm^2 (more HBM PHY + bigger SparseCore)
+  transistors_billion: 70.0   # estimate: 1.4x v4's 50 B (denser N4P + bigger SoC)
+  silicon_bin:
+    blocks:
+    - name: mxu_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 20000.0
+      notes: 2 MXUs * 128x128 MACs (modeled per-TensorCore datapath); v5p enhanced for FP8/INT4 native ops -- larger silicon than v4's MXU array
+    - name: accumulator_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 1500.0
+      notes: 2 MXUs * 3 MiB accumulator = 6 MiB total (larger than v4's 4 MiB to support bigger tiles)
+    - name: unified_buffer_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 12000.0
+      notes: 48 MiB Unified Buffer (1.5x v4's 32 MiB)
+    - name: weight_fifo_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 150.0
+      notes: Per-MXU weight prefetch FIFO + control
+    - name: hbm_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 7500.0
+      notes: HBM3 controller + PHY (5+ stacks for 95 GiB / 2.8 TB/s -- larger than v4's HBM2e PHY)
+    - name: ici_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 5500.0
+      notes: 6 ICI ports (3D torus, same as v4) with higher per-port bandwidth for 8960-chip pods
+    - name: pcie_host_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: PCIe Gen5 host interface (v5p step up from v4's Gen4)
+    - name: sparsecore_enhanced
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 18000.0
+      notes: Enhanced SparseCore (3x v4's per Google) -- bigger silicon for embedding lookups
+    - name: control_and_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 4350.0
+      notes: XLA dispatch + scalar units + activation/pooling + clocks + security IP
+  clocks:
+    base_clock_mhz: 1100.0       # estimate (graphs factory value; Google hasn't disclosed)
+    boost_clock_mhz: 1100.0      # no boost; fixed-frequency design
+  blocks:
+  - kind: tpu
+    # 2 MXUs at 128x128 (per-die model; chip-level 459 TFLOPS BF16
+    # reflects Google's published per-chip number including both
+    # TensorCores' MXUs -- same modeling gap as v3 and v4).
+    num_mxus: 2
+    mxu_dim_rows: 128
+    mxu_dim_cols: 128
+    weight_tile_size_kib: 48        # larger tiles than v4's 32 to support FP8 / INT4 path
+    weight_fifo_depth: 2
+    pipeline_fill_cycles: 128
+    accumulator_size_kib_per_mxu: 3072   # 3 MiB per MXU (larger than v4's 2 MiB)
+    tile_energy_coefficients:
+      # N4P energies (~25% better than v4's N7 numbers per process generation uplift)
+      mac_energy_pj: 0.18                                # ~28% better than v4's 0.25
+      weight_memory_energy_pj_per_byte: 7.5              # HBM3 (better than v4's HBM2e 10.0)
+      weight_fifo_energy_pj_per_byte: 0.4
+      unified_buffer_read_energy_pj_per_byte: 0.4
+      unified_buffer_write_energy_pj_per_byte: 0.5
+      accumulator_read_energy_pj_per_element: 0.25
+      accumulator_write_energy_pj_per_element: 0.3
+      weight_shift_in_energy_pj_per_element: 0.25
+      activation_stream_energy_pj_per_element: 0.18
+    # ICI: 6 ports (same as v4 for 3D torus) but higher per-port
+    # bandwidth enables 8960-chip pod scale (vs v4's 4096).
+    ici_port_count: 6
+    ici_bandwidth_per_port_gbps: 800.0   # 2x v4's 400 GB/s per port; aggregate ~4.8 TB/s
+    ici_topology_hint: '3d_torus_2x2x2'
+    multi_precision_alu:
+    - bf16
+    - int8
+    - fp8                         # FIRST FP8 SKU in the TPU catalog
+    - fp32
+    - int4
+    compute_fabrics:
+    - fabric_kind: tpu_v2_plus    # architecture lineage (v2/v3/v4/v5p share this kind)
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        bf16: 2   # MAC = 2 ops
+        int8: 2
+        fp8: 2    # NEW: FP8 native MAC support (E4M3)
+        int4: 2   # NEW: INT4 support (Google added quantized inference)
+      energy_per_op_bf16_pj: 0.18   # tightened ~25% from v4 thanks to N4P
+      energy_scaling:
+        int8: 0.25
+        fp8: 0.125                  # FP8 ~4x cheaper than BF16 (denser packing)
+        int4: 0.0625                # INT4 ~2x cheaper than FP8
+        fp32: 2.0
+    memory:
+      on_chip_bandwidth_gbps: 3000.0   # UB-to-MXU streaming BW (estimate; v4 is 2000)
+      unified_buffer_size_kib: 49152   # 48 MiB UB (1.5x v4's 32 MiB)
+      unified_buffer_access_energy_pj_per_byte: 0.4
+      has_external_dram: true
+      external_dram_type: hbm3         # FIRST HBM3 TPU in catalog (v3: HBM2, v4: HBM2e)
+      external_dram_size_gb: 95.0      # Google-published (vs v4's 32 GiB)
+      external_dram_bandwidth_gbps: 2800.0   # Google-published (vs v4's 1.2 TB/s)
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 7.5
+      coherence_protocol: none
+    noc:
+      topology: multi_crossbar
+      bisection_bandwidth_gbps: 3000.0
+      unit_count: 2
+      flit_size_bytes: 32
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 1.8
+      routing_distance_factor: 1.0
+      confidence: theoretical
+    min_occupancy: 0.5
+    max_concurrent_models: 1
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 400W operating point. These
+# are Google's MARKETED per-chip values; the modeled per-die fabric
+# above produces a smaller number (same modeling gap as v3/v4,
+# documented in the catalog). The chip actually contains 2 TCs
+# sharing the die, with multiple MXUs per TC at the per-chip level.
+#   BF16 per chip: 459 TFLOPS (Google-published)
+#   INT8 per chip: 918 TOPS (= 2x BF16, Google-published)
+#   FP8 per chip: 1836 TOPS (= 4x BF16, Google-published; v5p headline)
+#   FP32 per chip: 1/2 BF16 emulated = 229.5 TFLOPS
+#   INT4 per chip: 1836 TOPS (= 2x FP8 rate via Google's QAT path)
+performance:
+  int8_tops: 918.0
+  bf16_tflops: 459.0
+  fp32_tflops: 229.5
+  int4_tops: 1836.0    # NEW for v5p (not supported on v3/v4)
+
+power:
+  tdp_watts: 400.0
+  max_power_watts: 400.0
+  min_power_watts: 80.0
+  idle_power_watts: 80.0
+  default_thermal_profile: default
+  thermal_profiles:
+  - name: default
+    tdp_watts: 400.0
+    clock_mhz: 1100.0
+    cooling_solution_id: liquid_cooled
+    efficiency_factor_by_precision:
+      bf16: 0.88              # higher than v3/v4 (denser N4P + larger UB + faster HBM)
+      int8: 0.88
+      fp8: 0.90               # FP8 path achieves very high sustained efficiency
+      fp32: 0.78
+      int4: 0.85
+    vdd_v: 0.75               # TSMC N4P nominal
+
+market:
+  launch_date: '2023-12-06'   # Google announced at Cloud Next 2023
+  target_market: datacenter
+  product_family: TPU
+  model_tier: datacenter
+  is_available: true          # Google Cloud TPU v5p rental
+
+confidence: theoretical
+notes: >
+  Google TPU v5p -- Google's flagship training TPU (5th-gen
+  performance variant), announced at Google Cloud Next December
+  2023 and generally available on Google Cloud from early 2024.
+  The 'p' suffix differentiates it from TPU v5e (efficiency
+  variant; separate SKU).
+
+  Catalog firsts:
+    - First FP8 SKU in the TPU catalog (E4M3 native MAC support).
+      Headline v5p capability -- 1836 TOPS FP8 = 4x BF16 rate.
+    - First HBM3 TPU (vs v3's HBM2, v4's HBM2e). 95 GiB capacity
+      vs v4's 32 GiB; 2.8 TB/s bandwidth vs v4's 1.2 TB/s.
+    - First INT4 TPU (Google added quantized inference path).
+    - First N4P TPU (v3: N16, v4: N7).
+    - Largest pod scale: 8960 chips via faster ICI links.
+
+  Same TPU_V2_PLUS fabric lineage as v3 and v4. The v5p generation
+  uplifts are: bigger MXUs + denser N4P process + faster HBM3 +
+  new FP8 / INT4 paths + 3x SparseCore enhancement.
+
+  IMPORTANT confidence caveats: Google has NOT publicly disclosed
+  TPU v5p's die size, transistor count, exact MXU count, or clock
+  frequency. The values in this YAML are extrapolated from v4's
+  disclosed numbers via the generational-uplift ratios that Google
+  marketed (~67% BF16 improvement per chip, 3x HBM capacity, etc.).
+  Should be revised when Google publishes a v5p paper or third-
+  party die-shot analysis lands.
+
+  Same 2-MXU per-die modeling convention as v3/v4 (per-TensorCore
+  datapath; chip has 2 TCs). Chip-level performance roll-up
+  reflects Google's published per-chip numbers. Modeling gap
+  deferred to v8 multi-block-per-die schema work.
+last_updated: '2026-05-21'

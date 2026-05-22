@@ -67,7 +67,7 @@ def tpu_v4_block(tpu_v4_compute_die) -> TPUBlock:
 def test_catalog_includes_tpu_v4(all_products):
     google_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "google")
     # google_tpu_v1 added in sprint #72 PR 3 (Bucket A long-tail backfill)
-    assert google_skus == ["google_coral_edge_tpu", "google_tpu_v1", "google_tpu_v3", "google_tpu_v4"]
+    assert google_skus == ["google_coral_edge_tpu", "google_tpu_v1", "google_tpu_v3", "google_tpu_v4", "google_tpu_v5p"]
 
 
 def test_catalog_has_21_total_products(all_products):
@@ -102,7 +102,7 @@ def test_other_vendors_unaffected_by_tpu_v4_addition(all_products):
     assert counts_by_vendor.get("stanford") == 1
     assert counts_by_vendor.get("xilinx") == 1
     # google grows from 1 (Coral) to 2 (Coral + TPU v4)
-    assert counts_by_vendor.get("google") == 4  # +google_tpu_v3 (sprint #72 PR 4)
+    assert counts_by_vendor.get("google") == 5  # +google_tpu_v5p (sprint #72 PR 5)
 
 
 # ---------------------------------------------------------------------------
