@@ -1,0 +1,284 @@
+# Google TPU v3 -- datacenter training-class systolic AI accelerator.
+#
+# Sprint #72 PR 4 -- fourth SKU in the long-tail Bucket A backfill
+# for branes-ai/graphs#241. Joins TPU v1 (#75) and TPU v4 (#206) in
+# the google/ vendor directory.
+#
+# Distinguishing features in the catalog:
+#   - **First HBM-equipped TPU** in the catalog timeline. TPU v3
+#     was Google's first TPU with HBM (32 GiB HBM2 per chip);
+#     v1 used DDR3, v2 used HBM but isn't in this catalog.
+#   - **First liquid-cooled TPU** -- the cooling step-change that
+#     differentiates v3 from v2 (both at ~250W chip TDP, but v3
+#     pods are liquid-cooled which is what enabled the v3 -> v4
+#     scaling to 1024-chip pods).
+#   - **First BF16 + INT8 + FP32 TPU** -- v1 is INT8-only, v2 added
+#     BF16, v3 inherited the v2 fabric architecture.
+#   - **First 2D-torus ICI** (vs v4's 3D torus). 4 ICI ports per
+#     chip arranged in a 2D mesh fabric.
+#   - **First TSMC N16 TPU** -- v1 was 28HPM, v4 was N7.
+#
+# Launched Google I/O 2018; deployed in Google Cloud as TPU v3-8 /
+# v3-32 / v3-128 / v3-512 / v3-1024 pod configurations. Used to
+# train BERT-Large, T5, and many early generative-AI models.
+#
+# Data sourced from:
+#   - Google Cloud TPU v3 documentation
+#   - Norm Jouppi et al., "A domain-specific supercomputer for
+#     training deep neural networks" (CACM 63(7), 2020)
+#   - SemiAnalysis / ServeTheHome TPU v3 deep dives
+#   - graphs/src/graphs/hardware/models/datacenter/tpu_v3.py
+#     (the well-validated graphs mapper, the migration source)
+#
+# Confidence: theoretical.
+#   - Headline performance (123 TFLOPS BF16, 245 TOPS INT8 per chip)
+#     is Google-published. The 2 MXUs * 128x128 modeling captures
+#     the per-TensorCore datapath; the per-chip 4-MXU layout (2 TCs
+#     * 2 MXUs each) is documented in notes but the v3 YAML uses the
+#     v4 catalog convention of modeling the per-die fabric at the
+#     TensorCore level (same modeling gap as the existing v4 entry).
+#   - Die size ~635 mm^2 and ~21 B transistors are estimates -- Google
+#     did not publish official figures. Cross-referenced against
+#     SemiAnalysis estimates and TSMC N16 density math.
+#   - HBM2 32 GiB and ~900 GB/s bandwidth are published.
+#   - Tile energy coefficients estimated from N16 standard-cell +
+#     HBM2 access energies (sibling to TPU v4's N7 + HBM2e numbers).
+#
+# Out of scope:
+#   - TPU v3 pod (1024-chip 2D torus) -- v8+ system-level concern.
+#   - Per-TensorCore detailed decomposition -- v8 multi-block-per-
+#     die feature.
+
+id: google_tpu_v3
+name: Google TPU v3
+vendor: google
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: datacenter_oam   # liquid-cooled OAM-style baseboard mount
+
+lifecycle: mature                  # production 2018-present, still available on Google Cloud (v3-8 / v3-32)
+
+dies:
+- die_id: tpu_v3_die
+  die_role: compute
+  process_node_id: tsmc_n16        # already in catalog
+  die_size_mm2: 635.0              # estimate; Google did not publish
+  transistors_billion: 21.0        # estimate from N16 density math
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # MXU arrays. Per the v4 YAML convention, the silicon_bin
+    # reflects the per-die fabric (2 MXUs at 128x128 = 32,768 MACs
+    # total in the modeled view). The chip-level performance numbers
+    # below reflect Google's marketed per-chip values (which include
+    # the second TensorCore's contribution; same modeling gap as v4).
+    - name: mxu_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 6500.0
+      notes: 2 MXUs * 128x128 = 32,768 MACs (modeled per-TensorCore datapath; actual chip has 2 TCs sharing this die)
+    # -------------------------------------------------------------------
+    # Accumulator: 1 MiB per MXU * 2 MXUs = 2 MiB at 32-bit elements.
+    # Less than v4's 4 MiB per chip (v4 has bigger per-MXU buffers).
+    - name: accumulator_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 500.0
+      notes: 2 MXUs * 1 MiB accumulator = 2 MiB total 32-bit element SRAM
+    # -------------------------------------------------------------------
+    # Unified Buffer: 16 MiB per chip (smaller than v4's 32 MiB; v3
+    # had less generous on-chip SRAM, partly compensated by HBM
+    # introduction).
+    - name: unified_buffer_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 4000.0
+      notes: 16 MiB Unified Buffer (smaller than v4's 32 MiB)
+    # -------------------------------------------------------------------
+    # Weight FIFO + control. Small but critical for decoupling HBM
+    # bandwidth from MXU throughput.
+    - name: weight_fifo_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 80.0
+      notes: Per-MXU weight prefetch FIFO + control
+    # -------------------------------------------------------------------
+    # HBM2 controller + PHY (4 stacks for 32 GiB / ~900 GB/s).
+    # Smaller than v4's HBM2e PHY.
+    - name: hbm_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 3500.0
+      notes: HBM2 controller + PHY (4 stacks, 32 GiB, 900 GB/s)
+    # -------------------------------------------------------------------
+    # ICI: 4 ports for 2D-torus pod topology. v4 grew to 6 ports for
+    # the 3D-torus topology that enables 4096-chip pods; v3 pods
+    # were limited to 1024 chips via 2D torus.
+    - name: ici_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 2400.0
+      notes: 4 ICI ports @ ~600 Mtx each (2D torus for v3 pod topology)
+    # -------------------------------------------------------------------
+    # PCIe Gen3 host interface (v3 predates v4's PCIe Gen4).
+    - name: pcie_host_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 600.0
+      notes: PCIe Gen3 x16 host interface
+    # -------------------------------------------------------------------
+    # XLA dispatch + scheduler + activation function unit +
+    # normalization + pooling + clock + misc.
+    - name: control_and_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3420.0
+      notes: XLA dispatch + scalar + activation/pooling + clocks + security IP
+  clocks:
+    base_clock_mhz: 940.0
+    boost_clock_mhz: 940.0   # fixed-frequency design (no boost; no DVFS)
+  blocks:
+  - kind: tpu
+    # 2 MXUs of 128x128 each (per-die model; chip has 2 TCs sharing
+    # this die with effectively 4 MXUs total at the per-chip level).
+    # Same modeling convention as the v4 YAML in this catalog.
+    num_mxus: 2
+    mxu_dim_rows: 128
+    mxu_dim_cols: 128
+    weight_tile_size_kib: 32        # per-MXU weight prefetch buffer
+    weight_fifo_depth: 2             # double-buffered
+    pipeline_fill_cycles: 128        # = mxu_dim_rows
+    accumulator_size_kib_per_mxu: 1024   # 1 MiB per MXU (smaller than v4's 2 MiB)
+    tile_energy_coefficients:
+      # N16 standard-cell energies, scaled from v4's N7 numbers
+      mac_energy_pj: 0.45                                # ~1.8x v4's 0.25 (N16 vs N7)
+      weight_memory_energy_pj_per_byte: 11.0             # HBM2 (slightly worse than v4's HBM2e)
+      weight_fifo_energy_pj_per_byte: 0.7
+      unified_buffer_read_energy_pj_per_byte: 0.7
+      unified_buffer_write_energy_pj_per_byte: 0.8
+      accumulator_read_energy_pj_per_element: 0.4
+      accumulator_write_energy_pj_per_element: 0.5
+      weight_shift_in_energy_pj_per_element: 0.4
+      activation_stream_energy_pj_per_element: 0.3
+    # ICI: 4 ports for 2D-torus pod topology (v3's defining
+    # interconnect characteristic; v4 grew to 6 ports / 3D torus).
+    ici_port_count: 4
+    ici_bandwidth_per_port_gbps: 656.0   # 41 GB/s/lane * 16 lanes per port (Google CACM 2020)
+    ici_topology_hint: '2d_torus'
+    multi_precision_alu:
+    - bf16
+    - int8
+    - fp32                            # emulated; not native rate
+    compute_fabrics:
+    - fabric_kind: tpu_v2_plus        # same fabric kind as v4 (TPU v2/v3 architecture line)
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        bf16: 2   # MAC = 2 ops
+        int8: 2
+      energy_per_op_bf16_pj: 0.225    # same as v4 baseline; N16 absorbs into MAC energy
+      energy_scaling:
+        int8: 0.25
+        fp32: 2.0
+    memory:
+      on_chip_bandwidth_gbps: 1500.0   # UB-to-MXU streaming BW (estimate; v4 is 2000)
+      unified_buffer_size_kib: 16384   # 16 MiB UB (v4 has 32 MiB)
+      unified_buffer_access_energy_pj_per_byte: 0.7
+      has_external_dram: true
+      external_dram_type: hbm2         # HBM2 (vs v4's HBM2e)
+      external_dram_size_gb: 32.0
+      external_dram_bandwidth_gbps: 900.0   # Google-published
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 11.0
+      coherence_protocol: none
+    noc:
+      topology: multi_crossbar
+      bisection_bandwidth_gbps: 1500.0
+      unit_count: 2                    # 2 modeled MXUs (per-TC datapath)
+      flit_size_bytes: 32
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 2.5
+      routing_distance_factor: 1.0
+      confidence: theoretical
+    min_occupancy: 0.5
+    max_concurrent_models: 1
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 250W operating point. These
+# are Google's MARKETED per-chip values; the modeled per-die fabric
+# above produces ~half these numbers (same modeling gap as the v4
+# YAML, documented in the catalog). The chip actually contains 2
+# TensorCores that share the die, effectively doubling the MXU count
+# at chip-level relative to the per-TC fabric model.
+#   BF16 per chip: 4 MXUs * 128x128 * 2 ops * 0.94 GHz = 123.2 TFLOPS
+#   INT8 per chip: 2x BF16 rate = 246.4 TOPS
+#   FP32 per chip: 1/2 BF16 (emulated) = 61.6 TFLOPS
+performance:
+  int8_tops: 246.4
+  bf16_tflops: 123.2
+  fp32_tflops: 61.6
+  int4_tops: 0.0   # not supported (added in v5p)
+
+power:
+  tdp_watts: 250.0
+  max_power_watts: 250.0           # fixed-frequency; no boost above TDP
+  min_power_watts: 50.0
+  idle_power_watts: 50.0
+  default_thermal_profile: default
+  # Single thermal profile -- liquid-cooled in pod deployment. v3
+  # was the cooling step-change vs v2 (both ~250W but v3 went liquid).
+  thermal_profiles:
+  - name: default
+    tdp_watts: 250.0
+    clock_mhz: 940.0
+    cooling_solution_id: liquid_cooled
+    efficiency_factor_by_precision:
+      bf16: 0.85
+      int8: 0.85
+      fp32: 0.75
+    vdd_v: 0.85                    # TSMC N16 nominal
+
+market:
+  launch_date: '2018-05-08'        # Google I/O 2018 announcement
+  target_market: datacenter
+  product_family: TPU
+  model_tier: datacenter
+  is_available: true               # Google Cloud TPU rental (v3-8 / v3-32 / v3-1024)
+
+confidence: theoretical
+notes: >
+  Google TPU v3 -- datacenter training accelerator launched at
+  Google I/O 2018. First TPU with HBM (32 GiB HBM2, 900 GB/s) and
+  first liquid-cooled TPU. Together these enabled the v3 pod
+  scaling to 1024 chips via 2D-torus ICI, used to train BERT-Large,
+  T5, and many early generative-AI models.
+
+  Same fabric architecture as TPU v2 (BF16 + INT8 + emulated FP32);
+  the v3 generation improvements are at the SoC level (HBM + liquid
+  cooling + bigger pods) rather than core-microarch. v4 retained
+  the same fabric kind (TPU_V2_PLUS) and added bigger MXUs + N7
+  process + 3D-torus ICI.
+
+  Catalog firsts after this lands:
+    - First HBM TPU in the catalog (v1 is DDR3-based)
+    - First liquid-cooled TPU
+    - First 2D-torus ICI TPU (v4 is 3D)
+    - First TSMC N16 TPU (v1 is 28nm, v4 is N7)
+
+  Die size (635 mm^2) and transistor count (21 B) are estimates --
+  Google did not publish exact figures. The 2-MXU per-die model
+  matches the v4 catalog convention (per-TensorCore datapath); the
+  chip-level performance roll-up reflects Google's marketed per-
+  chip values which include both TensorCores. Same modeling gap as
+  the v4 YAML, deferred to v8 multi-block-per-die schema work.
+last_updated: '2026-05-21'
