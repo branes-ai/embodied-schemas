@@ -1,0 +1,270 @@
+# Google TPU Edge Pro -- HYPOTHETICAL 30W edge TPU.
+#
+# Sprint #72 PR 6 -- final SKU in the long-tail Bucket A backfill
+# for branes-ai/graphs#241. Closes sprint #72.
+#
+# ⚠️  IMPORTANT: This is a HYPOTHETICAL SKU, not a real Google
+# product. The graphs hand-coded factory at
+# graphs/.../models/edge/tpu_edge_pro.py was designed for fair
+# comparison studies against 30W competitors (KPU T256, Jetson
+# Orin AGX, ARM Cortex CPUs). The architecture is a credible
+# "what if Google scaled Coral Edge TPU (2W) up to 30W with FP32
+# support?" design point, but no physical silicon exists.
+#
+# Lifecycle = engineering_sample (matching the Stanford Plasticine
+# v2 catalog precedent for research/hypothetical SKUs).
+# is_available = false. model_tier = research.
+#
+# Distinguishing features in the catalog:
+#   - First HYPOTHETICAL TPU SKU (joins Plasticine v2 as one of
+#     two non-shipping entries; both lifecycle=engineering_sample).
+#   - Single LARGE MXU (128x128 = 16,384 MACs) -- vs v4/v5p's
+#     "2 MXUs per die" modeling convention. Edge Pro is genuinely
+#     a single-array design like TPU v1, just scaled to 7nm.
+#   - LPDDR5 (not HBM) at 128 GB/s -- edge memory subsystem (vs
+#     v3/v4/v5p's HBM2/HBM2e/HBM3).
+#   - 15W / 30W / 45W DVFS profiles (vs v1-v5p's fixed-frequency
+#     designs). First TPU SKU with multiple thermal profiles.
+#   - TSMC N7 (sibling to TPU v4 on the same node; both N7).
+#
+# Architectural lineage: graphs' design rationale scales Coral
+# Edge TPU (2W INT8-only, 64x64 MXU estimate) up to 30W with the
+# v4-era ISA additions (BF16 + FP32). NOT extrapolated from v5p
+# (no FP8 / INT4 in Edge Pro per the graphs factory).
+#
+# Confidence: theoretical, by definition.
+#   - Performance numbers (55.5 TOPS INT8, 27.7 TFLOPS BF16, 13.9
+#     TFLOPS FP32) are derivable from the systolic-array config:
+#     16,384 PEs * ops/cycle * 850 MHz.
+#   - Die size and transistor count are estimates for a single
+#     128x128 array + L2 + UB + LPDDR5 PHY on N7.
+#   - Energy figures come directly from the graphs factory.
+
+id: google_tpu_edge_pro
+name: Google TPU Edge Pro (hypothetical)
+vendor: google
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: edge_module       # similar to Coral Edge TPU but larger
+
+lifecycle: engineering_sample     # HYPOTHETICAL -- not a shipping Google product
+
+dies:
+- die_id: tpu_edge_pro_die
+  die_role: compute
+  process_node_id: tsmc_n7        # same node as TPU v4
+  die_size_mm2: 150.0             # estimate: single 128x128 MXU + 4 MiB L2 + LPDDR5 PHY
+  transistors_billion: 10.0       # estimate from N7 density math
+  silicon_bin:
+    blocks:
+    - name: mxu_array
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 5000.0
+      notes: Single 128x128 MAC array (16,384 PEs) -- the scaled-up Coral architecture
+    - name: accumulator_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 100.0
+      notes: 256 KiB accumulator registers (small; edge-class)
+    - name: unified_buffer_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 500.0
+      notes: 2 MiB Unified Buffer (L1 scratchpad)
+    - name: l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: 4 MiB L2 SRAM -- new memory stage vs Coral (which lacked L2)
+    - name: lpddr5_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 2500.0
+      notes: LPDDR5 PHY (16 channels for 128 GB/s aggregate); much smaller than HBM PHY
+    - name: pcie_host_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 200.0
+      notes: PCIe Gen3 / Gen4 host interface (edge module connection)
+    - name: control_and_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 700.0
+      notes: Static-dataflow control + clock generation + DVFS controller + misc
+  clocks:
+    base_clock_mhz: 500.0           # min DVFS clock (15W profile)
+    boost_clock_mhz: 900.0          # max boost (45W profile)
+  blocks:
+  - kind: tpu
+    # Single 128x128 MXU -- the canonical scaled-Coral architecture.
+    # Unlike v3/v4/v5p (modeled as 2 MXUs per die), Edge Pro is
+    # genuinely a single-array design like TPU v1, scaled up to N7.
+    num_mxus: 1
+    mxu_dim_rows: 128
+    mxu_dim_cols: 128
+    weight_tile_size_kib: 16        # 16 KiB per tile (vs v4's 32)
+    weight_fifo_depth: 2
+    pipeline_fill_cycles: 128
+    accumulator_size_kib_per_mxu: 256   # 256 KiB (edge-class; v4 has 2 MiB)
+    tile_energy_coefficients:
+      # N7 standard-cell + LPDDR5 + on-chip SRAM
+      mac_energy_pj: 0.4                                  # INT8 MAC @ N7 (Coral-derived)
+      weight_memory_energy_pj_per_byte: 12.0              # LPDDR5 (much lower than HBM stacks)
+      weight_fifo_energy_pj_per_byte: 1.0                 # L2 SRAM
+      unified_buffer_read_energy_pj_per_byte: 0.5         # L1 UB
+      unified_buffer_write_energy_pj_per_byte: 0.5
+      accumulator_read_energy_pj_per_element: 0.3
+      accumulator_write_energy_pj_per_element: 0.4
+      weight_shift_in_energy_pj_per_element: 0.3
+      activation_stream_energy_pj_per_element: 0.2
+    # No multi-chip ICI (edge SKU; standalone PCIe / edge-module). Schema
+    # requires fields, so populate with PCIe-as-ICI nominal values.
+    ici_port_count: 1
+    ici_bandwidth_per_port_gbps: 32.0       # PCIe Gen4 x16
+    ici_topology_hint: 'standalone_pcie'
+    multi_precision_alu:
+    - bf16
+    - int8
+    - fp32                          # added vs Coral (which was INT8 only)
+    compute_fabrics:
+    - fabric_kind: tpu_v2_plus      # ISA-lineage tag (BF16 + FP32 emulation a la v2/v3/v4)
+      circuit_class: balanced_logic
+      ops_per_unit_per_clock:
+        bf16: 2   # 1 MAC per PE per cycle * 2 ops/MAC
+        int8: 4   # 2 MACs per PE per cycle * 2 ops/MAC (INT8 packs 2 INT8 per BF16 datapath)
+        fp32: 1   # 0.5 MACs per PE per cycle * 2 ops/MAC (FP32 takes 2 cycles per MAC)
+      energy_per_op_bf16_pj: 0.3    # 0.6 pJ per BF16 MAC / 2 ops; N7 standard-cell
+      energy_scaling:
+        int8: 0.667                  # 0.4/0.6 (INT8 MAC vs BF16 MAC)
+        fp32: 2.0                    # 1.2/0.6
+    memory:
+      on_chip_bandwidth_gbps: 800.0  # UB-to-MXU streaming BW
+      unified_buffer_size_kib: 2048  # 2 MiB UB
+      unified_buffer_access_energy_pj_per_byte: 0.5
+      has_external_dram: true
+      external_dram_type: lpddr5     # LPDDR5 (edge memory; v3/v4/v5p use HBM)
+      external_dram_size_gb: 32.0
+      external_dram_bandwidth_gbps: 128.0   # 16-channel LPDDR5
+      dram_attachment: chip_attached
+      external_dram_access_energy_pj_per_byte: 12.0
+      coherence_protocol: none
+    noc:
+      topology: crossbar             # single MXU; UB->MXU direct path
+      bisection_bandwidth_gbps: 800.0
+      unit_count: 1
+      flit_size_bytes: 32
+      hop_latency_ns: 1.0
+      pj_per_flit_per_hop: 2.0
+      routing_distance_factor: 1.0
+      confidence: theoretical
+    min_occupancy: 0.7                # systolic arrays need high utilization
+    max_concurrent_models: 1
+    wave_quantization: 1
+  interconnects: []
+
+# Chip-level performance roll-up at the 30W operating point (850 MHz).
+# Edge Pro is the only TPU in the catalog with a SINGLE MXU layout
+# (vs v3/v4/v5p's 2-MXU per-die modeling), so chip-level performance
+# matches the per-die fabric calculation directly -- no 2x scaling.
+#   INT8: 1 MXU * 128x128 * 2 ops/MAC * 2 MACs/PE/cycle * 850 MHz = 55.5 TOPS
+#   BF16: 1 MXU * 128x128 * 2 ops/MAC * 1 MAC/PE/cycle * 850 MHz = 27.85 TFLOPS
+#   FP32: 1 MXU * 128x128 * 2 ops/MAC * 0.5 MAC/PE/cycle * 850 MHz = 13.93 TFLOPS
+performance:
+  int8_tops: 55.7
+  bf16_tflops: 27.85
+  fp32_tflops: 13.93
+  int4_tops: 0.0          # not supported (Edge Pro lacks v5p's INT4 path)
+
+power:
+  tdp_watts: 30.0          # default 30W profile
+  max_power_watts: 45.0    # max DVFS (45W profile)
+  min_power_watts: 15.0    # min DVFS (15W profile)
+  idle_power_watts: 5.0
+  default_thermal_profile: 30W
+  # THREE DVFS profiles -- first TPU in the catalog with DVFS-capable
+  # operation (v1/v3/v4/v5p are fixed-frequency designs).
+  thermal_profiles:
+  - name: 15W
+    tdp_watts: 15.0
+    clock_mhz: 500.0        # DVFS scaled down
+    cooling_solution_id: passive_heatsink_small
+    efficiency_factor_by_precision:
+      bf16: 0.85
+      int8: 0.85
+      fp32: 0.85
+    vdd_v: 0.65
+  - name: 30W
+    tdp_watts: 30.0
+    clock_mhz: 850.0        # sustained operating point
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      bf16: 0.85            # systolic arrays achieve high sustained efficiency
+      int8: 0.85
+      fp32: 0.85
+    vdd_v: 0.75
+  - name: 45W
+    tdp_watts: 45.0
+    clock_mhz: 900.0        # boost
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      bf16: 0.85
+      int8: 0.85
+      fp32: 0.85
+    vdd_v: 0.85
+
+market:
+  launch_date: '2025-01-01'   # forward-looking; hypothetical SKU has no real launch
+  launch_msrp_usd: 450.0      # graphs factory's BOM-modeled retail price
+  target_market: edge
+  product_family: TPU Edge
+  model_tier: research        # matches Plasticine v2 precedent for hypothetical SKUs
+  is_available: false         # HYPOTHETICAL -- not a shipping product
+
+confidence: theoretical
+notes: >
+  Google TPU Edge Pro -- HYPOTHETICAL Google edge TPU at 30W with
+  FP32 support. This SKU does NOT exist physically. The graphs
+  hand-coded factory at
+  graphs/.../models/edge/tpu_edge_pro.py was designed as a
+  credible "what if Google scaled Coral Edge TPU (2W) up to 30W
+  with v4-era ISA?" model for fair architectural comparison
+  studies against KPU T256, Jetson Orin AGX, and ARM Cortex CPUs
+  at the same 30W envelope.
+
+  Catalog firsts:
+    - First HYPOTHETICAL TPU (joins Plasticine v2 as the catalog's
+      second engineering_sample SKU).
+    - First single-MXU TPU in the v2+ lineage (modeling-wise; the
+      v3/v4/v5p entries use 2-MXU per-die convention).
+    - First LPDDR5-based TPU (not HBM); edge memory subsystem.
+    - First TPU with DVFS profiles (15W / 30W / 45W).
+    - First N7 edge TPU (Coral is 28nm; v4 is N7 but datacenter).
+
+  Architecture: single 128x128 systolic array (16,384 PEs) at
+  850 MHz sustained. BF16 + INT8 + FP32 (emulated). No FP8 / INT4
+  (those are v5p-only). 4 MiB L2 SRAM + 2 MiB UB + 256 KiB
+  accumulator. 32 GiB LPDDR5 at 128 GB/s. PCIe Gen4 host
+  connection (no inter-chip ICI; standalone edge module).
+
+  Performance (30W, 85% systolic efficiency on dense matmuls):
+    Peak: 55.7 TOPS INT8 / 27.85 TFLOPS BF16 / 13.93 TFLOPS FP32
+    Effective: 47.3 TOPS / 23.7 TFLOPS / 11.8 TFLOPS
+
+  Modeling lineage: scales Coral Edge TPU's per-PE energy
+  characteristics up to a larger array on a newer process node.
+  Adds v4-era FP32 + BF16 ISA support. Static-dataflow control
+  (minimal overhead) -- a key design contrast against the dynamic-
+  dataflow KPU architecture also targeting 30W.
+
+  Closes sprint #72 (Bucket A long-tail PhysicalSpec backfill).
+last_updated: '2026-05-21'

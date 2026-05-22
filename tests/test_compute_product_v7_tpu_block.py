@@ -501,5 +501,5 @@ def test_v7_does_not_break_existing_catalog():
     # existing google/ vendor directory). google_tpu_v1 (sprint #72
     # PR 3 Bucket A long-tail) bumped it to 2 -- first
     # TPUFabricKind.TPU_V1_STYLE SKU.
-    assert counts["tpu"] == 4  # +google_tpu_v5p (sprint #72 PR 5)
+    assert counts["tpu"] == 5  # +google_tpu_edge_pro (sprint #72 PR 6, closes sprint)
     assert sum(counts.values()) == len(products)
