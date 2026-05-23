@@ -345,24 +345,30 @@ def test_die_with_role_io_pairs_with_io_block(genoa_io_block):
 # 6. Catalog composition: no existing SKU uses IOBlock yet
 # ---------------------------------------------------------------------------
 
-def test_no_existing_sku_uses_io_block_yet():
-    """v13 schema PR is additive only -- no existing SKUs in the
-    catalog have been re-authored to use IOBlock yet. Sprint follow-up
-    PRs (#245 PR 3+) introduce the first IOBlock-using SKUs (re-
-    authored AMD EPYC chiplet YAMLs). This test confirms the schema PR
-    doesn't accidentally introduce IOBlock SKUs without explicit data
-    PRs."""
+def test_io_block_skus_in_catalog():
+    """Tracks which SKUs have been re-authored to use IOBlock.
+
+    Sprint #245 progress:
+      - PR 2 (#79): schema only, additive (no SKUs).
+      - PR 3 (#TBD): EPYC 9654 first IOBlock-using SKU.
+      - PR 4-5: EPYC 9754 (reuses Genoa IOD) + EPYC 9965 (Turin IOD)
+        follow-on; bump this list as they land.
+
+    Verifying the set explicitly catches both directions:
+      - Schema-only PRs accidentally adding SKUs (was the v13 schema PR's
+        additive-guarantee invariant).
+      - Data PRs that should land but don't (e.g., this test forces an
+        update when EPYC 9754 / 9965 land, which is desirable since
+        each is paired with downstream graphs PhysicalSpec work).
+    """
     products = load_compute_products()
-    io_skus = []
-    for cp in products.values():
-        for die in cp.dies:
-            for block in die.blocks:
-                if isinstance(block, IOBlock):
-                    io_skus.append(cp.id)
-    assert io_skus == [], (
-        f"Unexpected IOBlock-using SKUs in catalog after v13 schema PR: "
-        f"{io_skus}. Schema PR should be additive only."
+    io_skus = sorted(
+        cp.id
+        for cp in products.values()
+        if any(isinstance(b, IOBlock) for d in cp.dies for b in d.blocks)
     )
+    # Sprint #245 PR 3 introduced the first IOBlock SKU.
+    assert io_skus == ["amd_epyc_9654_sp5"]
 
 
 def test_anyblock_union_count():

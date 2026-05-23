@@ -92,12 +92,22 @@ def test_die_geometry(epyc_compute_die):
 
 def test_die_size_smaller_than_9654(all_products):
     """Cross-SKU sanity: Bergamo's package is ~17% smaller than Genoa's
-    despite +33% cores (8 CCDs vs 12, sharing the same IOD)."""
+    despite +33% cores (8 CCDs vs 12, sharing the same IOD).
+
+    Compares chip-level die area sums (across all dies in dies[])
+    rather than per-die. After sprint #245, Genoa was re-authored to
+    a 2-die representation (compute + IO); Bergamo remains
+    single-virtual-die until sprint #245 PR 4 re-authors it. The
+    chip-level sum stays valid as a cross-SKU comparison through
+    the transition.
+    """
     nine_seven = all_products.get("amd_epyc_9754_sp5")
     nine_six = all_products.get("amd_epyc_9654_sp5")
     if nine_seven is None or nine_six is None:
         pytest.skip("both SKUs needed; this is a cross-SKU sanity check")
-    assert nine_seven.dies[0].die_size_mm2 < nine_six.dies[0].die_size_mm2
+    bergamo_area = sum(d.die_size_mm2 for d in nine_seven.dies)
+    genoa_area = sum(d.die_size_mm2 for d in nine_six.dies)
+    assert bergamo_area < genoa_area
 
 
 # ---------------------------------------------------------------------------
