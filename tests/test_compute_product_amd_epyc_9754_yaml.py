@@ -1,11 +1,22 @@
-"""Tests for the AMD EPYC 9754 (Bergamo) ComputeProduct YAML (sprint #62 PR 2).
+"""Tests for the AMD EPYC 9754 (Bergamo) ComputeProduct YAML.
 
-Second AMD SKU in the catalog and first Zen 4c entry. Validates the
-YAML loads as a fully-formed ``ComputeProduct`` + ``CPUBlock`` with
-field values matching AMD's published Bergamo specs and the graphs-
-side hand-coded mapper (the migration source).
+Originally authored in sprint #62 PR 2 (#64) with a single-virtual-die
+representation. **Rewritten for the v13 multi-die representation in
+sprint #245 PR 4** -- the SECOND SKU to use the IOBlock kind (joins
+EPYC 9654 from PR 3). The 8 Zen 4c CCDs are now aggregated into one
+compute die (TSMC N5) and the Genoa IOD is a separate die (TSMC N6)
+with its own IOBlock. The 8 IFOP links between CCDs and IOD are
+modeled via Die.interconnects[] on the compute die.
 
-Same test shape as ``test_compute_product_amd_epyc_9654_yaml.py``.
+Headline PhysicalSpec sums are preserved: 581.6 + 397 = 978.6 mm^2,
+77.6 + 12 = 89.6 B tx (matches the prior single-virtual-die
+representation that the downstream PhysicalSpec loader already
+handles via die-level summation).
+
+**Shared-IOD invariant**: Bergamo reuses the Genoa IOD silicon
+unchanged. The ``genoa_iod`` die in this YAML is byte-identical to
+the one in ``amd_epyc_9654_sp5.yaml``. Cross-SKU tests assert this
+explicitly.
 """
 
 import pytest
@@ -16,9 +27,15 @@ from embodied_schemas import (
     CPUBlock,
     CPUISAExtension,
     CPUNoCTopology,
+    DieRole,
+    InterconnectLevel,
+    IOBlock,
+    IOFabricTopology,
     L2Layout,
     LifecycleStatus,
     PackagingKind,
+    PCIeGen,
+    TopologyKind,
 )
 from embodied_schemas.gpu import MemoryType
 from embodied_schemas.loaders import load_compute_products, load_process_nodes
@@ -39,9 +56,19 @@ def epyc(all_products) -> ComputeProduct:
 
 @pytest.fixture(scope="module")
 def epyc_compute_die(epyc):
-    die = next((d for d in epyc.dies if d.die_role.value == "compute"), None)
+    """Pick the compute die by role."""
+    die = next((d for d in epyc.dies if d.die_role == DieRole.COMPUTE), None)
     if die is None:
         pytest.fail("EPYC 9754 has no compute die")
+    return die
+
+
+@pytest.fixture(scope="module")
+def epyc_io_die(epyc):
+    """Pick the IO die by role (new in v13 multi-die rewrite)."""
+    die = next((d for d in epyc.dies if d.die_role == DieRole.IO), None)
+    if die is None:
+        pytest.fail("EPYC 9754 has no IO die (v13 multi-die representation)")
     return die
 
 
@@ -56,11 +83,23 @@ def epyc_cpu_block(epyc_compute_die) -> CPUBlock:
     return block
 
 
+@pytest.fixture(scope="module")
+def epyc_io_block(epyc_io_die) -> IOBlock:
+    block = next(
+        (b for b in epyc_io_die.blocks if isinstance(b, IOBlock)),
+        None,
+    )
+    if block is None:
+        pytest.fail("EPYC 9754 IO die has no IOBlock (v13 multi-die representation)")
+    return block
+
+
 # ---------------------------------------------------------------------------
-# Process nodes (both already in catalog from sprint #62 PR 1).
+# Process nodes: both tsmc_n5 (CCDs) and tsmc_n6 (IOD) now visible at the Die level
 # ---------------------------------------------------------------------------
 
 def test_process_nodes_present():
+    """v13: both N5 and N6 process nodes resolve at the die level."""
     nodes = load_process_nodes()
     assert "tsmc_n5" in nodes  # Zen 4c CCDs
     assert "tsmc_n6" in nodes  # Shared Genoa IOD
@@ -76,38 +115,76 @@ def test_identity(epyc):
     assert epyc.lifecycle == LifecycleStatus.PRODUCTION
 
 
-def test_packaging_is_chiplet(epyc):
-    """9 dies (8 Zen 4c CCDs + 1 Genoa IOD) -- chiplet packaging."""
+def test_packaging_still_9_dies(epyc):
+    """v13 invariant: packaging.num_dies still reflects the PHYSICAL
+    chiplet count (8 CCDs + 1 IOD). The dies[] aggregation (2 entries)
+    is the schema's modeling convention, distinct from physical reality."""
     assert epyc.packaging.kind == PackagingKind.CHIPLET
-    assert epyc.packaging.num_dies == 9          # one fewer than 9654 (8+1 vs 12+1)
+    assert epyc.packaging.num_dies == 9   # one fewer than 9654 (8+1 vs 12+1)
     assert epyc.packaging.package_type == "sp5"  # same SP5 socket as 9654
 
 
-def test_die_geometry(epyc_compute_die):
-    """Headline PhysicalSpec values: 8*72.7 (CCDs) + 397 (IOD) = 978.6 mm^2."""
-    assert epyc_compute_die.die_size_mm2 == pytest.approx(978.6, rel=0.01)
-    assert epyc_compute_die.transistors_billion == pytest.approx(89.6, rel=0.01)
+# ---------------------------------------------------------------------------
+# Multi-die structure (v13 rewrite)
+# ---------------------------------------------------------------------------
+
+def test_dies_aggregation_is_two_entries(epyc):
+    """v13: dies[] aggregates the 8 CCDs into 1 compute die + 1 IOD die."""
+    assert len(epyc.dies) == 2
+    die_roles = sorted(d.die_role.value for d in epyc.dies)
+    assert die_roles == ["compute", "io"]
+
+
+def test_compute_die_geometry(epyc_compute_die):
+    """Compute die: 8 Zen 4c CCDs aggregated. 8 * 72.7 = 581.6 mm^2;
+    8 * 9.7 B = 77.6 B tx; process node tsmc_n5."""
+    assert epyc_compute_die.die_size_mm2 == pytest.approx(581.6)
+    assert epyc_compute_die.transistors_billion == pytest.approx(77.6)
     assert epyc_compute_die.process_node_id == "tsmc_n5"
 
 
-def test_die_size_smaller_than_9654(all_products):
-    """Cross-SKU sanity: Bergamo's package is ~17% smaller than Genoa's
-    despite +33% cores (8 CCDs vs 12, sharing the same IOD).
+def test_io_die_geometry(epyc_io_die):
+    """IO die: Genoa IOD (REUSED unchanged from 9654). 397 mm^2,
+    ~12 B tx, process node tsmc_n6 (previously hidden in YAML
+    comments; now visible at die level)."""
+    assert epyc_io_die.die_id == "genoa_iod"   # same die_id as 9654
+    assert epyc_io_die.die_size_mm2 == 397.0
+    assert epyc_io_die.transistors_billion == 12.0
+    assert epyc_io_die.process_node_id == "tsmc_n6"
+    assert epyc_io_die.die_role == DieRole.IO
 
-    Compares chip-level die area sums (across all dies in dies[])
-    rather than per-die. After sprint #245, Genoa was re-authored to
-    a 2-die representation (compute + IO); Bergamo remains
-    single-virtual-die until sprint #245 PR 4 re-authors it. The
-    chip-level sum stays valid as a cross-SKU comparison through
-    the transition.
-    """
-    nine_seven = all_products.get("amd_epyc_9754_sp5")
-    nine_six = all_products.get("amd_epyc_9654_sp5")
-    if nine_seven is None or nine_six is None:
-        pytest.skip("both SKUs needed; this is a cross-SKU sanity check")
-    bergamo_area = sum(d.die_size_mm2 for d in nine_seven.dies)
-    genoa_area = sum(d.die_size_mm2 for d in nine_six.dies)
-    assert bergamo_area < genoa_area
+
+def test_die_sums_preserve_prior_headline_values(epyc):
+    """v13 multi-die rewrite preserves headline PhysicalSpec values
+    (which the downstream graphs loader sums across dies[]):
+    581.6 + 397 = 978.6 mm^2; 77.6 + 12 = 89.6 B tx."""
+    total_area = sum(d.die_size_mm2 for d in epyc.dies)
+    total_tx = sum(d.transistors_billion for d in epyc.dies)
+    assert total_area == pytest.approx(978.6)
+    assert total_tx == pytest.approx(89.6)
+
+
+# ---------------------------------------------------------------------------
+# IFOP interconnects (v13 new modeling)
+# ---------------------------------------------------------------------------
+
+def test_compute_die_has_ifop_interconnects(epyc_compute_die):
+    """v13 new: compute die's interconnects[] models the 8 IFOP links
+    to the IOD (vs 12 on Genoa -- one IFOP per CCD, CCD count drops)."""
+    assert len(epyc_compute_die.interconnects) == 1
+    ifop = epyc_compute_die.interconnects[0]
+    assert ifop.interconnect_id == "ifop_compute_to_iod"
+    assert ifop.level == InterconnectLevel.DIE_TO_DIE
+    assert ifop.topology == TopologyKind.POINT_TO_POINT
+    assert ifop.num_links == 8   # one IFOP per CCD (vs 12 on Genoa)
+    assert ifop.coherent is True
+    assert ifop.per_link_bandwidth_gbps == pytest.approx(36.0)
+
+
+def test_io_die_interconnects_empty(epyc_io_die):
+    """IO die's interconnects[] is empty (IFOPs modeled from compute-die
+    side to avoid double-counting). Matches 9654's convention."""
+    assert epyc_io_die.interconnects == []
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +244,130 @@ def test_cpu_block_noc_has_8_ccds(epyc_cpu_block):
 
 
 # ---------------------------------------------------------------------------
+# IOBlock shape (v13 NEW) -- byte-identical to 9654 (shared physical IOD)
+# ---------------------------------------------------------------------------
+
+def test_io_block_kind_dispatches(epyc_io_block):
+    """v13: discriminator dispatches to IOBlock."""
+    assert epyc_io_block.kind == "io"
+
+
+def test_io_block_memory_subsystem(epyc_io_block):
+    """IOMemorySubsystem on the Genoa IOD: 12-channel DDR5-4800 with ECC.
+    Same as 9654 (shared IOD)."""
+    mem = epyc_io_block.memory
+    assert mem.memory_type == MemoryType.DDR5
+    assert mem.memory_controllers == 12
+    assert mem.memory_bus_bits == 768
+    assert mem.memory_bandwidth_gbps == pytest.approx(460.8)
+    assert mem.ecc_supported is True
+
+
+def test_io_block_coherence_fabric_is_infinity_fabric(epyc_io_block):
+    """Same INFINITY_FABRIC topology as 9654 (shared IOD silicon)."""
+    fabric = epyc_io_block.coherence_fabric
+    assert fabric.topology == IOFabricTopology.INFINITY_FABRIC
+    assert fabric.unit_count == 12   # IOD-internal fabric stops; 9754 only populates 8
+    assert fabric.bisection_bandwidth_gbps == 2048.0
+
+
+def test_io_block_pcie_surface(epyc_io_block):
+    """128 PCIe Gen5 lanes + CXL 1.1 (Genoa IOD's PCIe surface)."""
+    assert epyc_io_block.pcie_lanes == 128
+    assert epyc_io_block.pcie_generation == PCIeGen.PCIE_5
+    assert epyc_io_block.cxl_supported is True
+    assert epyc_io_block.cxl_version == "1.1"
+
+
+def test_io_block_inter_socket_links(epyc_io_block):
+    """4x AMD G-link inter-socket links (used in 2P configs). Same as 9654."""
+    assert len(epyc_io_block.inter_socket_links) == 1
+    glink = epyc_io_block.inter_socket_links[0]
+    assert glink.name == "AMD G-link"
+    assert glink.link_count == 4
+    assert glink.bandwidth_per_link_gbps == 250.0
+
+
+def test_io_block_security_and_management(epyc_io_block):
+    """AMD PSP + PMC + boot ROM all populated on the Genoa IOD. Same as 9654."""
+    assert epyc_io_block.security_processor_kind == "AMD PSP"
+    assert epyc_io_block.power_management_controller is True
+    assert epyc_io_block.boot_rom_present is True
+    assert epyc_io_block.idle_power_watts == 40.0
+
+
+# ---------------------------------------------------------------------------
+# Cross-SKU shared-IOD invariant (Bergamo reuses Genoa IOD silicon)
+# ---------------------------------------------------------------------------
+
+def test_io_die_matches_9654_genoa_iod(all_products):
+    """The Genoa IOD is REUSED unchanged in Bergamo. The genoa_iod
+    die in 9754 must match the genoa_iod die in 9654 across all
+    silicon-level fields (die_id, area, transistor count, process
+    node, silicon_bin sum). This invariant pins the shared-IOD
+    physical-reality assumption."""
+    nine_seven = all_products.get("amd_epyc_9754_sp5")
+    nine_six = all_products.get("amd_epyc_9654_sp5")
+    if nine_seven is None or nine_six is None:
+        pytest.skip("both SKUs needed for shared-IOD invariant check")
+
+    iod_9754 = next(d for d in nine_seven.dies if d.die_role == DieRole.IO)
+    iod_9654 = next(d for d in nine_six.dies if d.die_role == DieRole.IO)
+
+    assert iod_9754.die_id == iod_9654.die_id == "genoa_iod"
+    assert iod_9754.die_size_mm2 == iod_9654.die_size_mm2
+    assert iod_9754.transistors_billion == iod_9654.transistors_billion
+    assert iod_9754.process_node_id == iod_9654.process_node_id
+
+    # silicon_bin block names must match across both SKUs (same physical
+    # silicon, same canonical decomposition).
+    names_9754 = sorted(b.name for b in iod_9754.silicon_bin.blocks)
+    names_9654 = sorted(b.name for b in iod_9654.silicon_bin.blocks)
+    assert names_9754 == names_9654
+
+
+def test_io_block_matches_9654_io_block(all_products):
+    """The IOBlock fields on Bergamo's IOD must be byte-identical to
+    Genoa's (same physical silicon, same feature surface)."""
+    nine_seven = all_products.get("amd_epyc_9754_sp5")
+    nine_six = all_products.get("amd_epyc_9654_sp5")
+    if nine_seven is None or nine_six is None:
+        pytest.skip("both SKUs needed for shared-IOBlock invariant check")
+
+    def io_block_of(cp):
+        iod = next(d for d in cp.dies if d.die_role == DieRole.IO)
+        return next(b for b in iod.blocks if isinstance(b, IOBlock))
+
+    iob_9754 = io_block_of(nine_seven)
+    iob_9654 = io_block_of(nine_six)
+
+    assert iob_9754.pcie_lanes == iob_9654.pcie_lanes
+    assert iob_9754.pcie_generation == iob_9654.pcie_generation
+    assert iob_9754.cxl_supported == iob_9654.cxl_supported
+    assert iob_9754.cxl_version == iob_9654.cxl_version
+    assert iob_9754.security_processor_kind == iob_9654.security_processor_kind
+    assert iob_9754.power_management_controller == iob_9654.power_management_controller
+    assert iob_9754.boot_rom_present == iob_9654.boot_rom_present
+    assert iob_9754.idle_power_watts == iob_9654.idle_power_watts
+    assert iob_9754.coherence_fabric.topology == iob_9654.coherence_fabric.topology
+    assert iob_9754.memory.memory_bandwidth_gbps == iob_9654.memory.memory_bandwidth_gbps
+    assert iob_9754.memory.memory_controllers == iob_9654.memory.memory_controllers
+
+
+def test_die_size_smaller_than_9654(all_products):
+    """Cross-SKU sanity: Bergamo's package is ~17% smaller than Genoa's
+    despite +33% cores (8 CCDs vs 12, sharing the same IOD). Compares
+    chip-level die area sums across all dies."""
+    nine_seven = all_products.get("amd_epyc_9754_sp5")
+    nine_six = all_products.get("amd_epyc_9654_sp5")
+    if nine_seven is None or nine_six is None:
+        pytest.skip("both SKUs needed; this is a cross-SKU sanity check")
+    bergamo_area = sum(d.die_size_mm2 for d in nine_seven.dies)
+    genoa_area = sum(d.die_size_mm2 for d in nine_six.dies)
+    assert bergamo_area < genoa_area
+
+
+# ---------------------------------------------------------------------------
 # Power + market
 # ---------------------------------------------------------------------------
 
@@ -200,11 +401,12 @@ def test_performance_rollup(epyc):
 
 
 # ---------------------------------------------------------------------------
-# Silicon-bin reconciliation
+# Silicon-bin reconciliation (per-die after v13)
 # ---------------------------------------------------------------------------
 
-def test_silicon_bin_sums(epyc_compute_die):
-    """77600 (8 Zen 4c CCDs) + 0 (informational) + 12000 (IOD) = 89600 Mtx."""
+def test_compute_die_silicon_bin_sums_to_compute_tx(epyc_compute_die):
+    """Compute die's silicon_bin Mtx sum must match compute die's
+    transistors_billion (77.6 B = 77,600 Mtx)."""
     total_mtx = sum(
         b.transistor_source.mtx
         for b in epyc_compute_die.silicon_bin.blocks
@@ -212,3 +414,31 @@ def test_silicon_bin_sums(epyc_compute_die):
     )
     expected_mtx = epyc_compute_die.transistors_billion * 1000.0
     assert total_mtx == pytest.approx(expected_mtx)
+
+
+def test_io_die_silicon_bin_sums_to_io_tx(epyc_io_die):
+    """IO die's silicon_bin decomposes the Genoa IOD into 6 sub-blocks
+    summing to 12 B tx (shared with 9654)."""
+    total_mtx = sum(
+        b.transistor_source.mtx
+        for b in epyc_io_die.silicon_bin.blocks
+        if hasattr(b.transistor_source, "mtx")
+    )
+    expected_mtx = epyc_io_die.transistors_billion * 1000.0
+    assert total_mtx == pytest.approx(expected_mtx)
+
+
+def test_io_die_uses_canonical_block_names(epyc_io_die):
+    """Bergamo's IOD must use the canonical Genoa IOD silicon_bin
+    decomposition (iod_imc_*, iod_pcie_*, iod_glink_*, iod_infinity_fabric,
+    iod_psp_security, iod_pmc_*) established by 9654 in sprint #245 PR 3."""
+    names = {b.name for b in epyc_io_die.silicon_bin.blocks}
+    expected = {
+        "iod_imc_ddr5_phy",
+        "iod_pcie_gen5_phy",
+        "iod_glink_phy",
+        "iod_infinity_fabric",
+        "iod_psp_security",
+        "iod_pmc_smu_misc",
+    }
+    assert names == expected

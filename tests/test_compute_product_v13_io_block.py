@@ -350,16 +350,16 @@ def test_io_block_skus_in_catalog():
 
     Sprint #245 progress:
       - PR 2 (#79): schema only, additive (no SKUs).
-      - PR 3 (#TBD): EPYC 9654 first IOBlock-using SKU.
-      - PR 4-5: EPYC 9754 (reuses Genoa IOD) + EPYC 9965 (Turin IOD)
-        follow-on; bump this list as they land.
+      - PR 3 (#80): EPYC 9654 first IOBlock-using SKU.
+      - PR 4 (#TBD): EPYC 9754 (reuses Genoa IOD).
+      - PR 5: EPYC 9965 (Turin IOD) follow-on; bump this list as it lands.
 
     Verifying the set explicitly catches both directions:
       - Schema-only PRs accidentally adding SKUs (was the v13 schema PR's
         additive-guarantee invariant).
       - Data PRs that should land but don't (e.g., this test forces an
-        update when EPYC 9754 / 9965 land, which is desirable since
-        each is paired with downstream graphs PhysicalSpec work).
+        update when EPYC 9965 lands, which is desirable since each is
+        paired with downstream graphs PhysicalSpec work).
     """
     products = load_compute_products()
     io_skus = sorted(
@@ -367,8 +367,9 @@ def test_io_block_skus_in_catalog():
         for cp in products.values()
         if any(isinstance(b, IOBlock) for d in cp.dies for b in d.blocks)
     )
-    # Sprint #245 PR 3 introduced the first IOBlock SKU.
-    assert io_skus == ["amd_epyc_9654_sp5"]
+    # Sprint #245 PR 3 + PR 4: both AMD Genoa-class SKUs (Bergamo
+    # reuses the Genoa IOD silicon unchanged).
+    assert io_skus == ["amd_epyc_9654_sp5", "amd_epyc_9754_sp5"]
 
 
 def test_anyblock_union_count():

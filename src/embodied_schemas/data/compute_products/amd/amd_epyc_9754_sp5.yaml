@@ -1,11 +1,26 @@
 # AMD EPYC 9754 (Bergamo, Zen 4c, 128-core cloud-native datacenter SKU).
 #
-# Second AMD SKU in the data/compute_products/ catalog (joins the
-# Genoa-class EPYC 9654 from sprint #62 PR 1). First Zen 4c core
-# entry. Migrates the legacy data/cpus/amd/epyc_9754_sp5.yaml.
+# **v13 multi-die rewrite**: second SKU in the catalog using the
+# IOBlock kind (joins EPYC 9654 from sprint #245 PR 3). The compute
+# die and IO die are now expressed as separate ``Die`` entries in
+# ``dies[]``, joined by ``Die.interconnects[]`` entries representing
+# the 8 IFOP (Infinity Fabric On-Package) links between CCDs and the
+# IOD. Closes the single-virtual-die approximation that the original
+# sprint #62 PR 2 YAML carried.
 #
-# Sprint #62 PR 2 (second of 5 AMD/Ampere datacenter CPU SKUs in
-# the batch -- see embodied-schemas#62 and branes-ai/graphs#130).
+# Sprint #245 PR 4. Reuses the SAME Genoa IOD die (die_id ==
+# ``genoa_iod``) authored in PR 3 -- byte-identical IOBlock,
+# silicon_bin decomposition, area, and transistor count. Bergamo's
+# only delta from Genoa at the silicon level is the compute die:
+# 8 Zen 4c CCDs (vs 12 Zen 4 CCDs).
+#
+# Architecturally, EPYC 9754 is physically 9 chiplets (8 Zen 4c CCDs
+# + 1 Genoa IOD). The schema's ``dies[]`` aggregates these into 2
+# dies (1 compute die + 1 IO die) -- the 8 CCDs are summed into a
+# single compute die because the OS sees a flat 128-core / 256-thread
+# topology and the CPUBlock represents a single homogeneous cluster.
+# ``packaging.num_dies = 9`` still reflects the physical chiplet
+# count; ``dies[]`` is the schema's modeling aggregation.
 #
 # What's different from EPYC 9654 (Genoa):
 #   - **Zen 4c** core variant: physically denser layout (no logic
@@ -17,17 +32,16 @@
 #   - Lower clocks: base 2.25 GHz / boost 3.10 GHz / all-core ~2.65
 #     GHz (vs 9654's 2.4 / 3.7 / 3.55) -- denser cores hit lower max
 #     frequency.
-#   - **Same Genoa IOD** (TSMC N6, ~397 mm^2, ~12 B tx) -- Bergamo
-#     reuses the Genoa IOD silicon unchanged. The SP5 socket, 12-
-#     channel DDR5-4800 IMC, 128 PCIe Gen5 lanes, and Infinity
-#     Fabric topology are inherited 1:1.
+#   - 8 IFOP links (one per CCD) instead of 12.
 #   - Slightly cheaper MSRP ($10,632 vs $11,805) despite more cores
 #     -- positioned as the cloud-native scale-out SKU.
 #
 # What's the same: SP5 socket, 12-channel DDR5-4800 (460.8 GB/s),
 # 128 PCIe Gen5 lanes, CXL 1.1, MOESI-directory coherence over
 # Infinity Fabric, 360W TDP (configurable 320-400W cTDP), AMD
-# SEV-SNP.
+# SEV-SNP. **The Genoa IOD die is reused unchanged** -- same N6
+# silicon, same 397 mm^2 area, same ~12 B transistors, same IOBlock
+# field values byte-for-byte.
 #
 # Data sourced from:
 #   - AMD Bergamo launch press kit (June 2023)
@@ -35,6 +49,7 @@
 #   - Wikichip Zen 4c microarchitecture page
 #   - graphs/src/graphs/hardware/models/datacenter/amd_epyc_9754.py
 #     (the well-validated graphs mapper -- migration source)
+#   - AMD HotChips 2022 Genoa presentation (IOD decomposition -- IOD shared with 9654)
 #
 # Confidence: theoretical.
 #   - Operational specs (cores, threads, cache, TDP, memory, clocks,
@@ -51,15 +66,6 @@
 #     identical; differences are in the per-stage pipeline timing
 #     allowed by the smaller area, which net out at the FMA level).
 #
-# Chiplet modeling note (KNOWN SCHEMA LIMITATION -- shared with #62 PR 1):
-#   The schema's AnyBlock union still lacks an IOBlock/MemoryBlock
-#   kind, so this YAML mirrors the EPYC 9654 approach: a single
-#   virtual die with the silicon_bin decomposing across 8 CCDs +
-#   the Genoa IOD. packaging.num_dies=9 and packaging.kind=chiplet
-#   remain accurate; per-die process_node distinction (CCDs on N5,
-#   IOD on N6) lives in silicon_bin comments. Re-author once an
-#   IOBlock kind lands.
-#
 # Out of scope:
 #   - 3D V-Cache Bergamo variant (none ships at present).
 #   - EPYC 9684X / 9384X (Genoa-X) -- separate follow-up.
@@ -71,61 +77,39 @@ vendor: amd
 kind: chip
 packaging:
   kind: chiplet
-  num_dies: 9          # 8 Zen 4c CCDs + 1 Genoa IOD
+  num_dies: 9          # 8 Zen 4c CCDs + 1 Genoa IOD (physical chiplet count)
   package_type: sp5
 
 lifecycle: production
 
+# -----------------------------------------------------------------------------
+# dies[] aggregation: 8 CCDs collapse into 1 compute die; IOD is its own die.
+# packaging.num_dies=9 still reflects the physical chiplet count.
+# -----------------------------------------------------------------------------
 dies:
-- die_id: epyc_9754_virtual_die
+
+# ---------------------------------------------------------------------------
+# Die 1: Compute die (aggregate of 8 Zen 4c CCDs on TSMC N5)
+# ---------------------------------------------------------------------------
+- die_id: epyc_9754_compute_aggregate
   die_role: compute
-  # Primary process node = CCDs (TSMC N5; same as Zen 4 / Genoa CCDs).
-  # IOD on TSMC N6 -- captured in silicon_bin notes pending IOBlock.
   process_node_id: tsmc_n5
-  # Total package silicon area: 8 * 72.7 mm^2 (Zen 4c CCDs) + 397 mm^2 (IOD)
-  # = 978.6 mm^2 total. ~17% smaller package area than EPYC 9654 because
-  # fewer chiplets despite more cores (16-core Zen 4c vs 8-core Zen 4).
-  die_size_mm2: 978.6
-  # 8 * 9.7 B (Zen 4c CCDs, AMD-disclosed) + ~12 B (IOD, inherited from
-  # 9654 estimate) = 89.6 B transistors. Slightly fewer than 9654's
-  # 90.84 B despite 33% more cores -- the IOD is the dominant
-  # transistor budget across both SKUs.
-  transistors_billion: 89.6
+  die_size_mm2: 581.6          # 8 CCDs * 72.7 mm^2 each (AMD-disclosed, Zen 4c)
+  transistors_billion: 77.6    # 8 * 9.7 B (AMD-disclosed)
   silicon_bin:
     blocks:
-    # -------------------------------------------------------------------
-    # 8 Zen 4c CCDs on TSMC N5. Each CCD: 16 cores + 16 MB L3 + L2 +
-    # L1 + Infinity Fabric On-Package (IFOP) link. AMD disclosed
-    # ~9.7 B transistors per CCD at the Bergamo launch -- denser
-    # layout fits twice the cores in ~10% more area than Zen 4 CCD.
-    # Total: 8 * 9.7 = 77.6 B for all CCDs.
     - name: zen4c_ccds
       circuit_class: hp_logic
       transistor_source:
         kind: fixed
         mtx: 77600.0
       notes: 8x Zen 4c CCDs on TSMC N5 @ ~9.7 B tx each (AMD-disclosed). Each CCD = 16 cores + 16 MB L3 + IFOP. Denser layout vs Zen 4, lower max clock.
-    # -------------------------------------------------------------------
-    # Per-CCD caches (32 KB L1D + 32 KB L1I + 1 MB L2 per core +
-    # 16 MB shared L3 per CCD) are included in the zen4c_ccds total
-    # above. Listed as zero so the silicon_bin sum matches.
     - name: ccd_caches_informational
       circuit_class: sram_hd
       transistor_source:
         kind: fixed
         mtx: 0.0
-      notes: Per-CCD caches (32 KB L1D + 32 KB L1I + 1 MB L2 per core + 16 MB shared L3 per CCD) -- included in zen4c_ccds, not double-counted.
-    # -------------------------------------------------------------------
-    # Genoa IOD on TSMC N6, identical to the IOD in EPYC 9654 (Bergamo
-    # reuses Genoa's IOD die unchanged). 12 DDR5 IMCs + 128 PCIe Gen5
-    # lanes + 4x G-link + Infinity Fabric routers + AMD security
-    # processor (PSP). ~12 B transistors estimated.
-    - name: genoa_iod
-      circuit_class: balanced_logic
-      transistor_source:
-        kind: fixed
-        mtx: 12000.0
-      notes: Genoa IOD on TSMC N6 (same physical die as EPYC 9654). ~397 mm^2 -- 12 DDR5 IMC + 128 PCIe Gen5 + 4x G-link + Infinity Fabric + PSP.
+      notes: Per-CCD caches (32 KB L1D + 32 KB L1I + 1 MB L2 per core + 16 MB shared L3 per CCD) -- included in zen4c_ccds total, not double-counted.
   clocks:
     base_clock_mhz: 2250.0
     boost_clock_mhz: 3100.0
@@ -206,7 +190,139 @@ dies:
     min_occupancy: 0.5
     max_concurrent_threads: 256   # 128 cores * 2 SMT
     wave_quantization: 1
-  interconnects: []
+  # ---------------------------------------------------------------------------
+  # Compute-die-side of the chiplet interconnect: 8 IFOP links to the IOD.
+  # Each CCD has its own IFOP link to the Genoa IOD's central fabric. The
+  # 8 links are point-to-point coherent connections (one per CCD); the
+  # IOD aggregates them into the Infinity Fabric directory protocol.
+  # Bergamo uses 8 IFOPs instead of Genoa's 12 (one per CCD; CCD count drops).
+  # ---------------------------------------------------------------------------
+  interconnects:
+  - interconnect_id: ifop_compute_to_iod
+    level: die_to_die
+    topology: point_to_point
+    per_link_bandwidth_gbps: 36.0    # IFOP per-link ~36 GB/s (AMD HotChips 2022; same SerDes as Genoa)
+    per_link_latency_ns: 5.0
+    per_link_energy_pj_per_byte: 6.0
+    num_links: 8                     # one IFOP per CCD (vs 12 on Genoa)
+    coherent: true
+    notes: 8x IFOP (Infinity Fabric On-Package) links from each Zen 4c CCD to the Genoa IOD. Point-to-point coherent (CCDs participate in directory-MESI through the IOD's IF routers). Same SerDes as Genoa, fewer instances.
+
+# ---------------------------------------------------------------------------
+# Die 2: Genoa IO die (TSMC N6) -- REUSED UNCHANGED from EPYC 9654.
+# Same physical die as authored in sprint #245 PR 3. die_id, area,
+# transistor count, silicon_bin decomposition, and IOBlock field values
+# are byte-identical to amd_epyc_9654_sp5.yaml.
+# ---------------------------------------------------------------------------
+- die_id: genoa_iod
+  die_role: io
+  process_node_id: tsmc_n6        # Genoa IOD ships on N6 (vs CCDs' N5)
+  die_size_mm2: 397.0             # Industry-consensus IOD area estimate
+  transistors_billion: 12.0       # ~12 B estimate; AMD did not publish
+  silicon_bin:
+    blocks:
+    # -------------------------------------------------------------------
+    # 12x DDR5 memory controller + PHY. Largest single area consumer on
+    # the IOD per AMD HotChips 2022 die-shot analysis (~30% of IOD area).
+    # ~3.5 B tx total for the IMC complex.
+    - name: iod_imc_ddr5_phy
+      circuit_class: analog
+      transistor_source:
+        kind: fixed
+        mtx: 3500.0
+      notes: 12-channel DDR5-4800 IMC + PHY. Includes per-channel DRAM controller, scheduler, and analog SerDes/PHY blocks.
+    # -------------------------------------------------------------------
+    # 128 PCIe Gen5 lanes + controllers. Distributed across 4 IO hubs in
+    # the IOD per AMD's published topology. ~2.5 B tx for the full PCIe
+    # surface (4 hubs * 32 lanes + controllers + CXL 1.1 routing).
+    - name: iod_pcie_gen5_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 2500.0
+      notes: 128 PCIe Gen5 lanes (4 IO hubs of 32 lanes each) + CXL 1.1 routing over PCIe-physical-layer.
+    # -------------------------------------------------------------------
+    # 4x G-link inter-socket coherence links (active in 2P configs; only
+    # 1P uses 0 of these). ~1 B tx for the 4-link SerDes complex.
+    - name: iod_glink_phy
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: 4x G-link inter-socket SerDes (used in 2P platforms; idle in 1P). Each link ~250 GB/s.
+    # -------------------------------------------------------------------
+    # Infinity Fabric routers + directory-MESI coherence engine. The
+    # "fabric heart" of the IOD per AMD's chiplet architecture briefs.
+    # ~3 B tx including the directory and ordering logic.
+    - name: iod_infinity_fabric
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 3000.0
+      notes: Infinity Fabric routers + directory-MESI coherence engine. Connects IFOPs (one per CCD) + 12 IMC channels + 128 PCIe lanes + 4 G-links in a coherent fabric.
+    # -------------------------------------------------------------------
+    # AMD Platform Security Processor (PSP) -- ARM Cortex-A5-based
+    # secure processor. ~1 B tx including the PSP core + dedicated SRAM
+    # + cryptographic engines + secure-boot ROM.
+    - name: iod_psp_security
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: AMD Platform Security Processor (PSP) -- ARM Cortex-A5 secure processor + dedicated SRAM + crypto engines + boot-attestation logic.
+    # -------------------------------------------------------------------
+    # Power management controller + system management unit (SMU) +
+    # clock generation + boot ROM + miscellaneous fixed-function logic.
+    # ~1 B tx for the management complex.
+    - name: iod_pmc_smu_misc
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 1000.0
+      notes: SMU (system management unit) + PMC (power management controller) + clock generation + boot ROM + misc fixed-function silicon.
+  clocks:
+    base_clock_mhz: 2000.0           # IOD runs at its own clock (separate from CCD core clocks)
+    boost_clock_mhz: 2000.0          # Fixed-frequency on the IOD side
+  blocks:
+  # ---------------------------------------------------------------------------
+  # The IOBlock -- byte-identical to EPYC 9654 (same physical IOD).
+  # ---------------------------------------------------------------------------
+  - kind: io
+    memory:
+      memory_type: ddr5
+      memory_size_gb: 6144.0
+      memory_bus_bits: 768
+      memory_bandwidth_gbps: 460.8   # 12 * 4800 MT/s * 8 B
+      memory_controllers: 12
+      ecc_supported: true
+      memory_controller_energy_pj_per_byte: 5.0   # IMC-level per-byte cost (separate from PHY/DRAM access)
+    coherence_fabric:
+      topology: infinity_fabric
+      bisection_bandwidth_gbps: 2048.0
+      unit_count: 12                  # IOD-internal fabric stop count (full 12-stop IF; only 8 actively used in Bergamo)
+      flit_size_bytes: 32
+      hop_latency_ns: 5.0
+      pj_per_flit_per_hop: 18.0
+      routing_distance_factor: 2.0
+      confidence: theoretical
+    pcie_lanes: 128
+    pcie_generation: pcie_5.0
+    cxl_supported: true
+    cxl_version: "1.1"
+    inter_socket_links:
+    - name: AMD G-link
+      bandwidth_per_link_gbps: 250.0
+      link_count: 4                   # 4 G-links per IOD (active in 2P configs)
+    security_processor_kind: AMD PSP
+    security_processor_die_area_mm2: 8.0   # PSP estimate from die-shot analyses
+    power_management_controller: true
+    boot_rom_present: true
+    idle_power_watts: 40.0             # Genoa IOD idle estimate (memory PHY refresh + PSP heartbeat + fabric)
+  interconnects: []                    # IO die's IFOP links are modeled from the compute-die side
+
+# -----------------------------------------------------------------------------
+# Chip-level roll-ups
+# -----------------------------------------------------------------------------
 
 # Chip-level performance roll-up at the 360W TDP profile, all-core
 # boost of 2.65 GHz:
@@ -252,18 +368,36 @@ market:
 
 confidence: theoretical
 notes: >
-  AMD EPYC 9754 -- second AMD SKU in the catalog and first Zen 4c
-  entry. Bergamo cloud-native EPYC: 128 Zen 4c cores in 8 CCDs on
-  TSMC N5, paired with the same Genoa IOD on TSMC N6 used by EPYC
-  9654. Positioned as the high-thread-count scale-out SKU; same
-  socket/IMC/memory/PCIe envelope as Genoa, lower per-core L3, and
-  lower max clock.
+  AMD EPYC 9754 -- second SKU in the catalog to use the v13 IOBlock
+  kind (joins EPYC 9654 from sprint #245 PR 3). Multi-die representation:
+  1 compute die aggregating 8 Zen 4c CCDs (TSMC N5, 581.6 mm^2 / 77.6 B
+  tx) + 1 Genoa IOD on TSMC N6 (397 mm^2 / ~12 B tx) -- the IOD is
+  reused unchanged from EPYC 9654 (same physical die). Joined by 8x
+  IFOP point-to-point coherent links modeled on the compute die's
+  interconnects[] field.
 
   Zen 4c shares Zen 4's ISA byte-for-byte (full AVX-512, AVX-512_BF16,
   AVX-512_VNNI). The "c" suffix indicates a physical-layout choice
   (denser cells, smaller floorplan, lower max frequency) optimized
   for core density at the same node, not an architectural reduction.
   All AI-relevant instructions execute identically to Zen 4.
+
+  Per-die process node distinction is now visible at the schema level:
+  CCDs on tsmc_n5, IOD on tsmc_n6. This was previously collapsed to
+  tsmc_n5 in the single-virtual-die representation.
+
+  packaging.num_dies=9 still reflects the physical chiplet count
+  (8 CCDs + 1 IOD). The dies[] aggregation (2 entries: compute + IO)
+  reflects the schema's modeling convention.
+
+  IOBlock fields populated per AMD HotChips 2022 disclosures (shared
+  with Genoa IOD):
+    - 12-channel DDR5-4800 IMC + ECC (memory_controllers=12)
+    - 128 PCIe Gen5 lanes + CXL 1.1
+    - 4x G-link inter-socket coherence links (250 GB/s per link)
+    - Infinity Fabric coherence_fabric topology
+    - AMD PSP security processor + PMC + boot ROM
+    - 40W IOD idle power estimate
 
   Memory: 12-channel DDR5-4800, 460.8 GB/s peak. L3 LLC 128 MB total,
   distributed 16 MB per CCD across 8 CCDs (vs 384 MB / 32 MB per CCD
@@ -272,11 +406,9 @@ notes: >
   Power: 360W default TDP (cTDP 320-400W). Idle estimated ~95W (vs
   ~90W on 9654 -- higher due to 33% more cores).
 
-  CHIPLET MODELING (see header comment): EPYC 9754 is physically 9
-  dies (8 Zen 4c CCDs + 1 Genoa IOD on a different process node).
-  The schema currently lacks an IOBlock / MemoryBlock kind, so this
-  YAML uses the same single-virtual-die approximation as EPYC 9654.
-  packaging.num_dies=9 and packaging.kind=chiplet remain accurate;
-  the dies[] list is the approximation. Re-author once embodied-
-  schemas adds an IOBlock kind.
-last_updated: '2026-05-20'
+  History: this YAML was originally authored in sprint #62 PR 2 (#64)
+  with a single virtual die (the IOBlock kind didn't exist yet). The
+  v13 IOBlock schema (#79) enabled the proper multi-die representation;
+  this PR (sprint #245 PR 4) is the second re-author to use it,
+  following EPYC 9654 (PR 3).
+last_updated: '2026-05-23'
