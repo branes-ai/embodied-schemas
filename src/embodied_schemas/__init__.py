@@ -274,9 +274,17 @@ from embodied_schemas.dsp_block import (
     DSPFabricKind,
     DSPDeploymentKind,
 )
+from embodied_schemas.io_block import (
+    IOBlock,
+    IOMemorySubsystem,
+    IOOnDieFabric,
+    IOFabricTopology,
+    InterSocketLink,
+)
 from embodied_schemas.compute_block_common import (
     DramAttachment,
     OnDieFabric,
+    PCIeGen,
     TheoreticalPerformance,
     ThermalProfile,
 )
@@ -571,9 +579,16 @@ __all__ = [
     "DSPTheoreticalPerformance",
     "DSPFabricKind",
     "DSPDeploymentKind",
-    # v8/v9/v10/v11 unified primitives (compute_block_common)
+    # v13 IOBlock (first non-compute block kind)
+    "IOBlock",
+    "IOMemorySubsystem",
+    "IOOnDieFabric",
+    "IOFabricTopology",
+    "InterSocketLink",
+    # v8/v9/v10/v11/v13 unified primitives (compute_block_common)
     "TheoreticalPerformance",
     "ThermalProfile",
+    "PCIeGen",
     "OnDieFabric",
     "DramAttachment",
     # Version
