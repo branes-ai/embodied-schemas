@@ -89,7 +89,7 @@ from embodied_schemas.process_node import (
     CircuitClass,
     DataConfidence,
 )
-from embodied_schemas.gpu import MemoryType
+from embodied_schemas.gpu import MemoryType, PCIeGen
 from embodied_schemas.gpu_block import ClockDomain
 
 
