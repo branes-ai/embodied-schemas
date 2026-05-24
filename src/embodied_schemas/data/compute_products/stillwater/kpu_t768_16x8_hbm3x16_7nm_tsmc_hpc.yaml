@@ -172,14 +172,14 @@ performance:
   fp32_tflops: 27.1
   int4_tops: 756.1
 power:
-  tdp_watts: 60.0
-  max_power_watts: 100.0
-  min_power_watts: 30.0
+  tdp_watts: 59.2
+  max_power_watts: 102.3
+  min_power_watts: 27.7
   idle_power_watts: 3.35
   default_thermal_profile: 60W
   thermal_profiles:
   - name: 30W
-    tdp_watts: 30.0
+    tdp_watts: 27.7
     clock_mhz: 1075.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:
@@ -192,7 +192,7 @@ power:
       int4: 0.96
     vdd_v: 0.55
   - name: 60W
-    tdp_watts: 60.0
+    tdp_watts: 59.2
     clock_mhz: 1375.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:
@@ -205,7 +205,7 @@ power:
       int4: 0.97
     vdd_v: 0.7
   - name: 100W
-    tdp_watts: 100.0
+    tdp_watts: 102.3
     clock_mhz: 1550.0
     cooling_solution_id: liquid_cooled
     efficiency_factor_by_precision:
