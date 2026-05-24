@@ -38,7 +38,7 @@ clocks:
 memory:
   memory_size_gb: 8.0
   memory_type: lpddr5
-  memory_bus_bits: 64
+  memory_bus_bits: 128        # fixed via #8: NVIDIA datasheet confirms 128-bit LPDDR5-4267; bandwidth math (68 GB/s / 4.267 GT/s) also yields 128
   memory_bandwidth_gbps: 68.0
   l2_cache_mb: 0.5
   ecc_support: false
