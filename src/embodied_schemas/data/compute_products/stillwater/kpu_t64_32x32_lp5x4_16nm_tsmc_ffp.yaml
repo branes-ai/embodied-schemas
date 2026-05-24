@@ -170,7 +170,7 @@ power:
       int8: 0.9
       bf16: 0.85
       int4: 0.92
-    vdd_v: 0.6
+    vdd_v: 0.636
   - name: 6W
     tdp_watts: 6.0
     clock_mhz: 475.0
@@ -183,7 +183,7 @@ power:
       int8: 0.93
       bf16: 0.88
       int4: 0.95
-    vdd_v: 0.75
+    vdd_v: 0.759
   - name: 10W
     tdp_watts: 10.0
     clock_mhz: 550.0
@@ -196,7 +196,7 @@ power:
       int8: 0.95
       bf16: 0.9
       int4: 0.97
-    vdd_v: 0.9
+    vdd_v: 0.896
 market:
   launch_date: 2025-Q4
   target_market: edge
