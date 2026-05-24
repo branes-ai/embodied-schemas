@@ -188,6 +188,19 @@ class ProcessNodeEntry(BaseModel):
         default_factory=dict,
         description="Per-library leakage power density (W/mm^2) at nominal Vdd / Tj",
     )
+    leakage_vdd_exponent: float | None = Field(
+        None,
+        ge=0,
+        description=(
+            "Leakage power scales as (Vdd / nominal_vdd_v) ** leakage_vdd_exponent "
+            "when the operating Vdd departs from nominal. leakage_w_per_mm2 is the "
+            "value AT nominal Vdd; consumers (e.g. the KPU power model) apply this "
+            "exponent to derive leakage at lower-power DVFS profiles. Sub-threshold "
+            "and gate leakage both fall steeply with Vdd; the effective power "
+            "exponent for FinFET is typically ~3-5 (HVT-heavy designs ~6-8). "
+            "Default None = leakage held flat across Vdd (legacy behavior)."
+        ),
+    )
     energy_per_op_pj: dict[str, float] = Field(
         default_factory=dict,
         description=(
