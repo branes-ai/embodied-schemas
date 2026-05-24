@@ -67,6 +67,14 @@ leakage_w_per_mm2:
   analog: 0.002
   io: 0.0008
 
+# Leakage-power vs Vdd exponent: leakage scales (Vdd/Vnom)^exp below nominal.
+# N7 (ULVT/LVT/SVT/HVT) has stronger DIBL than N16 and a more aggressive ULVT
+# corner, so leakage is more Vdd-sensitive -- effective leakage-power exponent
+# ~4.5 over a 0.75 -> 0.55 V DVFS range. THEORETICAL -- replace with PDK
+# characterization when available.
+# Source: FinFET sub-threshold + DIBL scaling; TSMC N7 DVFS disclosures.
+leakage_vdd_exponent: 4.5
+
 energy_per_op_pj:
   hp_logic:fp32: 1.4
   hp_logic:bf16: 0.7

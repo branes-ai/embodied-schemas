@@ -69,6 +69,14 @@ leakage_w_per_mm2:
   analog: 0.001
   io: 0.0005
 
+# Leakage-power vs Vdd exponent: leakage scales (Vdd/Vnom)^exp below nominal.
+# 16FF+ is a mixed-Vt FinFET node (LVT/SVT/HVT). Sub-threshold leakage falls
+# ~exp((Vgs-Vth)/nVT) and DIBL adds Vds dependence; the effective leakage-POWER
+# exponent over a modest DVFS range (0.8 -> 0.6 V) lands around 4 for a balanced
+# Vt mix. THEORETICAL -- replace with PDK characterization when available.
+# Source: FinFET sub-threshold + DIBL scaling; Wikichip 16FF+ DVFS notes.
+leakage_vdd_exponent: 4.0
+
 # Energy per op (pJ), keyed "<class>:<precision>". From published 16nm
 # datapath analyses; each is a coarse rollup of MAC + register + clock.
 energy_per_op_pj:
