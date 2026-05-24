@@ -170,7 +170,7 @@ power:
       int8: 0.93
       bf16: 0.88
       int4: 0.95
-    vdd_v: 0.6
+    vdd_v: 0.623
   - name: 30W
     tdp_watts: 30.0
     clock_mhz: 600.0
@@ -183,7 +183,7 @@ power:
       int8: 0.95
       bf16: 0.9
       int4: 0.97
-    vdd_v: 0.75
+    vdd_v: 0.753
   - name: 50W
     tdp_watts: 50.0
     clock_mhz: 700.0
@@ -196,7 +196,7 @@ power:
       int8: 0.97
       bf16: 0.92
       int4: 0.98
-    vdd_v: 0.9
+    vdd_v: 0.887
 market:
   launch_date: 2026-Q2
   launch_msrp_usd: 1092.0
