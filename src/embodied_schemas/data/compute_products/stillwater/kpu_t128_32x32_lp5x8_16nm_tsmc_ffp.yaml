@@ -170,7 +170,7 @@ power:
       int8: 0.91
       bf16: 0.86
       int4: 0.93
-    vdd_v: 0.6
+    vdd_v: 0.634
   - name: 12W
     tdp_watts: 12.0
     clock_mhz: 475.0
@@ -183,7 +183,7 @@ power:
       int8: 0.94
       bf16: 0.89
       int4: 0.96
-    vdd_v: 0.75
+    vdd_v: 0.756
   - name: 18W
     tdp_watts: 18.0
     clock_mhz: 500.0
@@ -196,7 +196,7 @@ power:
       int8: 0.96
       bf16: 0.91
       int4: 0.97
-    vdd_v: 0.9
+    vdd_v: 0.886
 market:
   launch_date: 2026-Q1
   target_market: embodied
