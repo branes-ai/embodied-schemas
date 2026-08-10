@@ -58,6 +58,18 @@ class FormFactor(str, Enum):
     RACK = "rack"
     M2 = "m2"
     MXMX = "mxm"  # MXM module
+    # VITA / SOSA open-standard form factors
+    VPX_3U = "vpx_3u"  # VITA 46/65, 160×100 mm
+    VPX_6U = "vpx_6u"  # VITA 46/65, 233×160 mm
+    VNX_19MM = "vnx_19mm"  # VITA 90 VNX+, 78×89×19 mm pitch
+    VNX_39MM = "vnx_39mm"  # VITA 90 VNX+, 78×89×39 mm pitch
+    QMC_X1 = "qmc_x1"  # VITA 93 single mezzanine, 26×78.25 mm
+    QMC_X2 = "qmc_x2"  # VITA 93 double mezzanine, 52.5×78.25 mm
+    QMC_X4 = "qmc_x4"  # VITA 93 quad mezzanine, 104×78.25 mm
+    ATR = "atr"  # ARINC 404 Air Transport Rack
+    HALF_ATR = "half_atr"  # Half-ATR enclosure
+    CPCI = "cpci"  # CompactPCI
+    CPCI_SERIAL = "cpci_serial"  # CompactPCI Serial
 
 
 class LifecycleStatus(str, Enum):
@@ -100,6 +112,15 @@ class PhysicalSpec(BaseModel):
     mounting: str | None = Field(
         None, description="Mounting type: carrier_board, direct, rack, etc."
     )
+    # SOSA / MIL-STD compliance
+    vita_standard: str | None = Field(
+        None, description="Primary VITA standard: VITA 46, VITA 65, VITA 90, VITA 93"
+    )
+    sosa_profile: str | None = Field(
+        None, description="SOSA slot profile identifier, e.g. SOS-001-01.1.1-022"
+    )
+    conduction_cooled: bool = Field(False, description="Conduction-cooled variant available")
+    conformal_coated: bool = Field(False, description="Conformal coating applied")
 
 
 class EnvironmentalSpec(BaseModel):
@@ -118,6 +139,19 @@ class EnvironmentalSpec(BaseModel):
     vibration_g: float | None = Field(None, description="Max sustained vibration in g")
     shock_g: float | None = Field(None, description="Max shock in g")
     altitude_m: float | None = Field(None, description="Max operating altitude in meters")
+    # MIL-STD qualifications
+    mil_std_810: str | None = Field(
+        None, description="MIL-STD-810 revision, e.g. 810H"
+    )
+    mil_std_461: str | None = Field(
+        None, description="MIL-STD-461 revision for EMI/EMC, e.g. 461G"
+    )
+    mil_std_704: str | None = Field(
+        None, description="MIL-STD-704 revision for aircraft power, e.g. 704F"
+    )
+    mil_std_1275: str | None = Field(
+        None, description="MIL-STD-1275 revision for ground vehicle power, e.g. 1275F"
+    )
 
 
 class PowerSpec(BaseModel):
@@ -290,6 +324,77 @@ class HardwareEntry(BaseModel):
     gpu_id: str | None = Field(
         None, description="Reference to GPUEntry for integrated GPU specs (e.g., Jetson, Apple M-series)"
     )
+
+    model_config = {"extra": "forbid"}
+
+
+class SlotAssignment(BaseModel):
+    """A card installed in a specific chassis slot."""
+
+    slot_number: int = Field(..., description="Slot position (1-based)")
+    card_id: str = Field(..., description="HardwareEntry ID of the plug-in card")
+    role: str = Field(
+        ...,
+        description="Functional role: sbc, gpu, fpga, switch, io, psu",
+    )
+    power_watts: float | None = Field(
+        None, description="Power draw of this card in watts"
+    )
+
+
+class SystemConfiguration(BaseModel):
+    """A SOSA/VPX/VNX+ system composed of chassis + plug-in cards + mezzanines.
+
+    Models a multi-card open-standard system where a chassis provides a
+    backplane and slots, and cards are assigned to slots.  Used for
+    SWaP-C roll-up and slot-assignment optimization.
+    """
+
+    id: str = Field(..., description="Unique identifier, e.g. elma_raptor_x5_uas")
+    name: str = Field(..., description="Human-readable configuration name")
+    vendor: str = Field(..., description="System integrator / chassis vendor")
+    chassis_id: str = Field(..., description="HardwareEntry ID of the chassis")
+    backplane_slots: int = Field(..., description="Total backplane slots")
+    cards: list[SlotAssignment] = Field(
+        default_factory=list, description="Cards installed in slots"
+    )
+    mezzanines: list[str] = Field(
+        default_factory=list,
+        description="HardwareEntry IDs of QMC/XMC mezzanines attached to host cards",
+    )
+
+    # System-level roll-up
+    total_power_watts: float | None = Field(
+        None, description="Aggregate power consumption of all cards"
+    )
+    total_weight_grams: float | None = Field(
+        None, description="Total system weight including chassis"
+    )
+    total_volume_cm3: float | None = Field(
+        None, description="Total system volume (chassis envelope)"
+    )
+    total_cost_usd: float | None = Field(
+        None, description="Estimated system cost (cards + chassis)"
+    )
+
+    # Standards compliance
+    vita_standard: str | None = Field(
+        None, description="Primary VITA standard: VITA 46/65, VITA 90, etc."
+    )
+    sosa_aligned: bool = Field(False, description="SOSA Technical Standard aligned")
+    mil_standards: list[str] = Field(
+        default_factory=list,
+        description="MIL-STD qualifications: MIL-STD-810H, MIL-STD-461G, etc.",
+    )
+
+    # Deployment classification
+    suitable_for: list[str] = Field(
+        default_factory=list,
+        description="Deployment contexts: uas, ugv, usv, c5isr, eoir, etc.",
+    )
+
+    notes: str = Field("", description="Additional notes")
+    last_updated: str = Field(..., description="Last update date (YYYY-MM-DD)")
 
     model_config = {"extra": "forbid"}
 

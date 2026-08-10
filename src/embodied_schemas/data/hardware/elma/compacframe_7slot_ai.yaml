@@ -1,0 +1,93 @@
+# Elma AI-Optimized CompacFrame 7-Slot 3U VPX Development Platform — SOSA Aligned
+# Source: https://products.elma.com/products/ai-optimized-3u-vpx-development-platform-for-gpus-aligned-to-sosa
+
+id: elma_compacframe_7slot_ai
+name: Elma AI-Optimized CompacFrame 7-Slot 3U VPX
+vendor: elma
+model: CompacFrame AI (39S06NWX94Y3VCC0-6AUP)
+hardware_type: cpu
+
+compute_paradigm: von_neumann
+optimized_for:
+  - general_purpose
+
+capabilities:
+  peak_tops_int8: null  # Depends on installed cards
+  peak_tflops_fp16: null
+  peak_tflops_fp32: null
+  memory_gb: 0.0  # Chassis only — cards provide compute/memory
+  memory_type: null
+  memory_bandwidth_gbps: null
+  frameworks: []
+  quantization_support: []
+  inference_runtimes: []
+
+physical:
+  weight_grams: 12000.0  # Estimated for 7-slot 3U VPX chassis
+  dimensions_mm: [483.0, 177.0, 300.0]  # 19" rackmount estimated
+  form_factor: vpx_3u
+  mounting: rack
+  vita_standard: "VITA 46/62/65"
+  sosa_profile: "SOSA 1.0"
+  conduction_cooled: true
+  conformal_coated: false
+
+environmental:
+  operating_temp_c: [0, 55]  # Development chassis, not full MIL
+  storage_temp_c: [-40, 85]
+
+power:
+  input_voltage_v: [100.0, 240.0]  # AC PSU via VITA 62
+  power_modes:
+    - name: "Full Load"
+      power_watts: 400.0
+      description: All 6 payload slots populated at max TDP
+  tdp_watts: 400.0
+  typical_power_watts: 250.0
+  battery_compatible: false
+
+interfaces:
+  usb3: 1  # Rear maintenance port aggregator
+  pcie_lanes: 16  # 16x PCIe expansion plane between slots 5-6 for GPU mesh
+  pcie_gen: 4
+  ethernet: 100gbps  # 1/10/25/40/100 GBASE-KR4
+
+software:
+  os: []  # Chassis — OS runs on installed SBC cards
+  sdk: null
+  frameworks: []
+  inference_runtimes: []
+  container_support: false
+
+suitable_for:
+  - edge
+  - ugv
+  - c5isr
+  - eoir
+  - sigint
+target_applications:
+  - mission_computing
+  - ai_inference
+  - sensor_fusion
+  - signal_processing
+  - video_analytics
+
+cost_usd: null  # Defense RFQ pricing
+availability: limited
+lifecycle_status: new
+
+notes: |
+  7-slot CompacFrame: 6x SOSA-aligned payload slots + 1x VITA 62 PSU.
+  GPU-optimized: 16x PCIe expansion plane between slots 5-6 for meshed
+  GPU connectivity with SBC-to-GPU coupling through the backplane.
+  Dual-domain Ethernet switch: 1/10/25/40/100 GBASE-KR4.
+  Routed expansion plane supports PCIe Gen 4 data rates.
+  Accommodates both air-cooled and conduction-cooled payload boards.
+  Full SOSA-aligned V46.11 chassis manager.
+  Maintenance port aggregator to all slots via USB rear connector.
+  Designed for C5ISR, EO/IR, SIGINT applications with AI/ML.
+datasheet_url: null
+product_url: https://products.elma.com/products/ai-optimized-3u-vpx-development-platform-for-gpus-aligned-to-sosa
+last_updated: "2026-04-14"
+chip_id: null
+gpu_id: null

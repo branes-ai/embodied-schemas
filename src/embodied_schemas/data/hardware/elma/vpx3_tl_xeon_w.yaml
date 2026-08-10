@@ -1,0 +1,105 @@
+# Elma VPX3-TL 3U VPX Rugged Processor Card — SOSA Aligned
+# Source: https://products.elma.com/products/3u-vpx-rugged-processor-card-vpx3-tl-series-sosa-aligned
+
+id: elma_vpx3_tl_xeon_w
+name: Elma VPX3-TL 3U VPX Rugged Processor Card
+vendor: elma
+model: VPX3-TL
+hardware_type: cpu
+
+compute_paradigm: von_neumann
+optimized_for:
+  - general_purpose
+  - fp32
+
+capabilities:
+  peak_tops_int8: null
+  peak_tflops_fp16: null
+  peak_tflops_fp32: 0.9  # Intel Xeon W-11865MRE, 8C @ 2.8 GHz base, AVX-512
+  memory_gb: 32.0
+  memory_type: DDR4-2666 ECC
+  memory_bandwidth_gbps: 42.7  # Dual-channel DDR4-2666
+  frameworks:
+    - ONNX
+    - OpenVINO
+  quantization_support:
+    - fp32
+    - fp16
+    - int8
+  inference_runtimes:
+    - OpenVINO
+
+physical:
+  weight_grams: 400.0  # Estimated for 3U VPX card
+  dimensions_mm: [160.0, 100.0, 25.4]  # 3U VPX standard, 1" pitch
+  form_factor: vpx_3u
+  mounting: backplane
+  vita_standard: "VITA 46/47/48/65"
+  sosa_profile: "SOSA payload"
+  conduction_cooled: true
+  conformal_coated: true
+
+environmental:
+  operating_temp_c: [-40, 85]
+  storage_temp_c: [-55, 105]
+  mil_std_810: "810H"
+
+power:
+  input_voltage_v: [3.3, 12.0]  # Via VPX backplane
+  power_modes:
+    - name: "45W"
+      power_watts: 45.0
+      cpu_freq_mhz: 2800
+      description: Full performance — Intel Xeon W-11865MRE 8-core
+  tdp_watts: 45.0
+  typical_power_watts: 35.0
+  battery_compatible: false
+
+interfaces:
+  usb3: 1
+  pcie_lanes: 8  # XMC expansion slot PCIe x8 Gen3 to P2 rear I/O
+  pcie_gen: 3
+  ethernet: 10gbps  # 2x 10GBASE-KR to P1 + 1x 2.5GBASE-T to P2
+  displayport: 1  # DP++ to P2, supports 8K/60Hz
+
+software:
+  os:
+    - Windows 10
+    - Linux
+    - VxWorks 7
+  sdk: null
+  frameworks:
+    - OpenVINO
+    - ONNX Runtime
+  inference_runtimes:
+    - OpenVINO
+  container_support: true
+
+suitable_for:
+  - edge
+  - uas
+  - ugv
+  - c5isr
+  - eoir
+target_applications:
+  - general_purpose
+  - mission_computing
+  - sensor_fusion
+
+cost_usd: null  # Defense RFQ pricing
+availability: limited
+lifecycle_status: new
+
+notes: |
+  Intel Xeon W-11865MRE (Tiger Lake-H), 8 cores, 45W TDP.
+  32GB DDR4-2666 soldered ECC (roadmap to 64GB).
+  Up to 1TB M.2 NVMe/SATA storage.
+  XMC expansion slot with PCIe x8 Gen3.
+  2x 10GBASE-KR + 1x 2.5GBASE-T networking.
+  UEFI secure boot with dual 256Mbit SPI flash.
+  SOSA-aligned 3U VPX, VITA 46/47/48/65 compliant.
+datasheet_url: null
+product_url: https://products.elma.com/products/3u-vpx-rugged-processor-card-vpx3-tl-series-sosa-aligned
+last_updated: "2026-04-14"
+chip_id: null
+gpu_id: null

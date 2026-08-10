@@ -1,0 +1,90 @@
+# Elma FlexVNX+ 8-Slot Test and Development Platform — SOSA / VITA 90
+# Source: https://products.elma.com/products/flexvnx-8-slot-test-and-development-platform-aligned-to-sosa-and-vita-90-standards
+
+id: elma_flexvnx_8slot
+name: Elma FlexVNX+ 8-Slot Development Platform
+vendor: elma
+model: FlexVNX+ 8-Slot
+hardware_type: cpu
+
+compute_paradigm: von_neumann
+optimized_for:
+  - general_purpose
+
+capabilities:
+  peak_tops_int8: null  # Depends on installed PICs
+  peak_tflops_fp16: null
+  peak_tflops_fp32: null
+  memory_gb: 0.0  # Chassis only — PICs provide compute/memory
+  memory_type: null
+  memory_bandwidth_gbps: null
+  frameworks: []
+  quantization_support: []
+  inference_runtimes: []
+
+physical:
+  weight_grams: 4000.0  # Estimated for 8-slot VNX+ dev chassis
+  dimensions_mm: [250.0, 120.0, 100.0]  # Estimated — compact desktop
+  form_factor: vnx_19mm
+  mounting: desktop
+  vita_standard: "VITA 90"
+  sosa_profile: "SOSA VNX+"
+  conduction_cooled: false
+  conformal_coated: false
+
+environmental:
+  operating_temp_c: [0, 50]  # Development chassis, lab environment
+  storage_temp_c: [-40, 85]
+
+power:
+  input_voltage_v: [100.0, 240.0]  # AC PSU or VITA 90.3 PS module
+  power_modes:
+    - name: "Full Load"
+      power_watts: 160.0  # 6 payload slots × ~20W + switch + overhead
+      description: All payload slots populated at nominal power
+  tdp_watts: 160.0
+  typical_power_watts: 100.0
+  battery_compatible: false
+
+interfaces:
+  usb3: 1  # Rear maintenance port aggregator
+  pcie_lanes: 0  # Internal VNX+ backplane
+  pcie_gen: 4
+  ethernet: 40gbps  # 10GBASE-KX / 40GBASE-KX4
+
+software:
+  os: []
+  sdk: null
+  frameworks: []
+  inference_runtimes: []
+  container_support: false
+
+suitable_for:
+  - edge
+  - uas
+  - ugv
+target_applications:
+  - prototyping
+  - system_integration
+  - board_validation
+
+cost_usd: null
+availability: limited
+lifecycle_status: new
+
+notes: |
+  Industry's first 8-slot SOSA/VITA 90 aligned VNX+ development platform.
+  8 slots: 6 payload (2x 400-pin SBC + 4x 320-pin) + 1 switch + 1 PSU.
+  Backplane supports up to 10GHz signaling, 10GBASE-KX/40GBASE-KX4.
+  PCIe Gen 4 routed expansion plane.
+  Supports 19mm or 39mm modules, with/without wedgelocks and metal shells.
+  320-pin variants support hybrid aperture connectors.
+  1000BASE-T switch connecting all slots on utility segment.
+  Full I/O from one 400-pin slot and one 320-pin slot.
+  Power switchable from VITA 90.3 PS module or internal 110/200V PSU.
+  Top-surface airflow cooling per slot.
+datasheet_url: null
+product_url: https://products.elma.com/products/flexvnx-8-slot-test-and-development-platform-aligned-to-sosa-and-vita-90-standards
+last_updated: "2026-04-14"
+chip_id: null
+gpu_id: null

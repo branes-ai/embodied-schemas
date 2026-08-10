@@ -1,0 +1,115 @@
+# Trident / Elma Raptor-X5 VNX+ 5-Slot Rugged SFF Computer
+# Source: https://trident-sff.com/integratedsystem.html
+
+id: elma_raptor_x5_vnxplus
+name: Raptor-X5 VNX+ 5-Slot Rugged SFF Computer
+vendor: elma
+model: Raptor-X5
+hardware_type: cpu
+
+compute_paradigm: von_neumann
+optimized_for:
+  - general_purpose
+  - fp32
+
+capabilities:
+  peak_tops_int8: null
+  peak_tflops_fp16: null
+  peak_tflops_fp32: 0.15  # Intel Core i7-1185GRE, 4C, integrated Iris Xe
+  memory_gb: 16.0
+  memory_type: LPDDR4x
+  memory_bandwidth_gbps: 34.1
+  frameworks:
+    - ONNX
+    - OpenVINO
+  quantization_support:
+    - fp32
+    - fp16
+    - int8
+  inference_runtimes:
+    - OpenVINO
+
+physical:
+  weight_grams: 3700.0  # 3.7 kg system weight
+  dimensions_mm: [178.0, 122.0, 174.0]  # 7.00 x 4.80 x 6.85 inches
+  form_factor: vnx_19mm
+  mounting: chassis
+  vita_standard: "VITA 90"
+  sosa_profile: null
+  conduction_cooled: false
+  conformal_coated: false
+
+environmental:
+  operating_temp_c: [-40, 71]
+  storage_temp_c: [-55, 85]
+  mil_std_810: "810H"
+  mil_std_461: "461G"
+  mil_std_704: "704F"
+  mil_std_1275: "1275F"
+
+power:
+  input_voltage_v: [28.0, 28.0]  # 28 VDC military power
+  power_modes:
+    - name: "CPU Only"
+      power_watts: 35.0
+      cpu_freq_mhz: 2800
+      description: SBC only, no GPU PIC
+    - name: "CPU + GPU"
+      power_watts: 65.0
+      cpu_freq_mhz: 2800
+      description: Full system with Orin NX GPU PIC
+  tdp_watts: 65.0
+  typical_power_watts: 50.0
+  battery_compatible: true
+
+interfaces:
+  usb3: 2
+  pcie_lanes: 0  # Internal backplane
+  pcie_gen: 4
+  ethernet: 10gbps
+  gpio: 0
+
+software:
+  os:
+    - Linux
+    - Windows
+  sdk: null
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+    - OpenVINO
+  inference_runtimes:
+    - TensorRT
+    - OpenVINO
+  container_support: true
+
+suitable_for:
+  - uas
+  - ugv
+  - edge
+  - eoir
+target_applications:
+  - vision
+  - object_detection
+  - sensor_fusion
+  - mission_computing
+
+cost_usd: null  # Defense RFQ pricing
+availability: limited
+lifecycle_status: new
+
+notes: |
+  VNX+ (VITA 90) 5-slot rugged SFF computer.
+  Primary SBC: Intel Core i7-1185GRE with 16GB LPDDR4x + 64GB NVMe.
+  GPU option: NVIDIA Orin NX (16GB, 100 TOPS) with 120GB storage.
+  Modular 5-slot 19mm VNX+ backplane.
+  Air-assist cooling, -40°C to +71°C (configuration dependent).
+  MIL-STD-810H, MIL-STD-461G, MIL-STD-704F/1275F qualified.
+  28 VDC power input. System weight ~3.7 kg (8.1 lbs).
+  About 70% smaller than equivalent 3U VPX system.
+datasheet_url: null
+product_url: https://trident-sff.com/integratedsystem.html
+last_updated: "2026-04-14"
+chip_id: null
+gpu_id: null
