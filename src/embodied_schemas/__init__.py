@@ -16,6 +16,8 @@ from embodied_schemas.hardware import (
     PowerSpec,
     PowerMode,
     InterfaceSpec,
+    SlotAssignment,
+    SystemConfiguration,
 )
 from embodied_schemas.models import (
     ModelEntry,
@@ -325,6 +327,8 @@ __all__ = [
     "PowerSpec",
     "PowerMode",
     "InterfaceSpec",
+    "SlotAssignment",
+    "SystemConfiguration",
     # Models
     "ModelEntry",
     "ModelType",

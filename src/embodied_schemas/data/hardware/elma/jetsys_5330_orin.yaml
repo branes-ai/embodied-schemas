@@ -1,0 +1,132 @@
+# Elma JetSys-5330 Rugged SFF AI System — NVIDIA Jetson AGX Orin
+# Source: https://www.elma.com/en/news-events/news-releases/rugged-sff-ai-system-powered-by-nvidia-jetson-agx-orin-system-on-module
+
+id: elma_jetsys_5330_orin
+name: Elma JetSys-5330 Rugged AI System (Jetson AGX Orin)
+vendor: elma
+model: JetSys-5330
+hardware_type: gpu
+
+compute_paradigm: simd
+optimized_for:
+  - matrix_multiply
+  - convolution
+  - attention
+  - fp16
+  - int_quantized
+
+capabilities:
+  peak_tops_int8: 275.0  # Jetson AGX Orin
+  peak_tflops_fp16: 137.5
+  peak_tflops_fp32: 68.75
+  memory_gb: 64.0
+  memory_type: LPDDR5
+  memory_bandwidth_gbps: 204.8
+  compute_units: 2048  # CUDA cores
+  tensor_cores: 64
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX
+    - TensorRT
+  quantization_support:
+    - fp32
+    - fp16
+    - int8
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton
+
+physical:
+  weight_grams: 7300.0  # 16 lbs max = 7.3 kg
+  dimensions_mm: null  # IP67 enclosure, exact dims not published
+  form_factor: standalone
+  mounting: direct
+  vita_standard: null  # SFF, not slot-based
+  sosa_profile: null
+  conduction_cooled: false
+  conformal_coated: false
+
+environmental:
+  operating_temp_c: [-40, 71]  # Estimated from MIL-STD-810G
+  storage_temp_c: [-55, 85]
+  ip_rating: IP67
+  mil_std_810: "810G"
+  mil_std_704: "704F"
+  mil_std_1275: "1275D"
+
+power:
+  input_voltage_v: [10.0, 36.0]  # Typical MIL vehicle power
+  power_modes:
+    - name: "15W"
+      power_watts: 53.0  # System-level low power
+      gpu_freq_mhz: 306
+      cpu_freq_mhz: 1020
+      description: Low power mode — system-level 53W
+    - name: "MAXN"
+      power_watts: 130.0  # System-level max
+      gpu_freq_mhz: 1300
+      cpu_freq_mhz: 2200
+      description: Maximum performance — system-level 130W
+  tdp_watts: 130.0
+  typical_power_watts: 80.0
+  battery_compatible: true
+
+interfaces:
+  usb3: 2  # Via mini-PCIe / M.2
+  pcie_lanes: 8  # 3x mini-PCIe + 2x M.2
+  pcie_gen: 4
+  ethernet: 10gbps
+  gpio: 0
+
+software:
+  os:
+    - Ubuntu 22.04 (JetPack 6.x)
+    - Ubuntu 20.04 (JetPack 5.x)
+  sdk: JetPack
+  sdk_version: "6.1"
+  frameworks:
+    - PyTorch
+    - TensorFlow
+    - ONNX Runtime
+  inference_runtimes:
+    - TensorRT
+    - DeepStream
+    - Triton Inference Server
+  container_support: true
+
+suitable_for:
+  - uas
+  - ugv
+  - usv
+  - edge
+  - eoir
+  - c5isr
+target_applications:
+  - vision
+  - object_detection
+  - segmentation
+  - pose_estimation
+  - multimodal
+  - sensor_fusion
+
+cost_usd: null  # Defense RFQ pricing
+availability: limited
+lifecycle_status: new
+
+notes: |
+  Rugged SFF edge AI system powered by NVIDIA Jetson AGX Orin 64GB SoM.
+  275 TOPS AI performance (INT8).
+  2048 CUDA cores, 64 Tensor Cores (Ampere architecture).
+  12-core Arm Cortex-A78AE CPU.
+  3x mini-PCIe slots (1x doubles as mSATA) + 2x M.2 (B-Key, M-Key).
+  Multiple concurrent video pipelines.
+  IP67 rated, MIL-STD-810G, MIL-HDBK-704F, MIL-STD-1275D.
+  Optional fan kit. Max weight 16 lbs / 7.3 kg.
+  Power range 53W to 130W depending on configuration.
+datasheet_url: null
+product_url: https://www.elma.com/en/news-events/news-releases/rugged-sff-ai-system-powered-by-nvidia-jetson-agx-orin-system-on-module
+last_updated: "2026-04-14"
+chip_id: nvidia_orin_soc
+gpu_id: null
