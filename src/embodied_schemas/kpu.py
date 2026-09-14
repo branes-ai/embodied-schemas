@@ -137,24 +137,63 @@ class KPUMemorySubsystem(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class KPUArchitecture(BaseModel):
-    """The architectural topology of a KPU SKU.
+class KPUArchitectureBase(BaseModel):
+    """The KPU architectural field set, defined once.
 
-    Captures every architectural knob the generator needs to derive
-    rolled-up performance, area, and power. Together with the referenced
-    ProcessNode this completely determines the spec.
+    Two schema types carry exactly these fields:
+
+    - ``KPUArchitecture`` -- the architect-facing topology used by
+      ``KPUEntry.kpu_architecture`` and the graphs ``KPUSKUInputSpec``.
+    - ``compute_product.KPUBlock`` -- the same topology as a ``Die.blocks``
+      member, plus the ``kind`` discriminator.
+
+    Both subclass this base, so a new architectural field is added in one
+    place and both types (and the ``KPUBlock.from_architecture`` /
+    ``KPUBlock.to_architecture`` converters) pick it up. Neither type is a
+    subclass of the other: a ``KPUBlock`` is not an instance of
+    ``KPUArchitecture`` and vice versa, so crossing between them is always
+    an explicit conversion.
+
+    Not used directly in any catalog document.
     """
 
-    total_tiles: int = Field(..., gt=0, description="Total tiles across all classes")
-    tiles: list[KPUTileSpec] = Field(..., description="Per-tile-class specifications")
-    noc: KPUNoCSpec = Field(...)
-    memory: KPUMemorySubsystem = Field(...)
+    total_tiles: int = Field(
+        ..., gt=0, description="Total tiles across all tile classes"
+    )
+    tiles: list[KPUTileSpec] = Field(
+        ..., description="Per-tile-class specifications (heterogeneous tile mix)"
+    )
+    noc: KPUNoCSpec = Field(..., description="Intra-die NoC topology")
+    memory: KPUMemorySubsystem = Field(
+        ..., description="Tile-local memory hierarchy (L1 per PE, L2/L3 per tile)"
+    )
     multi_precision_alu: list[str] = Field(
         default_factory=list,
         description="Precisions supported chip-wide, e.g., ['int4','int8','bf16','fp32']",
     )
 
     model_config = {"extra": "forbid"}
+
+    def architecture_fields(self) -> dict:
+        """The shared architectural fields as a shallow dict.
+
+        Sub-models (tiles, noc, memory) are passed by reference, matching
+        the field-by-field copies this replaces. Used by the
+        ``KPUBlock`` <-> ``KPUArchitecture`` converters.
+        """
+        return {name: getattr(self, name) for name in KPUArchitectureBase.model_fields}
+
+
+class KPUArchitecture(KPUArchitectureBase):
+    """The architectural topology of a KPU SKU.
+
+    Captures every architectural knob the generator needs to derive
+    rolled-up performance, area, and power. Together with the referenced
+    ProcessNode this completely determines the spec.
+
+    Fields are defined on ``KPUArchitectureBase`` (shared with
+    ``compute_product.KPUBlock``).
+    """
 
 
 # ---------------------------------------------------------------------------

@@ -75,15 +75,7 @@ def kpu_entry_to_compute_product(entry: KPUEntry) -> ComputeProduct:
                 transistors_billion=entry.die.transistors_billion,
                 silicon_bin=entry.silicon_bin,
                 clocks=entry.clocks,
-                blocks=[
-                    KPUBlock(
-                        total_tiles=entry.kpu_architecture.total_tiles,
-                        multi_precision_alu=entry.kpu_architecture.multi_precision_alu,
-                        tiles=entry.kpu_architecture.tiles,
-                        noc=entry.kpu_architecture.noc,
-                        memory=entry.kpu_architecture.memory,
-                    )
-                ],
+                blocks=[KPUBlock.from_architecture(entry.kpu_architecture)],
                 interconnects=[],
             )
         ],
