@@ -7,36 +7,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-14
+
+First release with the unified `ComputeProduct` schema and the silicon
+catalogs (process nodes, cooling, KPU SKUs). The `graphs` estimators need
+this release: 0.6.0 predates `compute_product`, `process_node`, `kpu` and
+`cooling_solution` entirely.
+
 ### Added
 
-- **RFC 0001: Unified `ComputeProduct` Schema** (`docs/rfcs/0001-compute-product-unification.md`).
-  Surveys the four parallel category schemas in this repo (GPU / CPU / NPU /
-  Chip catalogs) and documents the coverage gap they create: `die_spec` is
-  populated on 22/22 GPU YAMLs but 0/52 across CPUs / NPUs / SoCs / Chips.
-  Proposes a single `ComputeProduct` schema with a discriminated `blocks`
-  union and a `contains` hierarchy so heterogeneous SoCs (CPU + GPU + NPU
-  in one package) can be modeled without forcing a primary-category
-  classification. Phased migration plan keeps the existing per-category
-  loaders working through the transition. Merged in PR #7
-  (commit `5a6e0f4`).
+- **Unified `ComputeProduct` schema.** RFC 0001
+  (`docs/rfcs/0001-compute-product-unification.md`, #7) defines it:
+  products, dies, and a discriminated `blocks` union. Loaded with
+  `load_compute_products()` (#15, #16). There are nine block kinds:
+  - KPU (v1, #15)
+  - GPU (v2, #19)
+  - CPU (v3, #22)
+  - NPU (v4, #25), including `KVCacheSpec` for transformer NPUs (#30)
+  - CGRA (v5, #34)
+  - DPU (v6, #36)
+  - TPU (v7, #38)
+  - DSP (v9, #43)
+  - IO (v13, #79), the first non-compute block, used for multi-die chiplet
+    IODs
+- **`compute_block_common`**: vendor-neutral types shared across block kinds
+  (#40):
+  - a unified `TheoreticalPerformance` (#41, #42);
+  - a unified `ThermalProfile` (#45, #46);
+  - the `OnDieFabric` inheritance base (#47, #48);
+  - the `DramAttachment` discriminator and the `dram_attachment` field
+    (#49, #51).
+- **Silicon catalogs: `ProcessNodeEntry`, `CoolingSolutionEntry` and KPU
+  SKUs** (#9).
+  - Per-circuit-class density, leakage and energy per op.
+  - Per-profile Vdd, plus SRAM / NoC / DRAM energies.
+  - Optional `leakage_vdd_exponent` for Vdd-scaled leakage (#84).
+  - The `PROCESS_NODE_DATA_DIR` private overlay (#12, #13).
+- **KPU thermal profiles and SKUs:**
+  - per-(profile, precision) efficiency on `KPUThermalProfile` (#10);
+  - FP16 throughput on KPU tile classes (#11);
+  - the KPU SKU naming convention, plus the 12FDX / N7 sweeps (#14).
+- **`KPUArchitectureBase`** (#86): the KPU architectural field set, defined
+  once and shared by `KPUArchitecture` and `KPUBlock`. Convert between the
+  two with `KPUBlock.from_architecture(arch)` and `block.to_architecture()`.
+  Serialized output is byte-identical to before.
+- **Catalog data** (ComputeProduct YAMLs unless noted):
+  - **KPUs:** 12 Stillwater KPU SKUs (#16, #17).
+  - **GPUs:** Jetson AGX Orin 64GB (#20), Jetson AGX Thor 128GB (#21),
+    H100 PCIe (#73), T4 PCIe (#74).
+  - **CPUs:** Core i7-12700K (#24); EPYC 9654 / 9754 / 9965 (#63-#65),
+    re-authored as multi-die IOBlock layouts (#80-#82); AmpereOne A192 /
+    A128 (#66, #67); Xeon 8490H / 8592+ / 6980P (#69-#71).
+  - **NPUs:** Hailo-8 (#26), Hailo-10H (#31), Coral Edge TPU (#33).
+  - **CGRA:** Plasticine v2 (#35).
+  - **DPU:** Vitis AI B4096 (#37).
+  - **TPUs:** v4 (#39), v1 (#75), v3 (#76), v5p (#77), Edge Pro (#78).
+  - **DSPs:** Cadence Vision Q8 (#44), Synopsys ARC EV7x (#53), CEVA
+    NeuPro-M NPM11 (#54), TI TDA4VM / TDA4AL / TDA4VH / TDA4VL (#55-#58),
+    Qualcomm SA8775P / QRB5165 / QCS6490 (#59-#61).
+  - **Process nodes:** 14 in total, including GF 28nm (#32), TSMC N4P (#21),
+    Intel 7 (#24), TSMC N6 (#61), Intel 3 (#71) and TSMC 28HPM (#75).
+  - **Board-level hardware** (`data/hardware/elma`, not ComputeProducts):
+    6 Elma Electronic SKUs.
 
-### Issues opened
+### Changed
 
-- **#8** -- *YAML memory-bus-width bugs in two Jetson SKUs.* Caught by the
-  consumer-side bandwidth-math validator added to
-  `branes-ai/graphs#141`. Two YAMLs disagree with NVIDIA's published
-  bandwidth math `BW = bus_width / 8 * DRAM_rate`:
-  - **Jetson Thor 128GB** lists `memory_bus_width_bits: 512`. Math:
-    `273 GB/s / 8.533 GT/s LPDDR5X = 256 bits`. NVIDIA's Jetson Thor
-    announcement blog confirms 256-bit LPDDR5X.
-  - **Jetson Orin Nano 8GB** lists `memory_bus_width_bits: 64`. Math:
-    `68 GB/s / 4.267 GT/s LPDDR5-4267 = 128 bits`. NVIDIA's Orin Nano
-    datasheet specifies 128-bit.
+- **Breaking:** the legacy `data/kpus/` catalog was retired.
+  `load_kpus()` is now a compatibility shim that projects KPU
+  ComputeProducts onto `KPUEntry` (#18).
+- **Breaking:** the CGRA `host_dram_*` fields were renamed to
+  `external_dram_*` (#50).
+- **Breaking:** `dram_attachment` is now required when
+  `has_external_dram=True` (#52).
+- KPU profile Vdd values were re-tuned so the round catalog TDPs still hold
+  under Vdd-scaled leakage (#85).
 
-  Workaround in `graphs` is a `KNOWN_OVERRIDES` table in
-  `physical_spec_loader.py`; will retire automatically once these YAMLs
-  are corrected. The bandwidth-math invariant is a candidate for adoption
-  as a schema-level validator in this repo.
+### Fixed
+
+- `memory_bus_width_bits` on the Jetson AGX Thor 128GB (512 -> 256) and the
+  Jetson Orin Nano 8GB (64 -> 128) YAMLs (#8, #83).
+
+## [0.6.0] - 2026-04-13
+
+### Added
+
+- Mission-profile, battery and capability-tier schemas, plus the PyPI
+  publish workflow. (This entry was reconstructed when 0.7.0 was released;
+  0.6.0 shipped without a changelog entry.)
 
 ## [0.5.0] - 2026-01-03
 
