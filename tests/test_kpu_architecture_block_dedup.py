@@ -122,3 +122,14 @@ def test_extra_fields_still_forbidden():
     arch_data = block.to_architecture().model_dump()
     with pytest.raises(ValidationError):
         KPUArchitecture.model_validate({**arch_data, "kind": "kpu"})
+
+
+def test_serialization_schema_keeps_block_fields():
+    """The key-order serializer must not erase KPUBlock's serialization-mode
+    JSON schema (a return annotation such as ``-> Any`` would turn it into
+    ``{}``). Validation and serialization schemas expose the same fields."""
+    validation = KPUBlock.model_json_schema(mode="validation")
+    serialization = KPUBlock.model_json_schema(mode="serialization")
+    assert set(serialization.get("properties", {})) == set(KPUBlock.model_fields)
+    assert serialization["properties"] == validation["properties"]
+    assert set(serialization["required"]) == set(validation["required"])

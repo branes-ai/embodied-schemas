@@ -190,6 +190,11 @@ class KPUBlock(KPUArchitectureBase):
         description="Discriminator -- always BlockKind.KPU for this class",
     )
 
+    # Deliberately no return annotation: Pydantic builds the serialization-mode
+    # JSON schema from a wrap serializer's return type, and ``-> Any`` (or
+    # ``-> dict``) would replace KPUBlock's schema with ``{}`` / a bare object.
+    # Unannotated keeps the field-derived schema (pinned by
+    # tests/test_kpu_architecture_block_dedup.py).
     @model_serializer(mode="wrap")
     def _serialize_in_catalog_order(self, handler: SerializerFunctionWrapHandler):
         data = handler(self)
