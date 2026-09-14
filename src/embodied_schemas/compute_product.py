@@ -62,19 +62,19 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SerializerFunctionWrapHandler, model_serializer
 
-# Reuse existing KPU sub-types verbatim for ``KPUBlock`` content. The
-# adapter in PR #3 maps ``KPUEntry.kpu_architecture`` to
-# ``KPUBlock(...)`` field-by-field with no transformation.
+# Reuse existing KPU sub-types verbatim for ``KPUBlock`` content.
+# ``KPUBlock`` shares its architectural field set with ``KPUArchitecture``
+# through ``KPUArchitectureBase``; convert with ``KPUBlock.from_architecture``
+# / ``KPUBlock.to_architecture``.
 from embodied_schemas.kpu import (
+    KPUArchitecture,
+    KPUArchitectureBase,
     KPUClocks,
-    KPUMemorySubsystem,
-    KPUNoCSpec,
     KPUSiliconBin,
     KPUTheoreticalPerformance,
     KPUThermalProfile,
-    KPUTileSpec,
 )
 from embodied_schemas.process_node import DataConfidence
 
@@ -159,10 +159,24 @@ class BlockKind(str, Enum):
     IO = "io"
 
 
-class KPUBlock(BaseModel):
-    """KPU compute block. Carries the architectural description that today
-    lives in ``KPUEntry.kpu_architecture``: heterogeneous tile mix,
-    on-chip mesh NoC, and tile-local memory subsystem.
+# Serialized key order of a KPUBlock. Pydantic orders inherited fields
+# before subclass fields, which would put ``kind`` last; the catalog YAMLs
+# (and the graphs generator's YAML output) have always led with ``kind``.
+_KPU_BLOCK_DUMP_ORDER = (
+    "kind", "total_tiles", "multi_precision_alu", "tiles", "noc", "memory",
+)
+
+
+class KPUBlock(KPUArchitectureBase):
+    """KPU compute block. Carries the architectural description that
+    ``KPUEntry.kpu_architecture`` carries: heterogeneous tile mix, on-chip
+    mesh NoC, and tile-local memory subsystem.
+
+    The architectural fields are defined once on
+    ``kpu.KPUArchitectureBase`` (shared with ``KPUArchitecture``); this
+    class adds only the ``kind`` discriminator. Convert between the two
+    with ``KPUBlock.from_architecture(arch)`` and ``block.to_architecture()``
+    rather than copying fields by hand.
 
     The ``noc`` field stays here in v1 (matches today's
     ``KPUArchitecture``). v2 may extract intra-die NoCs into the parent
@@ -175,22 +189,24 @@ class KPUBlock(BaseModel):
         BlockKind.KPU,
         description="Discriminator -- always BlockKind.KPU for this class",
     )
-    total_tiles: int = Field(
-        ..., gt=0, description="Total tiles across all tile classes"
-    )
-    multi_precision_alu: list[str] = Field(
-        default_factory=list,
-        description="Precisions supported chip-wide, e.g., ['int4','int8','bf16','fp32']",
-    )
-    tiles: list[KPUTileSpec] = Field(
-        ..., description="Per-tile-class specifications (heterogeneous tile mix)"
-    )
-    noc: KPUNoCSpec = Field(..., description="Intra-die NoC topology")
-    memory: KPUMemorySubsystem = Field(
-        ..., description="Tile-local memory hierarchy (L1 per PE, L2/L3 per tile)"
-    )
 
-    model_config = {"extra": "forbid"}
+    @model_serializer(mode="wrap")
+    def _serialize_in_catalog_order(self, handler: SerializerFunctionWrapHandler):
+        data = handler(self)
+        if not isinstance(data, dict):
+            return data
+        ordered = {k: data[k] for k in _KPU_BLOCK_DUMP_ORDER if k in data}
+        ordered.update((k, v) for k, v in data.items() if k not in ordered)
+        return ordered
+
+    @classmethod
+    def from_architecture(cls, arch: KPUArchitecture) -> KPUBlock:
+        """Build the ``Die.blocks`` form of an architect-facing topology."""
+        return cls(**arch.architecture_fields())
+
+    def to_architecture(self) -> KPUArchitecture:
+        """The architect-facing ``KPUArchitecture`` form of this block."""
+        return KPUArchitecture(**self.architecture_fields())
 
 
 # Imported here (after KPUBlock is defined) to keep the discriminator
