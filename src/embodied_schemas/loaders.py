@@ -24,7 +24,6 @@ from embodied_schemas.mission import CapabilityTierEntry, MissionProfileEntry, B
 from embodied_schemas.process_node import ProcessNodeEntry
 from embodied_schemas.cooling_solution import CoolingSolutionEntry
 from embodied_schemas.kpu import (
-    KPUArchitecture,
     KPUDieSpec,
     KPUEntry,
     KPUMarket,
@@ -387,13 +386,7 @@ def _compute_product_to_kpu_entry(
             is_chiplet=cp.packaging.kind != PackagingKind.MONOLITHIC,
             num_dies=cp.packaging.num_dies,
         ),
-        kpu_architecture=KPUArchitecture(
-            total_tiles=block.total_tiles,
-            multi_precision_alu=block.multi_precision_alu,
-            tiles=block.tiles,
-            noc=block.noc,
-            memory=block.memory,
-        ),
+        kpu_architecture=block.to_architecture(),
         silicon_bin=die.silicon_bin,
         clocks=die.clocks,
         performance=cp.performance,

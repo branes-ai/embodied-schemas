@@ -165,6 +165,7 @@ from embodied_schemas.cooling_solution import (
 from embodied_schemas.kpu import (
     KPUEntry,
     KPUArchitecture,
+    KPUArchitectureBase,
     KPUTileSpec,
     KPUTileScheduleClass,
     KPUNoCSpec,
@@ -485,6 +486,7 @@ __all__ = [
     # KPU SKU
     "KPUEntry",
     "KPUArchitecture",
+    "KPUArchitectureBase",
     "KPUTileSpec",
     "KPUTileScheduleClass",
     "KPUNoCSpec",
