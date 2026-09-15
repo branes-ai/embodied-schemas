@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-15
+
+Phases B2-B6 of the KPU heterogeneous-tile sprint (branes-ai/graphs#268;
+#90-#94):
+- interconnect overlays;
+- systolic and fixed-function tile kinds, with function cores;
+- the checkerboard, power domains and per-domain operating points;
+- the performance roll-up by tile kind;
+- the tile-class library, with the `tsmc_n40` / `tsmc_n65` anchor nodes.
+
+Additive: every catalog YAML loads unchanged. Three checks are stricter, and
+every catalog entry already satisfies them:
+- `total_tiles` must equal `sum(num_tiles)`;
+- `compute_product.Power.default_thermal_profile` must name a profile;
+- `load_kpus()` warns about KPU products it cannot express as a `KPUEntry`.
+
 ### Added
 
 - **KPU tile-class library** (branes-ai/graphs#268 Phase B6).
