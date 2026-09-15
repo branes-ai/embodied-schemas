@@ -622,6 +622,7 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         ("cooling-solutions", CoolingSolutionEntry),
         ("kpus", KPUEntry),
         ("compute_products", ComputeProduct),
+        ("kpu-tile-classes", KPUTileClassEntry),
     ]
 
     for subdir, model_class in validations:

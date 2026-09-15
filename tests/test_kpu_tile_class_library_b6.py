@@ -40,7 +40,7 @@ from embodied_schemas import (
     load_kpus,
     load_process_nodes,
 )
-from embodied_schemas.loaders import get_data_dir, load_and_validate
+from embodied_schemas.loaders import get_data_dir, load_and_validate, validate_data_integrity
 
 LIBRARY_DIR = get_data_dir() / "kpu-tile-classes"
 LIBRARY = load_kpu_tile_classes()
@@ -241,6 +241,17 @@ def test_every_library_yaml_loads_strictly():
     for e in entries:
         by_kind.setdefault(e.tile_kind, set()).add(e.id)
     assert by_kind == EXPECTED
+
+
+def test_validate_data_integrity_covers_the_library(tmp_path):
+    assert validate_data_integrity() == []
+    # A malformed entry is reported, not skipped with a printed warning.
+    bad = _template(id="pe_bad")
+    bad["tile"]["num_tiles"] = 3
+    _write(tmp_path / "kpu-tile-classes", "pe_bad.yaml", bad)
+    errors = validate_data_integrity(tmp_path)
+    assert len(errors) == 1 and "pe_bad.yaml" in errors[0]
+    assert "a library template describes one tile" in errors[0]
 
 
 @pytest.mark.parametrize("class_id", sorted(LIBRARY))
