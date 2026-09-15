@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Datapath schemas** (new module `datapath.py`; branes-ai/graphs#268 Phase
+  B1).
+  - Number formats (`parse_number_format`, `NumberFormatName`):
+    `int<n>` / `uint<n>`, named floats, `lns<n>`, `posit<n>[_<es>]` and
+    `fixed<i>.<f>`.
+  - `OpKind`, plus the software-equivalent ops-counting convention
+    `DEFAULT_OPS_PER_INVOCATION` (MAC / FMA = 2, lerp = 3, min-plus = 2, ...).
+  - `FunctionalUnit` with alternative `UnitMode`s, so a multi-precision unit
+    counts its area once.
+  - `PEDatapath`, with `ops_per_pe_per_clock()` and a projection onto legacy
+    precision keys.
+  - `RelativeEnergy` / `AbsoluteEnergy` (`EnergyRef`), energy referenced to a
+    ProcessNode anchor op or given at a reference node.
+- **New optional `KPUTileSpec` fields**, all backward compatible (every
+  catalog YAML loads unchanged):
+  - `tile_kind` (`KPUTileKind`; `pe_fabric` for all tiles today).
+  - `tile_class_id` (defaults to a slug of `tile_type`).
+  - `datapath`: when declared, it must reproduce `ops_per_tile_per_clock`.
+  - `footprint`, `local_memory`, `power_domain_id` and `placement`.
+- **`KPUArchitectureBase` validation:** `tile_class_id` must be unique, and
+  `placement.adjacent_to` must reference existing tile classes.
+
+Downstream note: `model_dump()` of a KPU tile now includes the new keys, so
+catalog YAML emitted by the graphs generator and the graphs KPU golden
+snapshots' `input` section gain them.
+
 ## [0.7.0] - 2026-09-14
 
 First release with the unified `ComputeProduct` schema and the silicon
