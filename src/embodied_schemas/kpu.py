@@ -290,16 +290,18 @@ class KPUTileSpec(BaseModel):
         for ov in self.interconnect.overlays:
             where = f"tile {self.tile_type!r} overlay {ov.overlay_id!r}"
             # Links of a per-row overlay run along a row (length = cols), and
-            # vice versa. A per-tile overlay spans both axes.
+            # vice versa. A per-tile overlay spans both axes, so its span must
+            # fit the shorter one.
             axes = {
                 OverlayScope.ROW: [cols],
                 OverlayScope.COL: [rows],
                 OverlayScope.TILE: [rows, cols],
             }[ov.instances_per]
-            if ov.span is not None and ov.span > max(axes) - 1:
+            max_span = min(axes) - 1
+            if ov.span is not None and ov.span > max_span:
                 raise ValueError(
                     f"{where}: span {ov.span} does not fit a {rows}x{cols} PE array "
-                    f"(max {max(axes) - 1} along its axis)"
+                    f"(max {max_span} along its axis)"
                 )
             if ov.kind == FabricOverlayKind.TRANSPOSE and rows != cols:
                 raise ValueError(f"{where}: transpose needs a square PE array, got {rows}x{cols}")

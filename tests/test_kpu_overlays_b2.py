@@ -162,6 +162,11 @@ def test_tile_with_fft_overlays():
         (32, 32, {"kind": "express", "instances_per": "row", "span": 32}, "does not fit a 32x32"),
         (16, 8, {"kind": "express", "instances_per": "row", "span": 8}, "max 7 along its axis"),
         (16, 8, {"kind": "express", "instances_per": "col", "span": 15}, None),  # fits: rows=16
+        # Tile scope spans both axes: the span must fit the SHORTER one (8 cols).
+        (16, 8, {"kind": "express", "instances_per": "tile", "span": 15}, "max 7 along its axis"),
+        (16, 8, {"kind": "express", "instances_per": "tile", "span": 8}, "max 7 along its axis"),
+        (16, 8, {"kind": "express", "instances_per": "tile", "span": 7}, None),
+        (8, 16, {"kind": "segmented_bus", "instances_per": "tile", "span": 8}, "max 7"),
         (16, 8, {"kind": "transpose", "instances_per": "tile"}, "needs a square PE array"),
         (24, 24, {"kind": "butterfly", "instances_per": "row"}, "power-of-two axis"),
         (16, 8, {"kind": "butterfly", "instances_per": "tile"}, None),  # 16 and 8 both pow2
