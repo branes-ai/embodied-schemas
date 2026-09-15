@@ -27,6 +27,13 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, model_validator
 
 from embodied_schemas.datapath import PEDatapath
+from embodied_schemas.overlay import (
+    FabricInterconnect,
+    FabricOverlayKind,
+    NoCOverlay,
+    NoCOverlayKind,
+    OverlayScope,
+)
 from embodied_schemas.gpu import Foundry, MemoryType
 from embodied_schemas.process_node import CircuitClass, DataConfidence
 
@@ -213,6 +220,12 @@ class KPUTileSpec(BaseModel):
         None, description="Power domain this tile class belongs to (Phase B4)"
     )
     placement: TilePlacement | None = Field(None, description="Floorplan hints")
+    # --- Phase B2 (graphs#268) --------------------------------------------
+    interconnect: FabricInterconnect | None = Field(
+        None,
+        description="PE-to-PE links and overlays inside the tile; None = "
+        "nearest-neighbor mesh with no declared overlays",
+    )
 
     model_config = {"extra": "forbid"}
 
@@ -268,6 +281,39 @@ class KPUTileSpec(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def _check_interconnect(self) -> "KPUTileSpec":
+        """Overlays must fit the PE array they are laid over."""
+        if self.interconnect is None:
+            return self
+        rows, cols = self.pe_array_rows, self.pe_array_cols
+        for ov in self.interconnect.overlays:
+            where = f"tile {self.tile_type!r} overlay {ov.overlay_id!r}"
+            # Links of a per-row overlay run along a row (length = cols), and
+            # vice versa. A per-tile overlay spans both axes, so its span must
+            # fit the shorter one.
+            axes = {
+                OverlayScope.ROW: [cols],
+                OverlayScope.COL: [rows],
+                OverlayScope.TILE: [rows, cols],
+            }[ov.instances_per]
+            max_span = min(axes) - 1
+            if ov.span is not None and ov.span > max_span:
+                raise ValueError(
+                    f"{where}: span {ov.span} does not fit a {rows}x{cols} PE array "
+                    f"(max {max_span} along its axis)"
+                )
+            if ov.kind == FabricOverlayKind.TRANSPOSE and rows != cols:
+                raise ValueError(f"{where}: transpose needs a square PE array, got {rows}x{cols}")
+            if ov.kind == FabricOverlayKind.BUTTERFLY:
+                bad = [n for n in axes if n & (n - 1)]
+                if bad:
+                    raise ValueError(
+                        f"{where}: butterfly needs a power-of-two axis, got {bad} "
+                        f"for a {rows}x{cols} array"
+                    )
+        return self
+
     @property
     def pes_per_tile(self) -> int:
         return self.pe_array_rows * self.pe_array_cols
@@ -305,8 +351,32 @@ class KPUNoCSpec(BaseModel):
     bisection_bandwidth_gbps: float | None = Field(
         None, ge=0, description="Bisection bandwidth across the mesh"
     )
+    # --- Phase B2 (graphs#268) --------------------------------------------
+    overlays: list[NoCOverlay] | None = Field(
+        None,
+        description="Tile-level overlays on the mesh: express channels, stream "
+        "links between tile classes, multicast trees. Endpoints are "
+        "tile_class_ids, checked by KPUArchitectureBase",
+    )
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _check_overlays(self) -> "KPUNoCSpec":
+        if not self.overlays:
+            return self
+        ids = [o.overlay_id for o in self.overlays]
+        dup = sorted({i for i in ids if ids.count(i) > 1})
+        if dup:
+            raise ValueError(f"duplicate NoC overlay_id {dup}")
+        extent = max(self.mesh_rows, self.mesh_cols)
+        for o in self.overlays:
+            if o.kind == NoCOverlayKind.EXPRESS_CHANNEL and o.span is not None and o.span >= extent:
+                raise ValueError(
+                    f"NoC overlay {o.overlay_id!r}: span {o.span} does not fit a "
+                    f"{self.mesh_rows}x{self.mesh_cols} mesh"
+                )
+        return self
 
     @property
     def num_routers(self) -> int:
@@ -389,6 +459,13 @@ class KPUArchitectureBase(BaseModel):
                         f"tile class {tile.tile_class_id!r}: placement.adjacent_to "
                         f"references unknown tile_class_id {other!r} (known: {sorted(known)})"
                     )
+        for ov in self.noc.overlays or []:
+            unknown = [e for e in ov.endpoints if e not in known]
+            if unknown:
+                raise ValueError(
+                    f"NoC overlay {ov.overlay_id!r} references unknown tile_class_id "
+                    f"{unknown} (known: {sorted(known)})"
+                )
         return self
 
     def architecture_fields(self) -> dict:
