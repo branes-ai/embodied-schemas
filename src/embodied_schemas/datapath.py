@@ -30,7 +30,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Literal, Union
 
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 
@@ -57,10 +57,10 @@ class NumberFormatSpec:
     name: str
     family: NumberFormatFamily
     bits: int
-    exponent_bits: Optional[int] = None  # float: exponent field width
-    es: Optional[int] = None  # posit: exponent size
-    integer_bits: Optional[int] = None  # fixed: integer bits (incl. sign)
-    fraction_bits: Optional[int] = None  # fixed: fraction bits
+    exponent_bits: int | None = None  # float: exponent field width
+    es: int | None = None  # posit: exponent size
+    integer_bits: int | None = None  # fixed: integer bits (incl. sign)
+    fraction_bits: int | None = None  # fixed: fraction bits
 
 
 # Named float formats: name -> (bits, exponent bits). These are the precision
@@ -268,7 +268,9 @@ class AbsoluteEnergy(BaseModel):
 
     kind: Literal["absolute"] = "absolute"
     pj: float = Field(..., gt=0, description="Energy per invocation at ref_node, pJ")
-    ref_node_id: str = Field(..., description="ProcessNodeEntry id the figure was taken at")
+    ref_node_id: str = Field(
+        ..., min_length=1, description="ProcessNodeEntry id the figure was taken at"
+    )
     circuit_class: CircuitClass = Field(
         CircuitClass.BALANCED_LOGIC,
         description="Library used to scale the figure to another node",
@@ -291,12 +293,12 @@ class UnitMode(BaseModel):
     """One operating mode of a functional unit (a number format it runs)."""
 
     operand_format: NumberFormatName
-    accumulate_format: Optional[NumberFormatName] = None
+    accumulate_format: NumberFormatName | None = None
     lanes: int = Field(1, ge=1, description="Parallel invocations per cycle in this mode")
     issue_interval_cycles: int = Field(
         1, ge=1, description="Cycles between issues (1 = fully pipelined)"
     )
-    energy: Optional[EnergyRef] = Field(None, description="Energy per invocation")
+    energy: EnergyRef | None = Field(None, description="Energy per invocation")
 
     model_config = {"extra": "forbid"}
 
@@ -311,12 +313,12 @@ class FunctionalUnit(BaseModel):
     unit_id: str = Field(..., pattern=r"^[a-z0-9_]+$")
     op: OpKind
     modes: list[UnitMode] = Field(..., min_length=1)
-    ops_per_invocation: Optional[float] = Field(
+    ops_per_invocation: float | None = Field(
         None,
         gt=0,
         description="Override of DEFAULT_OPS_PER_INVOCATION[op] for this unit",
     )
-    mtx: Optional[float] = Field(None, ge=0, description="Transistors per unit instance (M)")
+    mtx: float | None = Field(None, ge=0, description="Transistors per unit instance (M)")
     notes: str = ""
 
     model_config = {"extra": "forbid"}
@@ -353,16 +355,16 @@ class PEDatapath(BaseModel):
     """
 
     datapath_id: str = Field(..., pattern=r"^[a-z0-9_]+$")
-    circuit_class: Optional[CircuitClass] = None
+    circuit_class: CircuitClass | None = None
     functional_units: list[FunctionalUnit] = Field(..., min_length=1)
     operand_regs: int = Field(2, ge=0, description="PE-local operand registers")
-    accumulator_bits: Optional[int] = Field(None, gt=0)
+    accumulator_bits: int | None = Field(None, gt=0)
     token_match: bool = Field(
         True,
         description="Domain-flow token / coordinate match per PE (a real structure; "
         "the schedule itself is encoded in the fabric topology)",
     )
-    mtx_per_pe: Optional[float] = Field(
+    mtx_per_pe: float | None = Field(
         None,
         ge=0,
         description="Total transistors per PE (M), when known as one figure",
@@ -399,13 +401,16 @@ class PEDatapath(BaseModel):
         Only MAC / FMA throughput maps onto a precision (``mac:int8`` ->
         ``int8``). Custom operators (min_plus, lerp, ...) have no legacy
         precision key.
+
+        ``mac:<p>`` and ``fma:<p>`` are different keys, i.e. alternative
+        modes, so the precision's peak is the larger of the two, not their
+        sum. Units sharing one key are concurrent and are already summed by
+        ``ops_per_pe_per_clock``.
         """
         out: dict[str, float] = {}
-        for unit in self.functional_units:
-            if unit.op not in LEGACY_PRECISION_OPS:
-                continue
-            opi = unit.resolved_ops_per_invocation
-            for m in unit.modes:
-                ops = m.lanes * opi / m.issue_interval_cycles
-                out[m.operand_format] = out.get(m.operand_format, 0.0) + ops
+        legacy_ops = {op.value for op in LEGACY_PRECISION_OPS}
+        for key, ops in self.ops_per_pe_per_clock().items():
+            op, fmt = key.split(":", 1)
+            if op in legacy_ops:
+                out[fmt] = max(out.get(fmt, 0.0), ops)
         return out

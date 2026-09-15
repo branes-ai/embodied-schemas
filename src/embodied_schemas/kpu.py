@@ -22,7 +22,7 @@ ProcessNode and the validator framework will check consistency.
 import math
 import re
 from enum import Enum
-from typing import Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -84,6 +84,8 @@ class TileFootprint(BaseModel):
 
 
 class LocalMemoryLevel(str, Enum):
+    """Kind of a tile-class-local memory."""
+
     L1 = "l1"
     L2 = "l2"
     LINE_BUFFER = "line_buffer"
@@ -92,6 +94,8 @@ class LocalMemoryLevel(str, Enum):
 
 
 class LocalMemoryScope(str, Enum):
+    """Whether a ``LocalMemory.kib`` figure is per PE or per tile."""
+
     PE = "pe"      # kib is per PE
     TILE = "tile"  # kib is per tile
 
@@ -108,6 +112,8 @@ class LocalMemory(BaseModel):
 
 
 class TilePlacementAffinity(str, Enum):
+    """Where on the die a tile class prefers to be placed."""
+
     ANY = "any"
     IO_EDGE = "io_edge"          # e.g. an ISP next to the MIPI PHYs
     MEMORY_EDGE = "memory_edge"  # next to a DRAM controller
@@ -190,29 +196,29 @@ class KPUTileSpec(BaseModel):
     notes: str = Field("", description="Additional notes")
 
     # --- Phase B1 (graphs#268): optional, backward compatible -------------
-    datapath: Optional[PEDatapath] = Field(
+    datapath: PEDatapath | None = Field(
         None,
         description="Per-PE datapath. When set, rows * cols * its ops per PE "
         "must equal ops_per_tile_per_clock for every precision",
     )
-    footprint: Optional[TileFootprint] = Field(
+    footprint: TileFootprint | None = Field(
         None, description="Checkerboard sites occupied; None = 1x1"
     )
-    local_memory: Optional[list[LocalMemory]] = Field(
+    local_memory: list[LocalMemory] | None = Field(
         None,
         description="Tile-class-local memories. None = the chip-level "
         "KPUMemorySubsystem L1/L2 figures apply",
     )
-    power_domain_id: Optional[str] = Field(
+    power_domain_id: str | None = Field(
         None, description="Power domain this tile class belongs to (Phase B4)"
     )
-    placement: Optional[TilePlacement] = Field(None, description="Floorplan hints")
+    placement: TilePlacement | None = Field(None, description="Floorplan hints")
 
     model_config = {"extra": "forbid"}
 
     @model_validator(mode="before")
     @classmethod
-    def _default_tile_class_id(cls, data):
+    def _default_tile_class_id(cls, data: Any) -> Any:
         if isinstance(data, dict) and "tile_class_id" not in data and "tile_type" in data:
             data = {**data, "tile_class_id": tile_class_slug(str(data["tile_type"]))}
         return data
@@ -275,7 +281,7 @@ class KPUTileSpec(BaseModel):
         """Checkerboard compute sites one tile of this class occupies."""
         return self.footprint.sites if self.footprint is not None else 1
 
-    def ops_per_pe_per_clock(self) -> Optional[dict[str, float]]:
+    def ops_per_pe_per_clock(self) -> dict[str, float] | None:
         """``"<op>:<format>"`` ops per PE per clock from the datapath, or None
         when no datapath is declared."""
         return self.datapath.ops_per_pe_per_clock() if self.datapath is not None else None

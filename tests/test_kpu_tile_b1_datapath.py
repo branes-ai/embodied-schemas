@@ -420,3 +420,36 @@ def test_architecture_cross_references():
     assert KPUArchitecture.model_validate({**arch, "tiles": adj}).tiles[
         0
     ].placement.adjacent_to == ["bf16_primary"]
+
+
+# ---------------------------------------------------------------------------
+# Review fixes (CodeRabbit on #88)
+# ---------------------------------------------------------------------------
+
+
+def test_legacy_projection_takes_max_across_alternative_op_kinds():
+    """mac:int8 and fma:int8 are different keys (alternative modes): the int8
+    peak is their max. Two units on the SAME key are concurrent and add up."""
+    alt = PEDatapath(
+        datapath_id="alt",
+        functional_units=[
+            _unit("mac", OpKind.MAC, {"operand_format": "int8"}),  # 2 ops
+            _unit("fma", OpKind.FMA, {"operand_format": "int8", "lanes": 2}),  # 4 ops
+        ],
+    )
+    assert alt.ops_per_pe_per_clock() == {"mac:int8": 2, "fma:int8": 4}
+    assert alt.legacy_precision_ops_per_pe() == {"int8": 4}
+
+    concurrent = PEDatapath(
+        datapath_id="conc",
+        functional_units=[
+            _unit("mac0", OpKind.MAC, {"operand_format": "int8"}),
+            _unit("mac1", OpKind.MAC, {"operand_format": "int8"}),
+        ],
+    )
+    assert concurrent.legacy_precision_ops_per_pe() == {"int8": 4}
+
+
+def test_absolute_energy_requires_a_reference_node():
+    with pytest.raises(ValidationError):
+        AbsoluteEnergy(pj=1.0, ref_node_id="")
