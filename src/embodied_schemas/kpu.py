@@ -22,11 +22,26 @@ ProcessNode and the validator framework will check consistency.
 import math
 import re
 from enum import Enum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import (
+    BaseModel,
+    Discriminator,
+    Field,
+    SerializerFunctionWrapHandler,
+    Tag,
+    model_serializer,
+    model_validator,
+)
 
-from embodied_schemas.datapath import PEDatapath
+from embodied_schemas.datapath import FunctionalUnit, OpKind, PEDatapath
+from embodied_schemas.function_core import FunctionCore
+from embodied_schemas.local_memory import (  # noqa: F401  (re-exported)
+    LocalMemory,
+    LocalMemoryLevel,
+    LocalMemoryScope,
+    duplicate_levels,
+)
 from embodied_schemas.overlay import (
     FabricInterconnect,
     FabricOverlayKind,
@@ -56,12 +71,13 @@ class KPUTileKind(str, Enum):
 
     Every tile class occupies sites of the KPU compute/memory checkerboard.
 
-    - ``pe_fabric``: a programmable domain-flow PE array with a declared
-      per-PE datapath. All catalog SKUs today.
-    - ``systolic``: a fixed-schedule GEMM / conv array (Phase B3).
-    - ``fixed_function``: an encapsulated compute segment such as an ISP or
-      a VIO pipeline (Phase B3).
-    - ``scalar``, ``io_bridge``: reserved; no schema yet.
+    - ``pe_fabric`` (``KPUTileSpec``): a programmable domain-flow PE array
+      with a declared per-PE datapath. All catalog SKUs today.
+    - ``systolic`` (``SystolicTile``): a fixed-schedule GEMM / conv array.
+    - ``fixed_function`` (``FixedFunctionTile``): an encapsulated compute
+      segment such as an ISP or a VIO pipeline (a ``FunctionCore``).
+    - ``scalar``, ``io_bridge``: reserved; no schema yet, so a tile with one
+      of these kinds is rejected.
     """
 
     PE_FABRIC = "pe_fabric"
@@ -88,34 +104,6 @@ class TileFootprint(BaseModel):
     @property
     def sites(self) -> int:
         return self.rows * self.cols
-
-
-class LocalMemoryLevel(str, Enum):
-    """Kind of a tile-class-local memory."""
-
-    L1 = "l1"
-    L2 = "l2"
-    LINE_BUFFER = "line_buffer"
-    WEIGHT_BUFFER = "weight_buffer"
-    ACCUMULATOR = "accumulator"
-
-
-class LocalMemoryScope(str, Enum):
-    """Whether a ``LocalMemory.kib`` figure is per PE or per tile."""
-
-    PE = "pe"      # kib is per PE
-    TILE = "tile"  # kib is per tile
-
-
-class LocalMemory(BaseModel):
-    """One tile-class-local memory (per PE or per tile)."""
-
-    level: LocalMemoryLevel
-    kib: float = Field(..., gt=0)
-    per: LocalMemoryScope = LocalMemoryScope.TILE
-    circuit_class: CircuitClass = CircuitClass.SRAM_HD
-
-    model_config = {"extra": "forbid"}
 
 
 class TilePlacementAffinity(str, Enum):
@@ -148,26 +136,28 @@ def tile_class_slug(tile_type: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", tile_type.lower()).strip("_")
 
 
-class KPUTileSpec(BaseModel):
-    """One specialized tile class within a heterogeneous KPU.
+# Serialized key order of every tile kind: identity first, kind-specific
+# fields next, the shared optional fields last. This keeps a pe_fabric tile's
+# key order exactly as it was before the base class existed.
+_TILE_DUMP_HEAD = ("tile_kind", "tile_type", "tile_class_id", "num_tiles")
+_TILE_DUMP_TAIL = (
+    "notes", "datapath", "footprint", "local_memory", "power_domain_id",
+    "placement", "interconnect",
+)
 
-    A KPU is built from a small number of tile classes (typically
-    INT8-primary, BF16-primary, Matrix), each with its own PE array,
-    standard-cell library, and ops/clock profile. The ``num_tiles`` for
-    each class is the architectural mix.
 
-    Every catalog tile is a ``pe_fabric`` tile. The Phase B1 fields
-    (graphs#268) are optional and backward compatible: ``tile_kind`` and
-    ``tile_class_id`` are filled in when absent. When a ``datapath`` is
-    declared, the ops it implies must equal ``ops_per_tile_per_clock``.
+class KPUTileBase(BaseModel):
+    """Fields every KPU tile kind shares (graphs#268 Phase B3).
+
+    Every tile class occupies ``num_tiles * sites_per_tile`` compute sites of
+    the KPU checkerboard, whatever it is inside. ``tile_class_id`` is the
+    stable id that power domains, placement hints and NoC overlays refer to.
+    Subclasses pin ``tile_kind`` to a Literal and add their own fields.
     """
 
-    tile_kind: Literal[KPUTileKind.PE_FABRIC] = Field(
-        KPUTileKind.PE_FABRIC,
-        description="Tile kind; pe_fabric is the only kind this class describes",
-    )
+    tile_kind: KPUTileKind
     tile_type: str = Field(
-        ..., description="Human-readable label, e.g., 'INT8-primary', 'Matrix'"
+        ..., description="Human-readable label, e.g., 'INT8-primary', 'Matrix', 'ISP'"
     )
     tile_class_id: str = Field(
         ...,
@@ -176,6 +166,76 @@ class KPUTileSpec(BaseModel):
         "silicon). Defaults to a slug of tile_type: 'INT8-primary' -> 'int8_primary'",
     )
     num_tiles: int = Field(..., gt=0, description="Number of tiles of this class")
+    notes: str = Field("", description="Additional notes")
+    footprint: TileFootprint | None = Field(
+        None, description="Checkerboard sites occupied; None = 1x1"
+    )
+    local_memory: list[LocalMemory] | None = Field(
+        None,
+        description="Tile-class-local memories. For pe_fabric tiles None means "
+        "the chip-level KPUMemorySubsystem L1/L2 figures apply",
+    )
+    power_domain_id: str | None = Field(
+        None, description="Power domain this tile class belongs to (Phase B4)"
+    )
+    placement: TilePlacement | None = Field(None, description="Floorplan hints")
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="before")
+    @classmethod
+    def _default_tile_class_id(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "tile_class_id" not in data and "tile_type" in data:
+            data = {**data, "tile_class_id": tile_class_slug(str(data["tile_type"]))}
+        return data
+
+    @model_validator(mode="after")
+    def _check_local_memory(self) -> "KPUTileBase":
+        dup = duplicate_levels(self.local_memory)
+        if dup:
+            raise ValueError(f"tile {self.tile_type!r}: duplicate local_memory levels {dup}")
+        return self
+
+    # Deliberately no return annotation: an annotation would replace the
+    # serialization-mode JSON schema (see compute_product.KPUBlock).
+    @model_serializer(mode="wrap")
+    def _serialize_in_tile_order(self, handler: SerializerFunctionWrapHandler):
+        data = handler(self)
+        if not isinstance(data, dict):
+            return data
+        head = [k for k in _TILE_DUMP_HEAD if k in data]
+        tail = [k for k in _TILE_DUMP_TAIL if k in data]
+        middle = [k for k in data if k not in head and k not in tail]
+        return {k: data[k] for k in head + middle + tail}
+
+    @property
+    def sites_per_tile(self) -> int:
+        """Checkerboard compute sites one tile of this class occupies."""
+        return self.footprint.sites if self.footprint is not None else 1
+
+    @property
+    def total_sites(self) -> int:
+        return self.num_tiles * self.sites_per_tile
+
+
+class KPUTileSpec(KPUTileBase):
+    """A ``pe_fabric`` tile: a programmable domain-flow PE array.
+
+    A KPU is built from a small number of tile classes (typically
+    INT8-primary, BF16-primary, Matrix), each with its own PE array,
+    standard-cell library, and ops/clock profile. The ``num_tiles`` for
+    each class is the architectural mix.
+
+    Every catalog tile is a ``pe_fabric`` tile. The optional fields (B1, B2)
+    are backward compatible: ``tile_kind`` and ``tile_class_id`` are filled
+    in when absent. When a ``datapath`` is declared, the ops it implies must
+    equal ``ops_per_tile_per_clock``. Also available as ``PEFabricTile``.
+    """
+
+    tile_kind: Literal[KPUTileKind.PE_FABRIC] = Field(
+        KPUTileKind.PE_FABRIC,
+        description="Tile kind; pe_fabric is the only kind this class describes",
+    )
     pe_array_rows: int = Field(..., gt=0, description="PE array rows per tile")
     pe_array_cols: int = Field(..., gt=0, description="PE array columns per tile")
     pe_circuit_class: CircuitClass = Field(
@@ -200,26 +260,12 @@ class KPUTileSpec(BaseModel):
     pipeline_drain_cycles: int = Field(
         0, ge=0, description="Cycles to drain the tile pipeline"
     )
-    notes: str = Field("", description="Additional notes")
-
-    # --- Phase B1 (graphs#268): optional, backward compatible -------------
+    # --- Phase B1 (graphs#268) --------------------------------------------
     datapath: PEDatapath | None = Field(
         None,
         description="Per-PE datapath. When set, rows * cols * its ops per PE "
         "must equal ops_per_tile_per_clock for every precision",
     )
-    footprint: TileFootprint | None = Field(
-        None, description="Checkerboard sites occupied; None = 1x1"
-    )
-    local_memory: list[LocalMemory] | None = Field(
-        None,
-        description="Tile-class-local memories. None = the chip-level "
-        "KPUMemorySubsystem L1/L2 figures apply",
-    )
-    power_domain_id: str | None = Field(
-        None, description="Power domain this tile class belongs to (Phase B4)"
-    )
-    placement: TilePlacement | None = Field(None, description="Floorplan hints")
     # --- Phase B2 (graphs#268) --------------------------------------------
     interconnect: FabricInterconnect | None = Field(
         None,
@@ -227,23 +273,8 @@ class KPUTileSpec(BaseModel):
         "nearest-neighbor mesh with no declared overlays",
     )
 
-    model_config = {"extra": "forbid"}
-
-    @model_validator(mode="before")
-    @classmethod
-    def _default_tile_class_id(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "tile_class_id" not in data and "tile_type" in data:
-            data = {**data, "tile_class_id": tile_class_slug(str(data["tile_type"]))}
-        return data
-
     @model_validator(mode="after")
-    def _check_datapath_and_memory(self) -> "KPUTileSpec":
-        if self.local_memory:
-            levels = [m.level for m in self.local_memory]
-            dup = sorted({lv.value for lv in levels if levels.count(lv) > 1})
-            if dup:
-                raise ValueError(f"tile {self.tile_type!r}: duplicate local_memory levels {dup}")
-
+    def _check_datapath(self) -> "KPUTileSpec":
         dp = self.datapath
         if dp is None:
             return self
@@ -280,6 +311,7 @@ class KPUTileSpec(BaseModel):
                 f"with ops_per_tile_per_clock ({'; '.join(detail)})"
             )
         return self
+
 
     @model_validator(mode="after")
     def _check_interconnect(self) -> "KPUTileSpec":
@@ -322,15 +354,139 @@ class KPUTileSpec(BaseModel):
     def total_pes(self) -> int:
         return self.num_tiles * self.pes_per_tile
 
-    @property
-    def sites_per_tile(self) -> int:
-        """Checkerboard compute sites one tile of this class occupies."""
-        return self.footprint.sites if self.footprint is not None else 1
-
     def ops_per_pe_per_clock(self) -> dict[str, float] | None:
         """``"<op>:<format>"`` ops per PE per clock from the datapath, or None
         when no datapath is declared."""
         return self.datapath.ops_per_pe_per_clock() if self.datapath is not None else None
+
+
+PEFabricTile = KPUTileSpec
+"""Alias: the ``pe_fabric`` tile kind."""
+
+
+class SystolicKernel(str, Enum):
+    """Kernels a fixed-schedule systolic array executes."""
+
+    GEMM = "gemm"
+    CONV2D = "conv2d"
+    DEPTHWISE_CONV2D = "depthwise_conv2d"
+    ATTENTION = "attention"
+
+
+class SystolicTile(KPUTileBase):
+    """A ``systolic`` tile: a fixed-schedule GEMM / conv array.
+
+    It is not programmable beyond its kernels. Every cell carries the same
+    MAC / FMA unit (``mac``, with one mode per number format), which is why it
+    is denser and cheaper per op than a pe_fabric tile. Ops per clock are
+    derived: ``array_rows * array_cols`` x the unit's ops per clock in each
+    mode.
+    """
+
+    tile_kind: Literal[KPUTileKind.SYSTOLIC] = KPUTileKind.SYSTOLIC
+    array_rows: int = Field(..., gt=0)
+    array_cols: int = Field(..., gt=0)
+    dataflow: KPUTileScheduleClass = Field(
+        KPUTileScheduleClass.WEIGHT_STATIONARY, description="Stationarity of the array"
+    )
+    circuit_class: CircuitClass = Field(..., description="Library the array is built in")
+    mac: FunctionalUnit = Field(..., description="The per-cell MAC / FMA unit")
+    supported_kernels: list[SystolicKernel] = Field(
+        default_factory=lambda: [SystolicKernel.GEMM, SystolicKernel.CONV2D], min_length=1
+    )
+
+    @model_validator(mode="after")
+    def _check_array(self) -> "SystolicTile":
+        if self.dataflow == KPUTileScheduleClass.NO_LOCAL_REUSE:
+            raise ValueError(f"systolic tile {self.tile_type!r}: dataflow cannot be no_local_reuse")
+        if self.mac.op not in (OpKind.MAC, OpKind.FMA):
+            raise ValueError(
+                f"systolic tile {self.tile_type!r}: the cell unit must be a mac or fma, "
+                f"got {self.mac.op.value}"
+            )
+        return self
+
+    @property
+    def pes_per_tile(self) -> int:
+        return self.array_rows * self.array_cols
+
+    @property
+    def total_pes(self) -> int:
+        return self.num_tiles * self.pes_per_tile
+
+    @property
+    def ops_per_tile_per_clock(self) -> dict[str, float]:
+        """Peak ops per tile per clock, by number format (derived)."""
+        opi = self.mac.resolved_ops_per_invocation
+        return {
+            m.operand_format: self.pes_per_tile * m.lanes * opi / m.issue_interval_cycles
+            for m in self.mac.modes
+        }
+
+    @property
+    def pipeline_fill_cycles(self) -> int:
+        """Catalog convention: fill / drain of an R x C array = max(R, C)."""
+        return max(self.array_rows, self.array_cols)
+
+    @property
+    def pipeline_drain_cycles(self) -> int:
+        return max(self.array_rows, self.array_cols)
+
+
+class FixedFunctionTile(KPUTileBase):
+    """A ``fixed_function`` tile: one encapsulated compute segment.
+
+    The core (``FunctionCore``) carries the function contract, throughput in
+    work units, energy per unit at a reference node, numeric formats, its own
+    local memory and silicon. A fixed-function tile has no programmable ops:
+    ``ops_per_tile_per_clock`` is empty, so a fixed-function tile never adds
+    to programmable TOPS.
+    """
+
+    tile_kind: Literal[KPUTileKind.FIXED_FUNCTION] = KPUTileKind.FIXED_FUNCTION
+    core: FunctionCore
+
+    @model_validator(mode="after")
+    def _memory_lives_in_the_core(self) -> "FixedFunctionTile":
+        if self.local_memory is not None:
+            raise ValueError(
+                f"fixed-function tile {self.tile_type!r}: declare memory in "
+                f"core.local_memory, not the tile's local_memory"
+            )
+        return self
+
+    @property
+    def ops_per_tile_per_clock(self) -> dict[str, float]:
+        return {}
+
+    @property
+    def function_id(self) -> str:
+        return self.core.function_id
+
+    @property
+    def units_per_clock(self) -> float:
+        """Work units per clock of one tile (``core.throughput.unit``)."""
+        return self.core.units_per_clock
+
+
+def _tile_kind_of(value: Any) -> str:
+    """Union tag of a tile: its ``tile_kind``, defaulting to pe_fabric (every
+    catalog YAML predates the field)."""
+    kind = value.get("tile_kind", KPUTileKind.PE_FABRIC) if isinstance(value, dict) else (
+        getattr(value, "tile_kind", KPUTileKind.PE_FABRIC)
+    )
+    return kind.value if isinstance(kind, Enum) else str(kind)
+
+
+AnyKPUTile = Annotated[
+    Union[
+        Annotated[KPUTileSpec, Tag(KPUTileKind.PE_FABRIC.value)],
+        Annotated[SystolicTile, Tag(KPUTileKind.SYSTOLIC.value)],
+        Annotated[FixedFunctionTile, Tag(KPUTileKind.FIXED_FUNCTION.value)],
+    ],
+    Discriminator(_tile_kind_of),
+]
+"""Any KPU tile kind, discriminated on ``tile_kind`` (missing = pe_fabric)."""
 
 
 # ---------------------------------------------------------------------------
@@ -427,8 +583,10 @@ class KPUArchitectureBase(BaseModel):
     total_tiles: int = Field(
         ..., gt=0, description="Total tiles across all tile classes"
     )
-    tiles: list[KPUTileSpec] = Field(
-        ..., description="Per-tile-class specifications (heterogeneous tile mix)"
+    tiles: list[AnyKPUTile] = Field(
+        ...,
+        description="Per-tile-class specifications (heterogeneous tile mix): "
+        "pe_fabric, systolic and fixed_function tiles",
     )
     noc: KPUNoCSpec = Field(..., description="Intra-die NoC topology")
     memory: KPUMemorySubsystem = Field(
@@ -447,6 +605,11 @@ class KPUArchitectureBase(BaseModel):
         dup = sorted({i for i in ids if ids.count(i) > 1})
         if dup:
             raise ValueError(f"duplicate tile_class_id {dup}; each tile class needs a unique id")
+        count = sum(t.num_tiles for t in self.tiles)
+        if self.total_tiles != count:
+            raise ValueError(
+                f"total_tiles {self.total_tiles} != {count}, the sum of num_tiles over tile classes"
+            )
         known = set(ids)
         for tile in self.tiles:
             if tile.placement is None:

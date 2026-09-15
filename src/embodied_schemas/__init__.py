@@ -188,6 +188,21 @@ from embodied_schemas.kpu import (
     TilePlacement,
     TilePlacementAffinity,
     tile_class_slug,
+    KPUTileBase,
+    PEFabricTile,
+    SystolicTile,
+    SystolicKernel,
+    FixedFunctionTile,
+    AnyKPUTile,
+)
+from embodied_schemas.function_core import (
+    WorkUnit,
+    FunctionContract,
+    FunctionThroughput,
+    FunctionEnergy,
+    FunctionIO,
+    CoreSiliconBlock,
+    FunctionCore,
 )
 from embodied_schemas.datapath import (
     NumberFormatFamily,
@@ -542,6 +557,20 @@ __all__ = [
     "TilePlacement",
     "TilePlacementAffinity",
     "tile_class_slug",
+    "KPUTileBase",
+    "PEFabricTile",
+    "SystolicTile",
+    "SystolicKernel",
+    "FixedFunctionTile",
+    "AnyKPUTile",
+    # Function cores (graphs#268 B3): fixed-function compute segments
+    "WorkUnit",
+    "FunctionContract",
+    "FunctionThroughput",
+    "FunctionEnergy",
+    "FunctionIO",
+    "CoreSiliconBlock",
+    "FunctionCore",
     # Datapath (graphs#268 B1): number formats, operators, PE datapaths
     "NumberFormatFamily",
     "NumberFormatSpec",
