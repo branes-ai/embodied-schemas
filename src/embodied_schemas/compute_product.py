@@ -81,6 +81,7 @@ from embodied_schemas.kpu import (
     KPUSiliconBin,
     KPUTheoreticalPerformance,
     KPUThermalProfile,
+    check_performance_rollup,
     check_profile_domain_references,
 )
 from embodied_schemas.process_node import DataConfidence
@@ -546,4 +547,26 @@ class ComputeProduct(BaseModel):
                 f"so a tdp_scenario keyed by tile_class_id is ambiguous"
             )
         check_profile_domain_references(self.power.thermal_profiles, domains, tile_class_ids)
+        return self
+
+    @model_validator(mode="after")
+    def _check_performance_rollup(self) -> ComputeProduct:
+        """A declared B5 performance roll-up must match the product's KPU tiles
+        at the default thermal profile's clock (the generator's convention).
+        Products without a KPU block are not checked against tiles."""
+        tiles = [
+            t
+            for die in self.dies
+            for block in die.blocks
+            if isinstance(block, KPUBlock)
+            for t in block.tiles
+        ]
+        if not tiles:
+            return self
+        clock = next(
+            p.clock_mhz
+            for p in self.power.thermal_profiles
+            if p.name == self.power.default_thermal_profile
+        )
+        check_performance_rollup(self.performance, tiles, clock)
         return self

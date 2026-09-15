@@ -199,6 +199,8 @@ from embodied_schemas.kpu import (
     CheckerboardMemoryCell,
     SiteGrid,
     SPARE_SITE,
+    PROGRAMMABLE_TILE_KINDS,
+    derive_kpu_performance,
 )
 from embodied_schemas.function_core import (
     WorkUnit,
@@ -578,6 +580,9 @@ __all__ = [
     "CheckerboardMemoryCell",
     "SiteGrid",
     "SPARE_SITE",
+    # Performance roll-up (graphs#268 B5)
+    "PROGRAMMABLE_TILE_KINDS",
+    "derive_kpu_performance",
     # Function cores (graphs#268 B3): fixed-function compute segments
     "WorkUnit",
     "FunctionContract",
