@@ -23,6 +23,10 @@ Unified types landed so far:
     discriminator for chip-attached vs host-bus external DRAM. Used
     by ``*MemorySubsystem`` ``dram_attachment`` fields (added in v11
     PR 2 as Optional; CGRA rename + Plasticine YAML migration in PR 3).
+  - ``PowerDomain`` / ``DomainOperatingPoint`` -- graphs#268 B4. Generic
+    power domains (cluster / tile_class / uncore) and per-domain operating
+    points. Defined in ``power_domain.py`` and re-exported here; KPU is the
+    first user (``KPUArchitectureBase.power_domains``).
 
 This module is **additive only**. Existing block modules continue to
 work unchanged:
@@ -91,6 +95,15 @@ from embodied_schemas.process_node import (
 )
 from embodied_schemas.gpu import MemoryType, PCIeGen
 from embodied_schemas.gpu_block import ClockDomain
+
+# Power domains (graphs#268 B4). Defined in their own dependency-free module
+# so ``kpu.py`` can use them without an import cycle through this module.
+from embodied_schemas.power_domain import (
+    DomainOperatingPoint,
+    PowerDomain,
+    PowerDomainKind,
+    SiteRange,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -381,4 +394,9 @@ __all__ = [
     "OnDieFabric",
     # Cross-kind discriminator enum (v11)
     "DramAttachment",
+    # Power domains (graphs#268 B4)
+    "PowerDomain",
+    "PowerDomainKind",
+    "SiteRange",
+    "DomainOperatingPoint",
 ]

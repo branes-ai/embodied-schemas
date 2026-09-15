@@ -194,6 +194,11 @@ from embodied_schemas.kpu import (
     SystolicKernel,
     FixedFunctionTile,
     AnyKPUTile,
+    CheckerboardSpec,
+    CheckerboardPlacement,
+    CheckerboardMemoryCell,
+    SiteGrid,
+    SPARE_SITE,
 )
 from embodied_schemas.function_core import (
     WorkUnit,
@@ -338,6 +343,10 @@ from embodied_schemas.compute_block_common import (
     PCIeGen,
     TheoreticalPerformance,
     ThermalProfile,
+    PowerDomain,
+    PowerDomainKind,
+    SiteRange,
+    DomainOperatingPoint,
 )
 from embodied_schemas.registry import Registry
 from embodied_schemas.loaders import (
@@ -563,6 +572,12 @@ __all__ = [
     "SystolicKernel",
     "FixedFunctionTile",
     "AnyKPUTile",
+    # Checkerboard (graphs#268 B4)
+    "CheckerboardSpec",
+    "CheckerboardPlacement",
+    "CheckerboardMemoryCell",
+    "SiteGrid",
+    "SPARE_SITE",
     # Function cores (graphs#268 B3): fixed-function compute segments
     "WorkUnit",
     "FunctionContract",
@@ -690,6 +705,11 @@ __all__ = [
     "PCIeGen",
     "OnDieFabric",
     "DramAttachment",
+    # Power domains (graphs#268 B4)
+    "PowerDomain",
+    "PowerDomainKind",
+    "SiteRange",
+    "DomainOperatingPoint",
     # Version
     "__version__",
 ]

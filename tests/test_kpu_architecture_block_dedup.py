@@ -29,12 +29,15 @@ from embodied_schemas import (
     load_compute_products,
 )
 
+# Optional fields added since (graphs#268 B4) append after the legacy keys,
+# so every legacy key keeps its position.
+ADDED_KEYS = ["checkerboard", "power_domains"]
 LEGACY_BLOCK_KEY_ORDER = [
     "kind", "total_tiles", "multi_precision_alu", "tiles", "noc", "memory",
-]
+] + ADDED_KEYS
 LEGACY_ARCH_KEY_ORDER = [
     "total_tiles", "tiles", "noc", "memory", "multi_precision_alu",
-]
+] + ADDED_KEYS
 
 
 def _kpu_blocks() -> dict[str, KPUBlock]:
