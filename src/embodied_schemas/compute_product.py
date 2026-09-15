@@ -62,7 +62,13 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field, SerializerFunctionWrapHandler, model_serializer
+from pydantic import (
+    BaseModel,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 # Reuse existing KPU sub-types verbatim for ``KPUBlock`` content.
 # ``KPUBlock`` shares its architectural field set with ``KPUArchitecture``
@@ -75,6 +81,7 @@ from embodied_schemas.kpu import (
     KPUSiliconBin,
     KPUTheoreticalPerformance,
     KPUThermalProfile,
+    check_profile_domain_references,
 )
 from embodied_schemas.process_node import DataConfidence
 
@@ -510,3 +517,33 @@ class ComputeProduct(BaseModel):
     last_updated: str = Field(..., description="YYYY-MM-DD")
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _check_profile_references(self) -> ComputeProduct:
+        """Thermal-profile domain / tile-class references resolve against the
+        product's KPU blocks. Power-domain ids are product-wide, because the
+        chip-level thermal profiles refer to them by id alone."""
+        domains: dict = {}
+        tile_class_ids: set[str] = set()
+        shared_ids: set[str] = set()
+        for die in self.dies:
+            for block in die.blocks:
+                if not isinstance(block, KPUBlock):
+                    continue
+                ids = {t.tile_class_id for t in block.tiles}
+                shared_ids |= ids & tile_class_ids
+                tile_class_ids |= ids
+                for d in block.power_domains or []:
+                    if d.domain_id in domains:
+                        raise ValueError(
+                            f"power domain_id {d.domain_id!r} is defined by two KPU "
+                            f"blocks; domain ids must be unique across the product"
+                        )
+                    domains[d.domain_id] = d
+        if shared_ids and any(p.tdp_scenario is not None for p in self.power.thermal_profiles):
+            raise ValueError(
+                f"tile_class_id {sorted(shared_ids)} appears in more than one KPU block, "
+                f"so a tdp_scenario keyed by tile_class_id is ambiguous"
+            )
+        check_profile_domain_references(self.power.thermal_profiles, domains, tile_class_ids)
+        return self

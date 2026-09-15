@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Checkerboard** (branes-ai/graphs#268 Phase B4): the new optional
+  `KPUArchitectureBase.checkerboard` (`CheckerboardSpec`) makes the
+  compute-site grid explicit.
+  - Fields: `compute_sites` (rows x cols), an optional `memory_cell`
+    (restates `memory.l3_kib_per_tile`), `placement` `auto` / `explicit`,
+    `placement_map` (a tile_class_id or `.` per site) and `spare_sites`.
+  - Checks: site accounting (`sum(num_tiles * footprint sites) +
+    spare_sites == rows * cols`), a NoC mesh equal to the grid, footprints
+    that fit the grid, and, for an explicit map, that every class tiles into
+    exactly `num_tiles` footprint rectangles.
+- **Power domains** (new module `power_domain.py`, re-exported from
+  `compute_block_common`; block-kind neutral):
+  - `PowerDomain`: a `cluster` (grid `site_ranges`), `tile_class`
+    (`members`) or `uncore` domain, with `rail_id`, `clock_domain_id` and
+    `gateable`.
+  - `SiteRange` and `DomainOperatingPoint` (clock, Vdd, `gated`,
+    activity).
+  - Exposed as the new optional `KPUArchitectureBase.power_domains`. It
+    checks unique ids, known members, one tile_class domain per class,
+    cluster ranges inside the grid and not overlapping, and that every tile
+    `power_domain_id` names a defined, consistent domain.
+- **`KPUThermalProfile`** gains the optional `domain_operating_points`
+  (keyed by domain_id) and `tdp_scenario` (the activity of every tile
+  class, which the TDP is derived from). `KPUEntry` and `ComputeProduct`
+  check both against the architecture: known domains, gating only on
+  gateable domains, and every tile class listed exactly once.
+
 - **KPU tile kinds** (branes-ai/graphs#268 Phase B3).
   - `KPUArchitectureBase.tiles` is now `list[AnyKPUTile]`, discriminated on
     `tile_kind`; a missing `tile_kind` means `pe_fabric`, so every catalog
@@ -66,8 +93,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - overlay ids must be unique.
 
 Backward compatible: every catalog YAML loads unchanged. Downstream,
-`model_dump()` gains `noc.overlays` and `tiles[].interconnect` (both
-`null` for catalog SKUs).
+`model_dump()` gains `noc.overlays` and `tiles[].interconnect` (B2), plus
+`checkerboard`, `power_domains` and the thermal profiles'
+`domain_operating_points` / `tdp_scenario` (B4). All are `null` for catalog
+SKUs.
 
 ## [0.8.0] - 2026-09-14
 
