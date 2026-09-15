@@ -339,7 +339,7 @@ from embodied_schemas.loaders import (
     load_compute_products,
 )
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     # Hardware
