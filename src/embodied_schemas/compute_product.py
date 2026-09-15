@@ -81,6 +81,7 @@ from embodied_schemas.kpu import (
     KPUSiliconBin,
     KPUTheoreticalPerformance,
     KPUThermalProfile,
+    check_performance_rollup,
     check_profile_domain_references,
 )
 from embodied_schemas.process_node import DataConfidence
@@ -414,6 +415,22 @@ class Power(BaseModel):
 
     model_config = {"extra": "forbid"}
 
+    @model_validator(mode="after")
+    def _validate_default_profile_name(self) -> Power:
+        """``default_thermal_profile`` must name a profile (as ``KPUPowerSpec``)."""
+        names = [p.name for p in self.thermal_profiles]
+        if self.default_thermal_profile not in names:
+            raise ValueError(
+                f"default_thermal_profile={self.default_thermal_profile!r} "
+                f"is not in thermal_profiles (available: {names})"
+            )
+        return self
+
+    @property
+    def default_profile(self) -> KPUThermalProfile:
+        """The profile named by ``default_thermal_profile``."""
+        return next(p for p in self.thermal_profiles if p.name == self.default_thermal_profile)
+
 
 class Market(BaseModel):
     """Market positioning. Vendor-neutral version of today's
@@ -546,4 +563,20 @@ class ComputeProduct(BaseModel):
                 f"so a tdp_scenario keyed by tile_class_id is ambiguous"
             )
         check_profile_domain_references(self.power.thermal_profiles, domains, tile_class_ids)
+        return self
+
+    @model_validator(mode="after")
+    def _check_performance_rollup(self) -> ComputeProduct:
+        """A declared B5 performance roll-up must match the product's KPU tiles
+        at the default thermal profile's clock (the generator's convention).
+        Products without a KPU block are not checked against tiles."""
+        tiles = [
+            t
+            for die in self.dies
+            for block in die.blocks
+            if isinstance(block, KPUBlock)
+            for t in block.tiles
+        ]
+        if tiles:
+            check_performance_rollup(self.performance, tiles, self.power.default_profile.clock_mhz)
         return self
