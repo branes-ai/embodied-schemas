@@ -287,3 +287,14 @@ def test_products_without_a_kpu_block_are_not_checked_against_tiles():
     }
     again = ComputeProduct.model_validate({**cp.model_dump(mode="json"), "performance": perf})
     assert again.performance.declares_rollup
+
+
+def test_unknown_default_profile_is_a_validation_error():
+    # Checked by Power itself, so it surfaces as a normal ValidationError
+    # rather than a StopIteration from the roll-up check (CodeRabbit on #93).
+    for cp in (T64, next(c for c in CATALOG.values() if c.id not in KPU_PRODUCTS)):
+        data = cp.model_dump(mode="json")
+        data["power"]["default_thermal_profile"] = "9000W"
+        with pytest.raises(ValidationError, match="default_thermal_profile='9000W' is not in"):
+            ComputeProduct.model_validate(data)
+    assert T64.power.default_profile.name == T64.power.default_thermal_profile

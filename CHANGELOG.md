@@ -28,7 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Architecture check:** `KPUEntry` and `ComputeProduct` check a
     declared roll-up against their tiles at the default profile's clock. A
     legacy-only performance block is not checked, as before.
-  - New exports: `PROGRAMMABLE_TILE_KINDS` and `KPUPowerSpec.default_profile`.
+  - New: the `PROGRAMMABLE_TILE_KINDS` export, and a `default_profile`
+    property on `KPUPowerSpec` and `compute_product.Power`.
+  - `compute_product.Power` now rejects a `default_thermal_profile` that
+    names no profile, as `KPUPowerSpec` already did. All 43 catalog
+    products pass.
 - **Checkerboard** (branes-ai/graphs#268 Phase B4): the new optional
   `KPUArchitectureBase.checkerboard` (`CheckerboardSpec`) makes the
   compute-site grid explicit.
