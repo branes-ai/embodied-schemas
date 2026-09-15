@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Interconnect overlays** (new module `overlay.py`; branes-ai/graphs#268
+  Phase B2). All are statically configured links: no routed networks and no
+  routing tables.
+  - **PE level:** `FabricInterconnect`, a nearest-neighbor base plus
+    `FabricOverlay`s. The overlay kinds are row/col broadcast, express
+    (`span`), reduction tree, transpose, butterfly and segmented bus, each
+    with a per-row / col / tile scope. Exposed as the new optional
+    `KPUTileSpec.interconnect`.
+  - **Tile level:** `NoCOverlay`: express channels (`span` in mesh hops),
+    stream links (an ordered producer -> consumer chain of `tile_class_id`s)
+    and multicast trees. Exposed as the new optional `KPUNoCSpec.overlays`.
+- **Validation:**
+  - span limits per overlay kind;
+  - overlays must fit the PE array (spans, square arrays for transpose,
+    power-of-two axes for butterfly);
+  - express channels must fit the mesh;
+  - NoC overlay endpoints must reference existing tile classes;
+  - overlay ids must be unique.
+
+Backward compatible: every catalog YAML loads unchanged. Downstream,
+`model_dump()` gains `noc.overlays` and `tiles[].interconnect` (both
+`null` for catalog SKUs).
+
 ## [0.8.0] - 2026-09-14
 
 Phase B1 of the KPU heterogeneous-tile sprint (branes-ai/graphs#268, #88).

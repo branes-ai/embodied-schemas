@@ -205,6 +205,15 @@ from embodied_schemas.datapath import (
     FunctionalUnit,
     PEDatapath,
 )
+from embodied_schemas.overlay import (
+    NeighborTopology,
+    FabricOverlayKind,
+    OverlayScope,
+    FabricOverlay,
+    FabricInterconnect,
+    NoCOverlayKind,
+    NoCOverlay,
+)
 from embodied_schemas.compute_product import (
     ComputeProduct,
     ProductKind,
@@ -548,6 +557,14 @@ __all__ = [
     "UnitMode",
     "FunctionalUnit",
     "PEDatapath",
+    # Overlays (graphs#268 B2): PE-level and NoC-level interconnect overlays
+    "NeighborTopology",
+    "FabricOverlayKind",
+    "OverlayScope",
+    "FabricOverlay",
+    "FabricInterconnect",
+    "NoCOverlayKind",
+    "NoCOverlay",
     # ComputeProduct (v1 + v2) -- unified spine, additive
     "ComputeProduct",
     "ProductKind",
