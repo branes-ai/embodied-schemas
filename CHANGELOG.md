@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **KPU tile kinds** (branes-ai/graphs#268 Phase B3).
+  - `KPUArchitectureBase.tiles` is now `list[AnyKPUTile]`, discriminated on
+    `tile_kind`; a missing `tile_kind` means `pe_fabric`, so every catalog
+    YAML loads unchanged. `scalar` / `io_bridge` stay reserved and are
+    rejected.
+  - `KPUTileBase` holds the shared fields: `tile_kind`, `tile_type`,
+    `tile_class_id`, `num_tiles`, `notes`, `footprint`, `local_memory`,
+    `power_domain_id`, `placement`.
+  - `KPUTileSpec` (alias `PEFabricTile`) is the programmable domain-flow
+    fabric, unchanged. Its serialized key order is preserved exactly.
+  - `SystolicTile`: a fixed-schedule GEMM / conv array, with `array_rows` x
+    `array_cols` cells, one `mac` unit (MAC / FMA, one mode per format),
+    `dataflow` and `supported_kernels`. `ops_per_tile_per_clock` and
+    fill / drain cycles are derived.
+  - `FixedFunctionTile`: wraps a `FunctionCore`. Its
+    `ops_per_tile_per_clock` is always empty, so it never adds to
+    programmable TOPS, and its memory is declared in the core.
+  - `KPUArchitectureBase` now rejects a `total_tiles` that differs from
+    `sum(num_tiles)` over the tile classes. Every catalog SKU already
+    satisfies this.
+- **Function cores** (new module `function_core.py`, architecture-neutral):
+  `FunctionCore` is one encapsulated compute segment (ISP, SGM, VIO,
+  radar, ...). It carries:
+  - a dotted `function_id`, an input / output contract with config limits,
+    and its numeric formats;
+  - throughput in `WorkUnit`s per clock;
+  - energy per unit at a reference node, split into logic / SRAM fractions;
+  - `ops_equivalent_per_unit` (reporting only), IO bytes per unit, local
+    memory, and silicon given as transistors or as an area at a reference
+    node.
+
+  The same definition can be placed in a KPU checkerboard or, later, as a
+  standalone SoC block.
+- **`local_memory.py`**: `LocalMemory` / `LocalMemoryLevel` /
+  `LocalMemoryScope` moved out of `kpu.py`, so function cores can use them
+  (still importable from `embodied_schemas.kpu`). Adds the `state` level.
+
 - **Interconnect overlays** (new module `overlay.py`; branes-ai/graphs#268
   Phase B2). All are statically configured links: no routed networks and no
   routing tables.
