@@ -234,6 +234,9 @@ def test_function_core_validation():
         FunctionCore.model_validate(_isp_core(numeric_formats=["float16"]))
     with pytest.raises(ValidationError):
         FunctionCore.model_validate(_isp_core(ops_equivalent_per_unit={"int7": 1}))
+    for bad in (-1.0, float("nan"), float("inf")):
+        with pytest.raises(ValidationError, match="finite and >= 0"):
+            FunctionCore.model_validate(_isp_core(ops_equivalent_per_unit={"int16": bad}))
     with pytest.raises(ValidationError, match="duplicate local_memory levels"):
         FunctionCore.model_validate(
             _isp_core(

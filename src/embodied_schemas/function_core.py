@@ -34,6 +34,7 @@ Architecture-neutral: no KPU imports.
 
 from __future__ import annotations
 
+import math
 from enum import Enum
 
 from pydantic import BaseModel, Field, model_validator
@@ -192,8 +193,10 @@ class FunctionCore(BaseModel):
         dup = duplicate_levels(self.local_memory)
         if dup:
             raise ValueError(f"core {self.function_id!r}: duplicate local_memory levels {dup}")
-        if any(v < 0 for v in self.ops_equivalent_per_unit.values()):
-            raise ValueError(f"core {self.function_id!r}: ops_equivalent_per_unit must be >= 0")
+        if any(not math.isfinite(v) or v < 0 for v in self.ops_equivalent_per_unit.values()):
+            raise ValueError(
+                f"core {self.function_id!r}: ops_equivalent_per_unit values must be finite and >= 0"
+            )
         if self.silicon:
             names = [b.name for b in self.silicon]
             dup_names = sorted({n for n in names if names.count(n) > 1})
