@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-14
+
+Phase B1 of the KPU heterogeneous-tile sprint (branes-ai/graphs#268, #88).
+Additive and backward compatible: every catalog YAML loads unchanged.
+
 ### Added
 
 - **Datapath schemas** (new module `datapath.py`; branes-ai/graphs#268 Phase
