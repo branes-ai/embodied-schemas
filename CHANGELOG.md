@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **KPU tile-class library** (branes-ai/graphs#268 Phase B6).
+  - New module `kpu_tile_class.py`. `KPUTileClassEntry` is a one-tile
+    template (its `tile_class_id` is the entry id, `num_tiles` 1) plus
+    provenance (`sources`, `confidence`, `ref_node_id`).
+    `instantiate(num_tiles, **overrides)` returns a self-contained SKU tile.
+  - `KPUTileBase` gains the optional `tile_class_ref`, which names the
+    library entry a tile came from. It is informational only: SKUs stay
+    self-contained, so validators never need the library. It is serialized
+    last, so existing key positions are unchanged.
+  - `load_kpu_tile_classes()` reads `data/kpu-tile-classes/<id>.yaml`. A
+    private overlay directory can be named by `KPU_TILE_DATA_DIR`; when an
+    id is in both, the higher-confidence entry wins, as for
+    `PROCESS_NODE_DATA_DIR`. The two overlays now share one merge helper,
+    with behavior unchanged.
+  - **Initial entries**, all THEORETICAL and cited:
+    - `pe_int8_mac_i32`: the legacy-equivalent INT8-primary tile plus its
+      datapath.
+    - `pe_bf16_fma`.
+    - `pe_lns16_mac`: LNS8 energy from LNS-Madam; the LNS16 energy is an
+      assumption, flagged in the entry.
+    - `pe_fp16_lerp` and `pe_minplus_i16`: energies derived from the
+      Horowitz ISSCC 2014 45 nm table.
+    - `systolic_int8_ws`: TPU v1 organization.
+    - `ff_isp_raw2yuv`: Darkroom, SIGGRAPH 2014.
+    - `ff_vio_stereo_inertial`: Navion, JSSC 2019.
+    - `ff_stereo_sgm`: Li et al., ISSCC 2017.
+- **Scaling-anchor process nodes** `tsmc_n65` and `tsmc_n40`, both
+  THEORETICAL. They are the reference nodes for the 65 nm (Navion) and
+  40/45 nm (SGM, Darkroom, Horowitz) figures. Both are derived from
+  `tsmc_n28hpm` / `tsmc_n16` by C x V^2 and area scaling, and
+  cross-checked against the cited silicon. No KPU SKU targets them.
+- `load_kpus()` now **warns** about a product that has a KPU block but
+  cannot be expressed as a legacy `KPUEntry` (several dies, or a KPU block
+  beside other blocks), and about a KPU product whose process node is
+  missing. It no longer drops these silently. Products without a KPU block
+  are still skipped silently.
+
 - **Performance roll-up by tile kind** (branes-ai/graphs#268 Phase B5).
   `KPUTheoreticalPerformance` gains three optional fields:
   - `peak_ops_per_sec_by_precision`: ops/s by precision, with the same name
