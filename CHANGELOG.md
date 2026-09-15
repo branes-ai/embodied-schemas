@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Performance roll-up by tile kind** (branes-ai/graphs#268 Phase B5).
+  `KPUTheoreticalPerformance` gains three optional fields:
+  - `peak_ops_per_sec_by_precision`: ops/s by precision, with the same name
+    and meaning as `TheoreticalPerformance`;
+  - `by_tile_kind`: the same map per programmable tile kind (`pe_fabric`,
+    `systolic`);
+  - `fixed_function_throughput`: work units/s per `function_id`.
+
+  Fixed-function tiles never enter the ops/s fields or the legacy TOPS.
+  - **Consistency:** when the peak map is set, the legacy
+    `int8_tops` / `bf16_tflops` / `fp32_tflops` / `int4_tops` must equal it
+    to their stated precision, and `by_tile_kind` must sum to it.
+  - **`derive_kpu_performance(tiles, clock_mhz)`:** computes every field
+    from the tiles. It reproduces the legacy numbers of all 12 catalog SKUs
+    exactly, at the default thermal profile's clock with the graphs
+    generator's rounding.
+  - **Architecture check:** `KPUEntry` and `ComputeProduct` check a
+    declared roll-up against their tiles at the default profile's clock. A
+    legacy-only performance block is not checked, as before.
+  - New: the `PROGRAMMABLE_TILE_KINDS` export, and a `default_profile`
+    property on `KPUPowerSpec` and `compute_product.Power`.
+  - `compute_product.Power` now rejects a `default_thermal_profile` that
+    names no profile, as `KPUPowerSpec` already did. All 43 catalog
+    products pass.
 - **Checkerboard** (branes-ai/graphs#268 Phase B4): the new optional
   `KPUArchitectureBase.checkerboard` (`CheckerboardSpec`) makes the
   compute-site grid explicit.
@@ -95,8 +119,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Backward compatible: every catalog YAML loads unchanged. Downstream,
 `model_dump()` gains `noc.overlays` and `tiles[].interconnect` (B2), plus
 `checkerboard`, `power_domains` and the thermal profiles'
-`domain_operating_points` / `tdp_scenario` (B4). All are `null` for catalog
-SKUs.
+`domain_operating_points` / `tdp_scenario` (B4), plus `performance`'s
+`peak_ops_per_sec_by_precision` / `by_tile_kind` / `fixed_function_throughput`
+(B5). All are `null` for catalog SKUs.
 
 ## [0.8.0] - 2026-09-14
 

@@ -35,7 +35,7 @@ from pydantic import (
 )
 
 from embodied_schemas.datapath import FunctionalUnit, OpKind, PEDatapath
-from embodied_schemas.function_core import FunctionCore
+from embodied_schemas.function_core import _FUNCTION_ID_RE, FunctionCore
 from embodied_schemas.local_memory import (  # noqa: F401  (re-exported)
     LocalMemory,
     LocalMemoryLevel,
@@ -1078,15 +1078,207 @@ class KPUClocks(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+PROGRAMMABLE_TILE_KINDS = frozenset({KPUTileKind.PE_FABRIC, KPUTileKind.SYSTOLIC})
+"""Tile kinds whose ops count toward peak (programmable) ops/s and TOPS."""
+
+# (precision, legacy field, decimals): the legacy roll-up fields and the
+# rounding the graphs SKU generator applies to them (T-ops/s).
+_LEGACY_PERF_FIELDS = (
+    ("int8", "int8_tops", 1),
+    ("bf16", "bf16_tflops", 1),
+    ("fp32", "fp32_tflops", 2),
+    ("int4", "int4_tops", 1),
+)
+
+
+def _check_rate_map(name: str, rates: dict[str, float]) -> None:
+    for key, value in rates.items():
+        if not math.isfinite(value) or value < 0:
+            raise ValueError(f"{name}[{key!r}] = {value} must be finite and >= 0")
+
+
 class KPUTheoreticalPerformance(BaseModel):
-    """Roll-up peak ops/s by precision (TOPS / TFLOPS)."""
+    """Roll-up peak ops/s by precision (TOPS / TFLOPS).
+
+    The legacy fields (``int8_tops`` ...) are T-ops/s of the programmable
+    tile kinds (pe_fabric + systolic) at the default thermal profile's
+    clock. The optional B5 fields (graphs#268) break the same roll-up down:
+
+    - ``peak_ops_per_sec_by_precision``: ops/s by precision name, same name
+      and meaning as ``compute_block_common.TheoreticalPerformance``.
+    - ``by_tile_kind``: the same, per programmable tile kind.
+    - ``fixed_function_throughput``: work units/s per ``function_id``.
+      Fixed-function tiles have no programmable ops, so they never enter the
+      ops/s fields or the legacy TOPS.
+
+    When ``peak_ops_per_sec_by_precision`` is set, the legacy fields must
+    equal it to their stated precision. ``derive_kpu_performance`` computes
+    every field from the tiles; ``KPUEntry`` and ``ComputeProduct`` check a
+    declared B5 roll-up against their architecture.
+    """
 
     int8_tops: float = Field(..., ge=0)
     bf16_tflops: float = Field(..., ge=0)
     fp32_tflops: float = Field(..., ge=0)
     int4_tops: float | None = Field(None, ge=0)
+    # --- Phase B5 (graphs#268) --------------------------------------------
+    peak_ops_per_sec_by_precision: dict[str, float] | None = Field(
+        None, description="Programmable peak ops/s by precision (pe_fabric + systolic)"
+    )
+    by_tile_kind: dict[KPUTileKind, dict[str, float]] | None = Field(
+        None, description="Peak ops/s by precision, per programmable tile kind"
+    )
+    fixed_function_throughput: dict[str, float] | None = Field(
+        None, description="Work units/s per fixed-function function_id"
+    )
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _check_rollup(self) -> "KPUTheoreticalPerformance":
+        peak, kinds = self.peak_ops_per_sec_by_precision, self.by_tile_kind
+        if peak is not None:
+            _check_rate_map("peak_ops_per_sec_by_precision", peak)
+        if self.fixed_function_throughput is not None:
+            _check_rate_map("fixed_function_throughput", self.fixed_function_throughput)
+            ff_ids = self.fixed_function_throughput
+            bad = [k for k in ff_ids if not re.fullmatch(_FUNCTION_ID_RE, k)]
+            if bad:
+                raise ValueError(f"fixed_function_throughput keys {bad} are not function_ids")
+        if kinds is not None:
+            other = sorted(k.value for k in kinds if k not in PROGRAMMABLE_TILE_KINDS)
+            if other:
+                raise ValueError(
+                    f"by_tile_kind covers programmable kinds only (pe_fabric, systolic), "
+                    f"got {other}"
+                )
+            for kind, rates in kinds.items():
+                _check_rate_map(f"by_tile_kind[{kind.value!r}]", rates)
+            if peak is not None:
+                summed: dict[str, float] = {}
+                for rates in kinds.values():
+                    for prec, value in rates.items():
+                        summed[prec] = summed.get(prec, 0.0) + value
+                if not _rates_close(summed, peak):
+                    raise ValueError(
+                        "peak_ops_per_sec_by_precision must be the sum of by_tile_kind "
+                        f"over kinds: {peak} vs {summed}"
+                    )
+        if peak is not None:
+            for prec, field, decimals in _LEGACY_PERF_FIELDS:
+                expected = peak.get(prec, 0.0) / 1e12
+                value = getattr(self, field)
+                if value is None:
+                    if expected > 0:
+                        raise ValueError(
+                            f"{field} is None but peak_ops_per_sec_by_precision gives "
+                            f"{expected:g} T-ops/s"
+                        )
+                    continue
+                if abs(value - expected) > 0.5 * 10**-decimals + 1e-9:
+                    raise ValueError(
+                        f"{field} = {value} disagrees with peak_ops_per_sec_by_precision"
+                        f"[{prec!r}] = {expected:g} T-ops/s"
+                    )
+        return self
+
+    @property
+    def declares_rollup(self) -> bool:
+        """Whether any B5 roll-up field is set."""
+        return any(
+            v is not None
+            for v in (
+                self.peak_ops_per_sec_by_precision,
+                self.by_tile_kind,
+                self.fixed_function_throughput,
+            )
+        )
+
+
+def _rates_close(a: dict[str, float], b: dict[str, float]) -> bool:
+    """Same keys and values within rel 1e-9 (keys whose value is 0 may be absent)."""
+    keys = {k for k, v in a.items() if v} | {k for k, v in b.items() if v}
+    return all(math.isclose(a.get(k, 0.0), b.get(k, 0.0), rel_tol=1e-9) for k in keys)
+
+
+def derive_kpu_performance(tiles: list, clock_mhz: float) -> KPUTheoreticalPerformance:
+    """The performance roll-up of ``tiles`` (any tile kinds) at ``clock_mhz``.
+
+    - Programmable kinds (pe_fabric, systolic) contribute
+      ``num_tiles * ops_per_tile_per_clock * clock`` to the ops/s fields.
+    - Fixed-function tiles contribute ``num_tiles * units_per_clock *
+      clock`` to ``fixed_function_throughput``; classes sharing a
+      ``function_id`` add up.
+    - The legacy fields use the graphs generator's rounding (int8 / bf16 /
+      int4 to 0.1, fp32 to 0.01 T-ops/s; int4 None when zero). The catalog
+      is generated at the default thermal profile's clock.
+    """
+    hz = clock_mhz * 1e6
+    by_kind: dict[KPUTileKind, dict[str, float]] = {}
+    ff: dict[str, float] = {}
+    for t in tiles:
+        if t.tile_kind == KPUTileKind.FIXED_FUNCTION:
+            ff[t.function_id] = ff.get(t.function_id, 0.0) + t.num_tiles * t.units_per_clock * hz
+            continue
+        rates = by_kind.setdefault(t.tile_kind, {})
+        for prec, ops in t.ops_per_tile_per_clock.items():
+            rates[prec] = rates.get(prec, 0.0) + t.num_tiles * ops * hz
+    peak: dict[str, float] = {}
+    for rates in by_kind.values():
+        for prec, value in rates.items():
+            peak[prec] = peak.get(prec, 0.0) + value
+    legacy: dict[str, float | None] = {}
+    for prec, field, decimals in _LEGACY_PERF_FIELDS:
+        tops = peak.get(prec, 0.0) / 1e12
+        legacy[field] = round(tops, decimals)
+    if not peak.get("int4"):
+        legacy["int4_tops"] = None
+    return KPUTheoreticalPerformance(
+        **legacy,
+        peak_ops_per_sec_by_precision=peak,
+        by_tile_kind=by_kind,
+        fixed_function_throughput=ff or None,
+    )
+
+
+def check_performance_rollup(
+    perf: KPUTheoreticalPerformance, tiles: list, clock_mhz: float
+) -> None:
+    """A declared B5 roll-up must match the tiles at ``clock_mhz``.
+
+    No-op for a legacy performance block (no B5 field set). Called by
+    ``KPUEntry`` and ``compute_product.ComputeProduct`` with the default
+    thermal profile's clock.
+    """
+    if not perf.declares_rollup:
+        return
+    derived = derive_kpu_performance(tiles, clock_mhz)
+    if perf.peak_ops_per_sec_by_precision is not None and not _rates_close(
+        perf.peak_ops_per_sec_by_precision, derived.peak_ops_per_sec_by_precision
+    ):
+        raise ValueError(
+            f"performance.peak_ops_per_sec_by_precision {perf.peak_ops_per_sec_by_precision} "
+            f"!= {derived.peak_ops_per_sec_by_precision} derived from the tiles at "
+            f"{clock_mhz:g} MHz"
+        )
+    if perf.by_tile_kind is not None:
+        kinds = set(perf.by_tile_kind) | set(derived.by_tile_kind)
+        for kind in sorted(kinds, key=lambda k: k.value):
+            declared = perf.by_tile_kind.get(kind, {})
+            expected = derived.by_tile_kind.get(kind, {})
+            if not _rates_close(declared, expected):
+                raise ValueError(
+                    f"performance.by_tile_kind[{kind.value!r}] {declared} != {expected} "
+                    f"derived from the tiles at {clock_mhz:g} MHz"
+                )
+    if perf.fixed_function_throughput is not None and not _rates_close(
+        perf.fixed_function_throughput, derived.fixed_function_throughput or {}
+    ):
+        raise ValueError(
+            f"performance.fixed_function_throughput {perf.fixed_function_throughput} != "
+            f"{derived.fixed_function_throughput or {}} derived from the tiles at "
+            f"{clock_mhz:g} MHz"
+        )
 
 
 class KPUThermalProfile(BaseModel):
@@ -1261,6 +1453,11 @@ class KPUPowerSpec(BaseModel):
             )
         return self
 
+    @property
+    def default_profile(self) -> KPUThermalProfile:
+        """The profile named by ``default_thermal_profile``."""
+        return next(p for p in self.thermal_profiles if p.name == self.default_thermal_profile)
+
 
 class KPUMarket(BaseModel):
     launch_date: str | None = Field(None)
@@ -1327,5 +1524,12 @@ class KPUEntry(BaseModel):
             self.power.thermal_profiles,
             {d.domain_id: d for d in arch.power_domains or []},
             {t.tile_class_id for t in arch.tiles},
+        )
+        return self
+
+    @model_validator(mode="after")
+    def _check_performance_rollup(self) -> "KPUEntry":
+        check_performance_rollup(
+            self.performance, self.kpu_architecture.tiles, self.power.default_profile.clock_mhz
         )
         return self
