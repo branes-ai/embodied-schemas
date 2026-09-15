@@ -1,0 +1,51 @@
+# pe_fabric: logarithmic-number-system MAC PE array (branes-ai/graphs#268 B6).
+#
+# In LNS a multiply is an add of logarithms; the cost moves to the log-domain
+# accumulate (log -> linear conversion and partial-sum reduction). One unit
+# with two modes: LNS16, and LNS8 as 2 lanes.
+#
+# Energy, relative to the node's balanced-logic BF16 anchor:
+#   - LNS8 0.22: LNS-Madam (Zhao et al., arXiv:2106.13914v3 / IEEE TC 2022,
+#     Sec. 6.2, Fig. 8) reports its 8-bit LNS PE 2.2x / 4.6x / 11x more
+#     energy-efficient than FP8 / FP16 / FP32 PEs (sub-16 nm, 0.6 V,
+#     1.05 GHz, gate-level simulation). 1/4.6 = 0.22 of an FP16 PE; the FP16
+#     PE is taken as the node's BF16 anchor.
+#   - LNS16 0.45: ASSUMED 2x the LNS8 figure for the wider log-domain adder
+#     and conversion tables. Not a published number.
+
+id: pe_lns16_mac
+name: LNS16 MAC PE array
+description: >-
+  Programmable domain-flow PE fabric with a logarithmic-number-system MAC
+  (LNS16, or 2 lanes of LNS8), accumulating partial sums in linear INT32.
+tile:
+  tile_kind: pe_fabric
+  tile_type: LNS16-MAC
+  pe_array_rows: 32
+  pe_array_cols: 32
+  pe_circuit_class: balanced_logic
+  ops_per_tile_per_clock: {lns16: 2048, lns8: 4096}
+  schedule_class: output_stationary
+  pipeline_fill_cycles: 32
+  pipeline_drain_cycles: 32
+  datapath:
+    datapath_id: lns16_mac
+    accumulator_bits: 32
+    token_match: true
+    functional_units:
+      - unit_id: lns_mac
+        op: mac
+        modes:
+          - {operand_format: lns16, accumulate_format: int32,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 0.45,
+                      source: "ASSUMED 2x the LNS8 ratio (not published)"}}
+          - {operand_format: lns8, accumulate_format: int32, lanes: 2,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 0.22,
+                      source: "LNS-Madam Sec. 6.2 / Fig. 8: LNS8 PE 4.6x more efficient than FP16"}}
+confidence: theoretical
+sources:
+  - "J. Zhao, S. Dai, R. Venkatesan, B. Zimmer, M. Ali, M.-Y. Liu, B. Khailany, W. J. Dally, A. Anandkumar, 'LNS-Madam: Low-Precision Training in Logarithmic Number System using Multiplicative Weight Update', arXiv:2106.13914v3 (2022), IEEE Trans. Computers 71(12), 2022; Sec. 6.2, Table 8, Fig. 8"
+last_updated: "2026-09-15"
+notes: >-
+  The LNS16 energy is an assumption (2x LNS8); replace it with an RTL figure
+  via the KPU_TILE_DATA_DIR overlay when one exists (plan D7).

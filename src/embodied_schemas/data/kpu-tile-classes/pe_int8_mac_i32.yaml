@@ -1,0 +1,49 @@
+# pe_fabric: the legacy-equivalent INT8 MAC PE array (branes-ai/graphs#268 B6).
+#
+# Reproduces the catalog "INT8-primary" tile class of all 12 Stillwater KPU
+# SKUs (32x32 PEs, balanced logic, ops per tile per clock int8 2048 / int4
+# 4096 / bf16 1024 / fp16 1024) and adds the per-PE datapath those numbers
+# imply: one multi-precision MAC unit. INT8 is fully pipelined (2 ops/clk),
+# INT4 runs 2 lanes, BF16 / FP16 issue every other clock. Energies are the
+# process node's own anchor ops (ratio 1.0), so this class costs exactly what
+# the legacy model charges.
+
+id: pe_int8_mac_i32
+name: INT8 MAC PE array (INT32 accumulate), legacy equivalent
+description: >-
+  Programmable domain-flow PE fabric with one multi-precision MAC per PE.
+  Instantiating it with the catalog's num_tiles reproduces the legacy
+  INT8-primary tile class.
+tile:
+  tile_kind: pe_fabric
+  tile_type: INT8-MAC
+  pe_array_rows: 32
+  pe_array_cols: 32
+  pe_circuit_class: balanced_logic
+  ops_per_tile_per_clock: {int8: 2048, int4: 4096, bf16: 1024, fp16: 1024}
+  schedule_class: output_stationary
+  pipeline_fill_cycles: 32
+  pipeline_drain_cycles: 32
+  datapath:
+    datapath_id: int8_mac_i32
+    accumulator_bits: 32
+    token_match: true
+    functional_units:
+      - unit_id: mac
+        op: mac
+        modes:
+          - {operand_format: int8, accumulate_format: int32,
+             energy: {kind: relative, anchor: "balanced_logic:int8", ratio: 1.0}}
+          - {operand_format: int4, accumulate_format: int32, lanes: 2,
+             energy: {kind: relative, anchor: "balanced_logic:int4", ratio: 1.0}}
+          - {operand_format: bf16, accumulate_format: fp32, issue_interval_cycles: 2,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0}}
+          - {operand_format: fp16, accumulate_format: fp32, issue_interval_cycles: 2,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0,
+                      source: "no fp16 anchor in the catalog; same width as bf16"}}
+    source: "Implied by the catalog INT8-primary ops_per_tile_per_clock"
+confidence: theoretical
+sources:
+  - "Stillwater KPU catalog: INT8-primary tile class, identical in all 12 kpu_t* ComputeProducts (embodied-schemas data/compute_products/stillwater)"
+  - "Energy: the target ProcessNodeEntry energy_per_op_pj anchors (balanced_logic:int8 / int4 / bf16)"
+last_updated: "2026-09-15"

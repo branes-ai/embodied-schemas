@@ -1,0 +1,51 @@
+# pe_fabric: FP16 lerp PE array for interpolation-heavy kernels
+# (branes-ai/graphs#268 B6): bilinear / trilinear sampling, image warps,
+# look-up-table interpolation, grid-sample.
+#
+# Two alternative units per PE: a lerp a + t*(b - a) (3 ops, graphs#268 D3)
+# and an FP16 FMA, so the class also runs dense FP16 math.
+#
+# Lerp energy 1.3x the node's BF16 anchor, DERIVED from Horowitz's 45 nm
+# table: a lerp is an FP16 subtract (0.4 pJ) plus an FP16 FMA (mult 1.1 +
+# add 0.4 pJ), 1.9 pJ vs 1.5 pJ for the FMA alone, i.e. ~1.27x.
+
+id: pe_fp16_lerp
+name: FP16 lerp + FMA PE array
+description: >-
+  Programmable domain-flow PE fabric with an FP16 linear-interpolation unit
+  and an FP16 FMA per PE.
+tile:
+  tile_kind: pe_fabric
+  tile_type: FP16-LERP
+  pe_array_rows: 32
+  pe_array_cols: 32
+  pe_circuit_class: balanced_logic
+  ops_per_tile_per_clock: {fp16: 2048}
+  schedule_class: output_stationary
+  pipeline_fill_cycles: 32
+  pipeline_drain_cycles: 32
+  datapath:
+    datapath_id: fp16_lerp
+    accumulator_bits: 32
+    token_match: true
+    functional_units:
+      - unit_id: lerp
+        op: lerp
+        modes:
+          - {operand_format: fp16,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.3,
+                      source: "Derived: Horowitz ISSCC 2014 Fig. 1.1.9, (0.4 + 1.1 + 0.4) / (1.1 + 0.4) pJ"}}
+      - unit_id: fma
+        op: fma
+        modes:
+          - {operand_format: fp16, accumulate_format: fp32,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0,
+                      source: "no fp16 anchor in the catalog; same width as bf16"}}
+confidence: theoretical
+sources:
+  - "M. Horowitz, 'Computing's Energy Problem (and what we can do about it)', ISSCC 2014, Fig. 1.1.9 (45 nm, 0.9 V); doi:10.1109/ISSCC.2014.6757323"
+last_updated: "2026-09-15"
+notes: >-
+  Lerp throughput is a custom op (lerp:fp16, 3 ops per invocation) and is
+  reported by the datapath's ops_per_pe_per_clock(), not by the legacy
+  precision keys of ops_per_tile_per_clock.

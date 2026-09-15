@@ -1,0 +1,46 @@
+# fixed_function: camera ISP, raw Bayer -> YUV (branes-ai/graphs#268 B6).
+#
+# Anchored on the Darkroom ISP pipeline (Hegarty et al., SIGGRAPH 2014),
+# synthesized with Synopsys Design Compiler for "a leading foundry's 45 nm
+# process" (mapped to the tsmc_n40 anchor, the same generation):
+#   - Fig. 12: 224 pJ/pixel compute energy (1360 pJ/pixel more for DRAM,
+#     excluded here), area 0.36 mm^2 total of which 0.19 mm^2 line buffers.
+#   - Fig. 11 / Sec. 6: a single-pixel pipeline, ~1 pixel/clock (0.89-0.98
+#     measured on the FPGA build); the ASIC build reaches ~940-1040 Mpixel/s.
+# Darkroom gives no logic / SRAM energy split, so the energy is scaled as
+# logic (FunctionEnergy defaults).
+
+id: ff_isp_raw2yuv
+name: Camera ISP (raw Bayer to YUV)
+description: >-
+  Line-buffered image signal processor: demosaic, color correction, tone
+  mapping and conversion from raw Bayer to YUV, one pixel per clock.
+tile:
+  tile_kind: fixed_function
+  tile_type: ISP
+  placement: {affinity: io_edge}
+  core:
+    function_id: isp.raw_to_yuv
+    description: "Darkroom-class line-buffered ISP pipeline"
+    contract:
+      inputs: [bayer_raw_frame]
+      outputs: [yuv_frame]
+    numeric_formats: [uint16]
+    throughput: {unit: pixel, units_per_clock: 1.0}
+    energy:
+      pj_per_unit: 224
+      ref_node_id: tsmc_n40
+      source: "Darkroom Fig. 12 (45 nm synthesis), compute only; DRAM (1360 pJ/pixel) excluded"
+    io: {input_bytes_per_unit: 2.0, output_bytes_per_unit: 1.5}
+    silicon:
+      - {name: isp_logic, circuit_class: balanced_logic, area_mm2: 0.17, ref_node_id: tsmc_n40}
+      - {name: isp_line_buffers, circuit_class: sram_hd, area_mm2: 0.19, ref_node_id: tsmc_n40}
+    source: "Hegarty et al., Darkroom, ACM TOG 33(4) 2014"
+ref_node_id: tsmc_n40
+confidence: theoretical
+sources:
+  - "J. Hegarty, J. Brunhaver, Z. DeVito, J. Ragan-Kelley, N. Cohen, S. Bell, A. Vasilyev, M. Horowitz, P. Hanrahan, 'Darkroom: Compiling High-Level Image Processing Code into Hardware Pipelines', ACM Trans. Graphics 33(4), art. 144 (SIGGRAPH 2014); Figs. 11-12"
+last_updated: "2026-09-15"
+notes: >-
+  Numeric format and IO sizes are representative (16-bit raw in, 8-bit
+  YUV 4:2:0 out); Darkroom does not publish them for this pipeline.

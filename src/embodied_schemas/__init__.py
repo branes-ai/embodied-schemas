@@ -202,6 +202,7 @@ from embodied_schemas.kpu import (
     PROGRAMMABLE_TILE_KINDS,
     derive_kpu_performance,
 )
+from embodied_schemas.kpu_tile_class import KPUTileClassEntry
 from embodied_schemas.function_core import (
     WorkUnit,
     FunctionContract,
@@ -371,6 +372,7 @@ from embodied_schemas.loaders import (
     load_process_nodes,
     load_cooling_solutions,
     load_kpus,
+    load_kpu_tile_classes,
     load_compute_products,
 )
 
@@ -583,6 +585,9 @@ __all__ = [
     # Performance roll-up (graphs#268 B5)
     "PROGRAMMABLE_TILE_KINDS",
     "derive_kpu_performance",
+    # Tile-class library (graphs#268 B6)
+    "KPUTileClassEntry",
+    "load_kpu_tile_classes",
     # Function cores (graphs#268 B3): fixed-function compute segments
     "WorkUnit",
     "FunctionContract",

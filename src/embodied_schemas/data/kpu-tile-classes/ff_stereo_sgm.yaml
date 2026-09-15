@@ -1,0 +1,49 @@
+# fixed_function: semi-global-matching stereo depth (branes-ai/graphs#268 B6).
+#
+# Anchored on the stereo-depth processor of Li et al., ISSCC 2017 (TSMC 40 nm
+# GP): full 8-path SGM, 1920x1080 at 30 fps, 128 disparities x 4 sub-pixel
+# levels, 170 MHz, 836 mW at 0.75 V (55 mW at 0.52 V for VGA), 10.8 mm^2 core,
+# 1064 Kb (133 kB) custom SRAM. KITTI outlier rate 7%.
+# DERIVED: energy per pixel = 836 mW / (1920 x 1080 x 30 /s) = 13.44 nJ,
+# consistent with the paper's 0.0262 nJ per pixel per disparity level x 512
+# levels; pixels per clock = 62.2 Mpixel/s / 170 MHz = 0.366.
+# The energy is at 0.75 V, below tsmc_n40's 0.9 V nominal; the paper gives no
+# logic / SRAM split, so the energy is scaled as logic (FunctionEnergy
+# defaults).
+
+id: ff_stereo_sgm
+name: SGM stereo depth (8-path, HD)
+description: >-
+  Semi-global-matching stereo processor: matching cost, 8-path cost
+  aggregation and sub-pixel disparity for a rectified stereo pair.
+tile:
+  tile_kind: fixed_function
+  tile_type: SGM
+  core:
+    function_id: stereo.sgm
+    description: "8-path SGM, 128 disparities x 4 sub-pixel levels"
+    contract:
+      inputs: [rectified_stereo_pair]
+      outputs: [disparity_map]
+      config_limits: {max_width: 1920, max_height: 1080, max_fps: 30, disparities: 128, subpixel_levels: 4, paths: 8}
+    numeric_formats: [uint8, int16]
+    throughput: {unit: pixel, units_per_clock: 0.366, fmax_mhz_ref: 170}
+    energy:
+      pj_per_unit: 13440
+      ref_node_id: tsmc_n40
+      source: "Li et al. ISSCC 2017: 836 mW at 1920x1080x30 fps, 0.75 V (derived per pixel)"
+    io: {input_bytes_per_unit: 2.0, output_bytes_per_unit: 2.0}
+    local_memory:
+      - {level: line_buffer, kib: 133}
+    silicon:
+      - {name: sgm_core, circuit_class: balanced_logic, area_mm2: 10.8, ref_node_id: tsmc_n40}
+    source: "Li et al., ISSCC 2017, paper 3.7"
+ref_node_id: tsmc_n40
+confidence: theoretical
+sources:
+  - "Z. Li, Q. Dong, M. Saligane, B. Kempke, S. Yang, Z. Zhang, R. Dreslinski, D. Sylvester, D. Blaauw, H. S. Kim, 'A 1920x1080 30fps 2.3TOPS/W Stereo-Depth Processor for Robust Autonomous Navigation', ISSCC 2017, paper 3.7, pp. 62-63; Figs. 3.7.6-3.7.7"
+last_updated: "2026-09-15"
+notes: >-
+  Numeric formats and IO sizes are representative (8-bit pixels, 16-bit
+  path costs and disparities); the paper does not tabulate them. The core
+  area includes the 133 kB SRAM.

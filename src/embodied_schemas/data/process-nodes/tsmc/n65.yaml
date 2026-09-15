@@ -1,0 +1,127 @@
+# TSMC 65 nm (65GP) -- bulk planar CMOS. SCALING ANCHOR ONLY.
+#
+# Added for the KPU tile-class library (branes-ai/graphs#268 B6) so that
+# fixed-function figures published at 65 nm (the Navion VIO accelerator,
+# Suleiman et al., VLSI 2018 / JSSC 2019) can be retargeted to the nodes the
+# KPU SKUs use. No KPU SKU targets this node. THEORETICAL throughout.
+#
+# Derivation (every figure below is DERIVED unless a source says otherwise):
+#   - Energy: tsmc_n28hpm values x (65/28) x (1.0/0.9)^2 = 2.87 (switched
+#     capacitance ~ linear feature size, times Vdd^2). SRAM access energy is
+#     scaled from tsmc_n16 by (65/16) x (1.0/0.8)^2 = 6.3 because n28hpm has
+#     no SRAM access figure.
+#   - Density: balanced logic from Navion silicon (65 nm, 1.0 V): SRAM is 77%
+#     of its area (JSSC 2019 p. 9), leaving ~23% of the 16.07 mm^2 core,
+#     ~3.7 mm^2, for 2,043 kgates -> ~2.2 Mtx/mm^2 at ~4 transistors per
+#     NAND2-equivalent gate. TSMC's 65 nm launch material quotes ~854
+#     kgates/mm^2 raw gate density (~3.4 Mtx/mm^2 before placement
+#     utilization). HD SRAM assumes ~0.9 Mbit/mm^2 large macros (x 6T);
+#     Navion's many small clock-gated banks come out lower (~3.4 Mtx/mm^2),
+#     so a banked design should give its own area.
+#   - Leakage: n28hpm W/mm^2 x (28/65)^2 area factor x 1.5 (65 nm planar
+#     without HKMG leaks more per transistor). Order-of-magnitude only.
+
+id: tsmc_n65
+foundry: tsmc
+node_name: 65GP
+node_nm: 65
+transistor_topology: bulk_planar
+body_bias_supported: false
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 1.0   # Navion runs at a measured 1.0 V in 65 nm CMOS
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 1.8
+    confidence: theoretical
+    source: "Derived: balanced_logic x 0.8 (HP cells are larger)"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 2.2
+    confidence: theoretical
+    source: "Derived from Navion (JSSC 2019): 2,043 kgates x 4 tx/gate over the ~3.7 mm^2 (23%) of core not taken by SRAM"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 2.5
+    confidence: theoretical
+    source: "Derived: balanced_logic x 1.15 (as n28hpm lp/balanced)"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 5.5
+    library_name: "65 nm 6T SRAM (~0.5 um^2 bitcell)"
+    confidence: theoretical
+    source: "Derived: ~0.9 Mbit/mm^2 large-macro density x 6T (banked designs are lower)"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 4.5
+    confidence: theoretical
+    source: "Derived: sram_hd x 0.8"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 3.3
+    confidence: theoretical
+    source: "Derived: sram_hd x 0.6 (dual-port)"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 1.0
+    confidence: theoretical
+    source: "Estimated; analog scales poorly with node"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 0.5
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+leakage_w_per_mm2:
+  hp_logic: 0.025
+  balanced_logic: 0.014
+  lp_logic: 0.006
+  sram_hd: 0.004
+  sram_hc: 0.006
+  sram_hp: 0.010
+  analog: 0.0014
+  io: 0.0006
+
+energy_per_op_pj:
+  hp_logic:fp32: 12.9
+  hp_logic:bf16: 6.6
+  hp_logic:int8: 1.72
+  balanced_logic:fp32: 9.8
+  balanced_logic:bf16: 4.9
+  balanced_logic:int8: 1.21
+  balanced_logic:int4: 0.72
+  lp_logic:int8: 0.92
+
+sram_access_pj_per_byte:
+  sram_hd: 1.9
+  sram_hc: 3.2
+
+em_j_max_by_temp_c:
+  85: 1.4e6
+  105: 0.9e6
+  125: 0.55e6
+
+routing_metal_width_um:
+  hp_logic: 0.20
+  balanced_logic: 0.20
+  sram_hd: 0.14
+
+cooling_compatible:
+  - passive_heatsink_small
+  - passive_heatsink_large
+  - active_fan
+
+source: >-
+  Derived from tsmc_n28hpm / tsmc_n16 by C x V^2 and area scaling;
+  cross-checked against Navion (Suleiman et al., "Navion: A 2mW Fully
+  Integrated Real-Time Visual-Inertial Odometry Accelerator for Autonomous
+  Navigation of Nano Drones", IEEE JSSC 54(4), 2019) and TSMC's 65 nm
+  launch material (~854 kgates/mm^2).
+confidence: theoretical
+last_updated: "2026-09-15"
+notes: |
+  Scaling anchor for 65 nm literature (graphs#268 D7 / plan section 5.8).
+  Navion does not name its foundry; this entry is the catalog's generic
+  65 nm reference, filed under TSMC as the most common 65 nm academic
+  shuttle. Replace with PDK data if a 65 nm design is ever costed for real.

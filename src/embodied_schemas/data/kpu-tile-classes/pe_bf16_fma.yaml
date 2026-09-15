@@ -1,0 +1,42 @@
+# pe_fabric: BF16-first FMA PE array (branes-ai/graphs#268 B6).
+#
+# One pipelined FMA per PE: BF16 and FP16 at 1 FMA/clk (2 ops), FP32 every
+# other clock. Unlike the legacy BF16-primary class (bf16 1024 ops/tile/clk),
+# this class doubles half-precision throughput per PE. Energies are the
+# node's anchor ops.
+
+id: pe_bf16_fma
+name: BF16 FMA PE array (FP32 accumulate)
+description: >-
+  Programmable domain-flow PE fabric for training-grade and mixed-precision
+  inference: one BF16/FP16/FP32 FMA per PE.
+tile:
+  tile_kind: pe_fabric
+  tile_type: BF16-FMA
+  pe_array_rows: 32
+  pe_array_cols: 32
+  pe_circuit_class: balanced_logic
+  ops_per_tile_per_clock: {bf16: 2048, fp16: 2048, fp32: 1024}
+  schedule_class: output_stationary
+  pipeline_fill_cycles: 32
+  pipeline_drain_cycles: 32
+  datapath:
+    datapath_id: bf16_fma
+    accumulator_bits: 32
+    token_match: true
+    functional_units:
+      - unit_id: fma
+        op: fma
+        modes:
+          - {operand_format: bf16, accumulate_format: fp32,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0}}
+          - {operand_format: fp16, accumulate_format: fp32,
+             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0,
+                      source: "no fp16 anchor in the catalog; same width as bf16"}}
+          - {operand_format: fp32, accumulate_format: fp32, issue_interval_cycles: 2,
+             energy: {kind: relative, anchor: "balanced_logic:fp32", ratio: 1.0}}
+confidence: theoretical
+sources:
+  - "Energy: the target ProcessNodeEntry energy_per_op_pj anchors (balanced_logic:bf16 / fp32)"
+  - "Relative FP16 vs FP32 arithmetic cost: M. Horowitz, 'Computing's Energy Problem (and what we can do about it)', ISSCC 2014, Fig. 1.1.9 (45 nm): FP16 mult 1.1 pJ + add 0.4 pJ vs FP32 mult 3.7 pJ + add 0.9 pJ; doi:10.1109/ISSCC.2014.6757323"
+last_updated: "2026-09-15"

@@ -1,0 +1,123 @@
+# TSMC 40 nm (40GP) -- bulk planar CMOS. SCALING ANCHOR ONLY.
+#
+# Added for the KPU tile-class library (branes-ai/graphs#268 B6) as the
+# reference node for 40/45 nm literature:
+#   - the SGM stereo-depth processor of Li et al., ISSCC 2017 (TSMC 40 nm GP,
+#     via the TSMC University Shuttle Program);
+#   - the Darkroom ISP pipeline, synthesized for "a leading foundry's 45 nm
+#     process" (Hegarty et al., SIGGRAPH 2014);
+#   - Horowitz's 45 nm operation-energy table (ISSCC 2014), used for the
+#     relative energies of custom PE operators.
+# 45 nm and 40 nm are one generation (40 nm is the half-node shrink), so one
+# anchor serves both. No KPU SKU targets this node. THEORETICAL throughout.
+#
+# Derivation (DERIVED unless a source says otherwise):
+#   - Energy: tsmc_n28hpm values x (40/28) x (0.9/0.9)^2 = 1.43. Cross-check:
+#     Horowitz gives an int8 multiply (0.2 pJ) + 32b add (0.1 pJ) = 0.3 pJ of
+#     bare arithmetic at 45 nm / 0.9 V; the 0.60 pJ roll-up below adds
+#     operand registers and clocking, as the catalog's energy_per_op_pj does.
+#     SRAM access energy is scaled from tsmc_n16 by (40/16) x (0.9/0.8)^2.
+#   - Density: tsmc_n65 x (65/40)^2 = 2.64, rounded.
+#   - Leakage: n28hpm W/mm^2 x (28/40)^2 x 1.5 (planar, no HKMG at 40GP).
+
+id: tsmc_n40
+foundry: tsmc
+node_name: 40GP
+node_nm: 40
+transistor_topology: bulk_planar
+body_bias_supported: false
+vt_options: [LVT, SVT, HVT]
+nominal_vdd_v: 0.9
+
+densities:
+  hp_logic:
+    circuit_class: hp_logic
+    mtx_per_mm2: 4.8
+    confidence: theoretical
+    source: "Derived: tsmc_n65 x 2.64"
+  balanced_logic:
+    circuit_class: balanced_logic
+    mtx_per_mm2: 5.8
+    confidence: theoretical
+    source: "Derived: tsmc_n65 x 2.64 (~0.49x tsmc_n28hpm)"
+  lp_logic:
+    circuit_class: lp_logic
+    mtx_per_mm2: 6.6
+    confidence: theoretical
+    source: "Derived: tsmc_n65 x 2.64"
+  sram_hd:
+    circuit_class: sram_hd
+    mtx_per_mm2: 14.5
+    library_name: "40 nm 6T SRAM (~0.24 um^2 bitcell)"
+    confidence: theoretical
+    source: "Derived: tsmc_n65 x 2.64"
+  sram_hc:
+    circuit_class: sram_hc
+    mtx_per_mm2: 11.9
+    confidence: theoretical
+    source: "Derived: tsmc_n65 x 2.64"
+  sram_hp:
+    circuit_class: sram_hp
+    mtx_per_mm2: 8.7
+    confidence: theoretical
+    source: "Derived: tsmc_n65 x 2.64"
+  analog:
+    circuit_class: analog
+    mtx_per_mm2: 2.0
+    confidence: theoretical
+    source: "Estimated; analog scales poorly with node"
+  io:
+    circuit_class: io
+    mtx_per_mm2: 1.0
+    confidence: theoretical
+    source: "Pad ring estimate"
+
+leakage_w_per_mm2:
+  hp_logic: 0.066
+  balanced_logic: 0.037
+  lp_logic: 0.016
+  sram_hd: 0.011
+  sram_hc: 0.015
+  sram_hp: 0.026
+  analog: 0.0037
+  io: 0.0015
+
+energy_per_op_pj:
+  hp_logic:fp32: 6.4
+  hp_logic:bf16: 3.3
+  hp_logic:int8: 0.86
+  balanced_logic:fp32: 4.9
+  balanced_logic:bf16: 2.4
+  balanced_logic:int8: 0.60
+  balanced_logic:int4: 0.36
+  lp_logic:int8: 0.46
+
+sram_access_pj_per_byte:
+  sram_hd: 0.95
+  sram_hc: 1.6
+
+em_j_max_by_temp_c:
+  85: 1.4e6
+  105: 0.9e6
+  125: 0.55e6
+
+routing_metal_width_um:
+  hp_logic: 0.12
+  balanced_logic: 0.12
+  sram_hd: 0.09
+
+cooling_compatible:
+  - passive_heatsink_small
+  - passive_heatsink_large
+  - active_fan
+
+source: >-
+  Derived from tsmc_n28hpm / tsmc_n16 / tsmc_n65 by C x V^2 and area
+  scaling; energy cross-checked against M. Horowitz, "Computing's Energy
+  Problem (and what we can do about it)", ISSCC 2014, Fig. 1.1.9 (45 nm,
+  0.9 V), doi:10.1109/ISSCC.2014.6757323.
+confidence: theoretical
+last_updated: "2026-09-15"
+notes: |
+  Scaling anchor for 40/45 nm literature (graphs#268 plan section 5.8). Replace
+  with PDK data if a 40 nm design is ever costed for real.

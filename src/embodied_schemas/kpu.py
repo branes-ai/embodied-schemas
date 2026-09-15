@@ -147,7 +147,7 @@ def tile_class_slug(tile_type: str) -> str:
 _TILE_DUMP_HEAD = ("tile_kind", "tile_type", "tile_class_id", "num_tiles")
 _TILE_DUMP_TAIL = (
     "notes", "datapath", "footprint", "local_memory", "power_domain_id",
-    "placement", "interconnect",
+    "placement", "interconnect", "tile_class_ref",
 )
 
 
@@ -184,6 +184,13 @@ class KPUTileBase(BaseModel):
         None, description="Power domain this tile class belongs to (Phase B4)"
     )
     placement: TilePlacement | None = Field(None, description="Floorplan hints")
+    # --- Phase B6 (graphs#268) --------------------------------------------
+    tile_class_ref: str | None = Field(
+        None,
+        pattern=_TILE_CLASS_ID_RE,
+        description="Tile-class library entry this tile was resolved from "
+        "(informational: the tile is self-contained, so nothing needs the library)",
+    )
 
     model_config = {"extra": "forbid"}
 

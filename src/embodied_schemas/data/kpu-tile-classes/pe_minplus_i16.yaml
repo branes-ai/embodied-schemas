@@ -1,0 +1,63 @@
+# pe_fabric: min-plus (tropical semiring) PE array for dynamic programming
+# (branes-ai/graphs#268 B6): SGM cost aggregation, wavefront / shortest-path
+# planners, Viterbi-style decoders.
+#
+# Three alternative units per PE: min_plus min(a, b + c) on INT16 path costs,
+# abs_diff |a - b| on UINT8 pixels (matching cost / SAD), and cmp_select on
+# INT16 (argmin / winner-take-all). No MAC, so it has no legacy precision
+# throughput: ops_per_tile_per_clock is empty and the custom-op throughput is
+# in the datapath.
+#
+# Energies relative to the node's balanced-logic INT8 MAC anchor, DERIVED from
+# Horowitz's 45 nm table (int8 MAC arithmetic = 8b mult 0.2 + add 0.03 pJ =
+# 0.23 pJ; 8b add 0.03, 32b add 0.1 -> 16b add ~0.05 pJ):
+#   - min_plus INT16: 16b add + 16b compare/select ~0.10 pJ -> 0.45
+#   - abs_diff UINT8: 8b subtract + conditional negate ~0.06 pJ -> 0.26
+#   - cmp_select INT16: 16b compare + mux ~0.05 pJ -> 0.22
+# No published min-plus-vs-MAC energy ratio was found; these are structural
+# estimates.
+
+id: pe_minplus_i16
+name: INT16 min-plus PE array
+description: >-
+  Programmable domain-flow PE fabric for dynamic programming on the
+  (min, +) semiring, with SAD and compare-select support.
+tile:
+  tile_kind: pe_fabric
+  tile_type: MINPLUS-I16
+  pe_array_rows: 32
+  pe_array_cols: 32
+  pe_circuit_class: balanced_logic
+  ops_per_tile_per_clock: {}
+  schedule_class: no_local_reuse
+  pipeline_fill_cycles: 32
+  pipeline_drain_cycles: 32
+  datapath:
+    datapath_id: minplus_i16
+    token_match: true
+    functional_units:
+      - unit_id: min_plus
+        op: min_plus
+        modes:
+          - {operand_format: int16,
+             energy: {kind: relative, anchor: "balanced_logic:int8", ratio: 0.45,
+                      source: "Derived from Horowitz ISSCC 2014 add costs (structural estimate)"}}
+      - unit_id: abs_diff
+        op: abs_diff
+        modes:
+          - {operand_format: uint8,
+             energy: {kind: relative, anchor: "balanced_logic:int8", ratio: 0.26,
+                      source: "Derived from Horowitz ISSCC 2014 add costs (structural estimate)"}}
+      - unit_id: cmp_select
+        op: cmp_select
+        modes:
+          - {operand_format: int16,
+             energy: {kind: relative, anchor: "balanced_logic:int8", ratio: 0.22,
+                      source: "Derived from Horowitz ISSCC 2014 add costs (structural estimate)"}}
+confidence: theoretical
+sources:
+  - "M. Horowitz, 'Computing's Energy Problem (and what we can do about it)', ISSCC 2014, Fig. 1.1.9 (45 nm, 0.9 V); doi:10.1109/ISSCC.2014.6757323"
+last_updated: "2026-09-15"
+notes: >-
+  Structural energy estimates; no published min-plus PE energy was found.
+  Replace via the KPU_TILE_DATA_DIR overlay with an RTL figure when available.
