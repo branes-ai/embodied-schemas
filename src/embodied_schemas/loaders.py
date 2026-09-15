@@ -5,6 +5,7 @@ from the data catalog.
 """
 
 import os
+import warnings
 from pathlib import Path
 from typing import TypeVar, Type
 import yaml
@@ -35,6 +36,7 @@ from embodied_schemas.compute_product import (
     LifecycleStatus,
     PackagingKind,
 )
+from embodied_schemas.kpu_tile_class import KPUTileClassEntry
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -290,33 +292,58 @@ def load_process_nodes(data_dir: Path | None = None) -> dict[str, ProcessNodeEnt
     result = load_all_from_directory(
         base_dir / "process-nodes", ProcessNodeEntry
     )
+    return _merge_confidence_overlay(result, "PROCESS_NODE_DATA_DIR", ProcessNodeEntry)
 
-    overlay_path = os.environ.get("PROCESS_NODE_DATA_DIR")
-    if overlay_path:
-        overlay_dir = Path(overlay_path)
-        if overlay_dir.is_dir():
-            overlay = load_all_from_directory(overlay_dir, ProcessNodeEntry)
-            for node_id, overlay_entry in overlay.items():
-                existing = result.get(node_id)
-                if existing is None:
-                    result[node_id] = overlay_entry
-                    continue
-                # Both present -- higher confidence wins.
-                ov_rank = _DATA_CONFIDENCE_RANK.get(
-                    overlay_entry.confidence.value, 0
-                )
-                ex_rank = _DATA_CONFIDENCE_RANK.get(
-                    existing.confidence.value, 0
-                )
-                if ov_rank > ex_rank:
-                    result[node_id] = overlay_entry
-                # ex_rank >= ov_rank: keep existing
-        else:
-            print(
-                f"Warning: PROCESS_NODE_DATA_DIR={overlay_path!r} is not "
-                f"a directory; skipping overlay."
-            )
+
+def _merge_confidence_overlay(
+    result: dict[str, T], env_var: str, model_class: Type[T]
+) -> dict[str, T]:
+    """Merge the private overlay directory named by ``env_var`` into
+    ``result`` (entries with a ``confidence`` field).
+
+    An id only in the overlay is added. An id in both keeps the entry with
+    the HIGHER confidence (CALIBRATED > INTERPOLATED > THEORETICAL >
+    UNKNOWN); on a tie the public entry stays.
+    """
+    overlay_path = os.environ.get(env_var)
+    if not overlay_path:
+        return result
+    overlay_dir = Path(overlay_path)
+    if not overlay_dir.is_dir():
+        print(f"Warning: {env_var}={overlay_path!r} is not a directory; skipping overlay.")
+        return result
+    overlay = load_all_from_directory(overlay_dir, model_class)
+    for entry_id, overlay_entry in overlay.items():
+        existing = result.get(entry_id)
+        if existing is None:
+            result[entry_id] = overlay_entry
+            continue
+        ov_rank = _DATA_CONFIDENCE_RANK.get(overlay_entry.confidence.value, 0)
+        ex_rank = _DATA_CONFIDENCE_RANK.get(existing.confidence.value, 0)
+        if ov_rank > ex_rank:
+            result[entry_id] = overlay_entry
     return result
+
+
+def load_kpu_tile_classes(data_dir: Path | None = None) -> dict[str, KPUTileClassEntry]:
+    """Load the KPU tile-class library (graphs#268 B6).
+
+    Resolution follows ``load_process_nodes``:
+
+    1. **Public library:** ``data/kpu-tile-classes/<id>.yaml`` under
+       ``data_dir or get_data_dir()`` (THEORETICAL entries with citations).
+    2. **Optional private overlay:** YAMLs in the directory named by the
+       ``KPU_TILE_DATA_DIR`` environment variable, e.g. Stillwater
+       RTL-characterized datapaths that are CALIBRATED and possibly
+       confidential.
+    3. **Collisions:** an id in both keeps the higher-confidence entry.
+
+    SKUs store resolved tiles (``KPUTileClassEntry.instantiate``), so nothing
+    downstream needs this library to evaluate a SKU.
+    """
+    base_dir = data_dir or get_data_dir()
+    result = load_all_from_directory(base_dir / "kpu-tile-classes", KPUTileClassEntry)
+    return _merge_confidence_overlay(result, "KPU_TILE_DATA_DIR", KPUTileClassEntry)
 
 
 def load_cooling_solutions(
@@ -444,20 +471,30 @@ def load_kpus(data_dir: Path | None = None) -> dict[str, KPUEntry]:
     process_nodes = load_process_nodes(data_dir=data_dir)
     out: dict[str, KPUEntry] = {}
     for sku_id, cp in cps.items():
-        if not cp.dies:
-            continue
+        if not any(isinstance(b, KPUBlock) for d in cp.dies for b in d.blocks):
+            continue  # not a KPU product (GPU, CPU, ...): nothing to adapt
         node = process_nodes.get(cp.dies[0].process_node_id)
         if node is None:
-            # Skip rather than raise: an unresolvable process_node_id is
-            # a catalog inconsistency the caller surfaces via validators,
-            # not a load-time error.
+            # Skip rather than raise: an unresolvable process_node_id is a
+            # catalog inconsistency the validators surface, but say so.
+            warnings.warn(
+                f"load_kpus: skipping {sku_id!r}: process node "
+                f"{cp.dies[0].process_node_id!r} is not in the catalog",
+                stacklevel=2,
+            )
             continue
         try:
             out[sku_id] = _compute_product_to_kpu_entry(cp, node)
-        except ValueError:
-            # Non-KPU compute products (e.g., future GPU blocks) can't
-            # be represented as KPUEntry; silently skip them here.
-            continue
+        except ValueError as exc:
+            # A KPU product KPUEntry cannot express (several dies, or a KPU
+            # block beside other blocks): report it rather than dropping it
+            # silently (graphs#268 Phase B acceptance). load_compute_products
+            # returns it in full.
+            warnings.warn(
+                f"load_kpus: {sku_id!r} has a KPU block but cannot be expressed "
+                f"as a legacy KPUEntry ({exc}); use load_compute_products()",
+                stacklevel=2,
+            )
     return out
 
 

@@ -121,7 +121,7 @@ Backward compatible: every catalog YAML loads unchanged. Downstream,
 `checkerboard`, `power_domains` and the thermal profiles'
 `domain_operating_points` / `tdp_scenario` (B4), plus `performance`'s
 `peak_ops_per_sec_by_precision` / `by_tile_kind` / `fixed_function_throughput`
-(B5). All are `null` for catalog SKUs.
+(B5), plus `tiles[].tile_class_ref` (B6). All are `null` for catalog SKUs.
 
 ## [0.8.0] - 2026-09-14
 
