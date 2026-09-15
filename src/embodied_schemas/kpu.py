@@ -49,6 +49,11 @@ from embodied_schemas.overlay import (
     NoCOverlayKind,
     OverlayScope,
 )
+from embodied_schemas.power_domain import (
+    DomainOperatingPoint,
+    PowerDomain,
+    PowerDomainKind,
+)
 from embodied_schemas.gpu import Foundry, MemoryType
 from embodied_schemas.process_node import CircuitClass, DataConfidence
 
@@ -560,6 +565,158 @@ class KPUMemorySubsystem(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+# ---------------------------------------------------------------------------
+# Checkerboard (graphs#268 Phase B4)
+# ---------------------------------------------------------------------------
+
+SPARE_SITE = "."
+"""``placement_map`` glyph for a spare (empty / whitespace) compute site."""
+
+
+class CheckerboardPlacement(str, Enum):
+    """How tile classes are assigned to compute sites."""
+
+    AUTO = "auto"          # the floorplan placer decides (graphs Phase D)
+    EXPLICIT = "explicit"  # ``placement_map`` fixes every site
+
+
+class SiteGrid(BaseModel):
+    """Dimensions of the compute-site grid (rows x cols)."""
+
+    rows: int = Field(..., gt=0)
+    cols: int = Field(..., gt=0)
+
+    model_config = {"extra": "forbid"}
+
+    @property
+    def sites(self) -> int:
+        return self.rows * self.cols
+
+
+class CheckerboardMemoryCell(BaseModel):
+    """The memory cell paired 1:1 with every compute site.
+
+    ``l3_kib`` restates ``KPUMemorySubsystem.l3_kib_per_tile`` and must match
+    it.
+    """
+
+    l3_kib: int = Field(..., gt=0)
+    circuit_class: CircuitClass = CircuitClass.SRAM_HD
+
+    model_config = {"extra": "forbid"}
+
+
+class CheckerboardSpec(BaseModel):
+    """The KPU compute/memory checkerboard, made explicit.
+
+    Every compute site is paired with one memory cell and one NoC router.
+    A tile class occupies ``num_tiles * footprint.rows * footprint.cols``
+    sites; the remaining sites are ``spare_sites``. The site-accounting
+    invariant (checked by ``KPUArchitectureBase``)::
+
+        sum(tile.num_tiles * tile.sites_per_tile) + spare_sites
+            == compute_sites.rows * compute_sites.cols
+
+    replaces the implicit ``noc.mesh_rows * noc.mesh_cols == total_tiles``
+    that legacy SKUs rely on.
+
+    With ``placement: explicit``, ``placement_map`` gives the tile class of
+    every site (``"."`` = spare). A footprint is an axis-aligned
+    ``rows x cols`` rectangle of sites, never rotated.
+    """
+
+    compute_sites: SiteGrid
+    memory_cell: CheckerboardMemoryCell | None = Field(
+        None, description="None = memory.l3_kib_per_tile in the default SRAM library"
+    )
+    placement: CheckerboardPlacement = CheckerboardPlacement.AUTO
+    placement_map: list[list[str]] | None = Field(
+        None,
+        description="explicit placement only: one row per site row, one "
+        "tile_class_id (or '.' for a spare site) per site",
+    )
+    spare_sites: int = Field(0, ge=0, description="Compute sites no tile occupies")
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _check_map_shape(self) -> "CheckerboardSpec":
+        grid, pmap = self.compute_sites, self.placement_map
+        if self.placement == CheckerboardPlacement.EXPLICIT and pmap is None:
+            raise ValueError("checkerboard: placement 'explicit' needs a placement_map")
+        if self.placement == CheckerboardPlacement.AUTO and pmap is not None:
+            raise ValueError("checkerboard: placement_map requires placement 'explicit'")
+        if self.spare_sites > grid.sites:
+            raise ValueError(
+                f"checkerboard: spare_sites {self.spare_sites} exceeds the "
+                f"{grid.rows}x{grid.cols} grid"
+            )
+        if pmap is None:
+            return self
+        if len(pmap) != grid.rows or any(len(row) != grid.cols for row in pmap):
+            shape = f"{len(pmap)} rows of lengths {sorted({len(r) for r in pmap})}"
+            raise ValueError(
+                f"checkerboard: placement_map must be {grid.rows}x{grid.cols}, got {shape}"
+            )
+        glyphs = {c for row in pmap for c in row if c != SPARE_SITE}
+        bad = sorted(c for c in glyphs if not re.fullmatch(_TILE_CLASS_ID_RE, c))
+        if bad:
+            raise ValueError(
+                f"checkerboard: placement_map entries {bad} are neither a tile_class_id nor '.'"
+            )
+        spares = sum(row.count(SPARE_SITE) for row in pmap)
+        if spares != self.spare_sites:
+            raise ValueError(
+                f"checkerboard: placement_map has {spares} spare sites but "
+                f"spare_sites is {self.spare_sites}"
+            )
+        return self
+
+
+def _check_placement_map(pmap: list[list[str]], tiles: list) -> None:
+    """Every tile class's sites in ``pmap`` must decompose into exactly
+    ``num_tiles`` footprint rectangles.
+
+    Scanning row-major, the first unclaimed site of a class must be the
+    top-left corner of one of its footprints (any footprint covering it
+    would otherwise cover an earlier, already-claimed site), so the greedy
+    claim below is exact for a single fixed-orientation rectangle per class.
+    """
+    by_id = {t.tile_class_id: t for t in tiles}
+    unknown = sorted({c for row in pmap for c in row if c != SPARE_SITE} - set(by_id))
+    if unknown:
+        raise ValueError(
+            f"checkerboard: placement_map references unknown tile_class_id "
+            f"{unknown} (known: {sorted(by_id)})"
+        )
+    rows, cols = len(pmap), len(pmap[0])
+    claimed = [[False] * cols for _ in range(rows)]
+    placed = {cid: 0 for cid in by_id}
+    for r in range(rows):
+        for c in range(cols):
+            cid = pmap[r][c]
+            if cid == SPARE_SITE or claimed[r][c]:
+                continue
+            fp = by_id[cid].footprint
+            fr, fc = (fp.rows, fp.cols) if fp is not None else (1, 1)
+            block = [(r + i, c + j) for i in range(fr) for j in range(fc)]
+            if any(y >= rows or x >= cols or pmap[y][x] != cid or claimed[y][x] for y, x in block):
+                raise ValueError(
+                    f"checkerboard: tile class {cid!r} at site ({r}, {c}) does not "
+                    f"form a whole {fr}x{fc} footprint"
+                )
+            for y, x in block:
+                claimed[y][x] = True
+            placed[cid] += 1
+    wrong = {cid: n for cid, n in placed.items() if n != by_id[cid].num_tiles}
+    if wrong:
+        detail = ", ".join(
+            f"{cid}: {n} placed, num_tiles {by_id[cid].num_tiles}"
+            for cid, n in sorted(wrong.items())
+        )
+        raise ValueError(f"checkerboard: placement_map disagrees with num_tiles ({detail})")
+
+
 class KPUArchitectureBase(BaseModel):
     """The KPU architectural field set, defined once.
 
@@ -596,6 +753,17 @@ class KPUArchitectureBase(BaseModel):
         default_factory=list,
         description="Precisions supported chip-wide, e.g., ['int4','int8','bf16','fp32']",
     )
+    # --- Phase B4 (graphs#268) --------------------------------------------
+    checkerboard: CheckerboardSpec | None = Field(
+        None,
+        description="Explicit compute-site grid; None = the legacy implicit "
+        "one-tile-per-site mesh (noc.mesh_rows x noc.mesh_cols)",
+    )
+    power_domains: list[PowerDomain] | None = Field(
+        None,
+        description="Power domains (cluster / tile_class / uncore); None = one "
+        "chip-wide domain at the thermal profile's clock and Vdd",
+    )
 
     model_config = {"extra": "forbid"}
 
@@ -628,6 +796,119 @@ class KPUArchitectureBase(BaseModel):
                 raise ValueError(
                     f"NoC overlay {ov.overlay_id!r} references unknown tile_class_id "
                     f"{unknown} (known: {sorted(known)})"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _check_checkerboard(self) -> "KPUArchitectureBase":
+        cb = self.checkerboard
+        if cb is None:
+            return self
+        grid = cb.compute_sites
+        used = sum(t.total_sites for t in self.tiles)
+        if used + cb.spare_sites != grid.sites:
+            detail = " + ".join(
+                f"{t.tile_class_id} {t.num_tiles}x{t.sites_per_tile}" for t in self.tiles
+            )
+            raise ValueError(
+                f"checkerboard site accounting: tiles use {used} sites ({detail}) + "
+                f"{cb.spare_sites} spare != {grid.rows}x{grid.cols} = {grid.sites} compute sites"
+            )
+        if (self.noc.mesh_rows, self.noc.mesh_cols) != (grid.rows, grid.cols):
+            raise ValueError(
+                f"checkerboard: noc mesh {self.noc.mesh_rows}x{self.noc.mesh_cols} must "
+                f"match the {grid.rows}x{grid.cols} compute-site grid (one router per site)"
+            )
+        if cb.memory_cell is not None and cb.memory_cell.l3_kib != self.memory.l3_kib_per_tile:
+            raise ValueError(
+                f"checkerboard: memory_cell.l3_kib {cb.memory_cell.l3_kib} != "
+                f"memory.l3_kib_per_tile {self.memory.l3_kib_per_tile}"
+            )
+        for t in self.tiles:
+            fp = t.footprint
+            if fp is not None and (fp.rows > grid.rows or fp.cols > grid.cols):
+                raise ValueError(
+                    f"tile class {t.tile_class_id!r}: {fp.rows}x{fp.cols} footprint does "
+                    f"not fit the {grid.rows}x{grid.cols} compute-site grid"
+                )
+        if cb.placement_map is not None:
+            _check_placement_map(cb.placement_map, self.tiles)
+        return self
+
+    @model_validator(mode="after")
+    def _check_power_domains(self) -> "KPUArchitectureBase":
+        domains = self.power_domains or []
+        ids = [d.domain_id for d in domains]
+        dup = sorted({i for i in ids if ids.count(i) > 1})
+        if dup:
+            raise ValueError(f"duplicate power domain_id {dup}")
+        by_id = {d.domain_id: d for d in domains}
+        known = {t.tile_class_id for t in self.tiles}
+        owner: dict[str, str] = {}  # tile_class_id -> its tile_class domain
+        cluster_sites: dict[tuple[int, int], str] = {}
+        for d in domains:
+            if d.kind == PowerDomainKind.UNCORE:
+                continue
+            unknown = [m for m in d.members if m not in known]
+            if unknown:
+                raise ValueError(
+                    f"power domain {d.domain_id!r} references unknown tile_class_id "
+                    f"{unknown} (known: {sorted(known)})"
+                )
+            if d.kind == PowerDomainKind.TILE_CLASS:
+                for m in d.members:
+                    if m in owner:
+                        raise ValueError(
+                            f"tile class {m!r} is in two tile_class power domains: "
+                            f"{owner[m]!r} and {d.domain_id!r}"
+                        )
+                    owner[m] = d.domain_id
+                continue
+            # CLUSTER: the site ranges need the explicit grid.
+            if self.checkerboard is None:
+                raise ValueError(
+                    f"power domain {d.domain_id!r}: a cluster domain's site_ranges "
+                    f"need a checkerboard"
+                )
+            grid = self.checkerboard.compute_sites
+            for rng in d.site_ranges:
+                if not rng.fits(grid.rows, grid.cols):
+                    raise ValueError(
+                        f"power domain {d.domain_id!r}: site range rows "
+                        f"{rng.row_min}..{rng.row_max}, cols {rng.col_min}..{rng.col_max} "
+                        f"is outside the {grid.rows}x{grid.cols} compute-site grid"
+                    )
+            for site in sorted(d.sites()):
+                if site in cluster_sites:
+                    raise ValueError(
+                        f"cluster power domains {cluster_sites[site]!r} and "
+                        f"{d.domain_id!r} overlap at site {site}"
+                    )
+                cluster_sites[site] = d.domain_id
+        for t in self.tiles:
+            ref = t.power_domain_id
+            if ref is None:
+                continue
+            if ref not in by_id:
+                raise ValueError(
+                    f"tile class {t.tile_class_id!r}: power_domain_id {ref!r} is not a "
+                    f"defined power domain (defined: {sorted(by_id)})"
+                )
+            dom = by_id[ref]
+            if dom.kind == PowerDomainKind.UNCORE:
+                raise ValueError(
+                    f"tile class {t.tile_class_id!r}: power_domain_id {ref!r} is an "
+                    f"uncore domain"
+                )
+            if dom.kind == PowerDomainKind.TILE_CLASS and t.tile_class_id not in dom.members:
+                raise ValueError(
+                    f"tile class {t.tile_class_id!r}: power_domain_id {ref!r} does not "
+                    f"list it in members"
+                )
+            if t.tile_class_id in owner and owner[t.tile_class_id] != ref:
+                raise ValueError(
+                    f"tile class {t.tile_class_id!r}: power_domain_id {ref!r} disagrees "
+                    f"with tile_class domain {owner[t.tile_class_id]!r}, which lists it"
                 )
         return self
 
@@ -866,6 +1147,24 @@ class KPUThermalProfile(BaseModel):
             "profiles. Typical range at 16nm FinFET: 0.55-0.95 V."
         ),
     )
+    # --- Phase B4 (graphs#268) --------------------------------------------
+    domain_operating_points: dict[str, DomainOperatingPoint] | None = Field(
+        None,
+        description=(
+            "Per power domain operating point, keyed by domain_id. A domain "
+            "not listed runs at this profile's clock / Vdd / activity. None "
+            "= every domain does (the legacy single-domain behavior)."
+        ),
+    )
+    tdp_scenario: dict[str, float] | None = Field(
+        None,
+        description=(
+            "Concurrency assumption the TDP is derived from: the activity "
+            "in [0, 1] of every tile class, keyed by tile_class_id (all "
+            "classes, so the scenario is explicit). None = the legacy TDP "
+            "formula (every class active at the workload duty cycle)."
+        ),
+    )
 
     model_config = {"extra": "forbid"}
 
@@ -885,7 +1184,48 @@ class KPUThermalProfile(BaseModel):
                         f"{attr_name}[{precision!r}] = {value} is outside "
                         f"[0, 1]; {label} is a unit fraction."
                     )
+        for cls_id, activity in (self.tdp_scenario or {}).items():
+            if not 0.0 <= activity <= 1.0:
+                raise ValueError(
+                    f"profile {self.name!r}: tdp_scenario[{cls_id!r}] = {activity} "
+                    f"is outside [0, 1]"
+                )
         return self
+
+
+def check_profile_domain_references(
+    profiles: list[KPUThermalProfile],
+    domains: dict[str, PowerDomain],
+    tile_class_ids: set[str],
+) -> None:
+    """Check thermal-profile references against the architecture.
+
+    - Every ``domain_operating_points`` key must be a defined power domain,
+      and only a gateable domain may be gated.
+    - A ``tdp_scenario`` must list exactly the tile classes.
+
+    Called where the profiles and the architecture meet: ``KPUEntry`` and
+    ``compute_product.ComputeProduct``.
+    """
+    for p in profiles:
+        for did, op in (p.domain_operating_points or {}).items():
+            if did not in domains:
+                raise ValueError(
+                    f"profile {p.name!r}: domain_operating_points key {did!r} is not a "
+                    f"defined power domain (defined: {sorted(domains)})"
+                )
+            if op.gated and not domains[did].gateable:
+                raise ValueError(
+                    f"profile {p.name!r}: power domain {did!r} is gated but not gateable"
+                )
+        if p.tdp_scenario is not None:
+            unknown = sorted(set(p.tdp_scenario) - tile_class_ids)
+            missing = sorted(tile_class_ids - set(p.tdp_scenario))
+            if unknown or missing:
+                raise ValueError(
+                    f"profile {p.name!r}: tdp_scenario must list every tile class "
+                    f"exactly (unknown: {unknown}, missing: {missing})"
+                )
 
 
 class KPUPowerSpec(BaseModel):
@@ -979,3 +1319,13 @@ class KPUEntry(BaseModel):
     last_updated: str = Field(..., description="Last update date (YYYY-MM-DD)")
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _check_profile_references(self) -> "KPUEntry":
+        arch = self.kpu_architecture
+        check_profile_domain_references(
+            self.power.thermal_profiles,
+            {d.domain_id: d for d in arch.power_domains or []},
+            {t.tile_class_id for t in arch.tiles},
+        )
+        return self
