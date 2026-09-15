@@ -1,0 +1,45 @@
+# systolic: weight-stationary INT8 GEMM / conv array (branes-ai/graphs#268 B6).
+#
+# The TPU v1 matrix unit's organization (Jouppi et al., ISCA 2017: a 256x256
+# weight-stationary array of 8-bit MACs with 32-bit accumulators, a 4-deep
+# weight FIFO, and accumulator memory), scaled to a 64x64 KPU tile.
+#
+# Local memory, DERIVED from that organization at 64 columns:
+#   - weight_buffer 16 KiB: 4 weight tiles of 64x64 x 1 B (the 4-deep FIFO);
+#   - accumulator 64 KiB: 64 columns x 256 entries x 32 bit.
+#
+# Energy 0.65x the node's balanced-logic INT8 anchor, DERIVED: the anchor is a
+# PE roll-up (MAC + operand registers + clock). A systolic cell keeps the MAC
+# (Horowitz 45 nm: 8b mult 0.2 + 32b add 0.1 pJ = 0.3 pJ of ~0.6 pJ rolled up
+# at 40/45 nm, see tsmc_n40) plus weight / partial-sum pipeline registers,
+# but no token match or operand routing. Structural estimate.
+
+id: systolic_int8_ws
+name: 64x64 weight-stationary INT8 systolic array
+description: >-
+  Fixed-schedule GEMM / conv array: one INT8 MAC (INT32 accumulate) per
+  cell, weight-stationary. Denser and cheaper per op than a PE fabric, but
+  only runs its kernels.
+tile:
+  tile_kind: systolic
+  tile_type: Systolic-INT8-WS
+  array_rows: 64
+  array_cols: 64
+  dataflow: weight_stationary
+  circuit_class: balanced_logic
+  mac:
+    unit_id: mac
+    op: mac
+    modes:
+      - {operand_format: int8, accumulate_format: int32,
+         energy: {kind: relative, anchor: "balanced_logic:int8", ratio: 0.65,
+                  source: "Derived structural estimate (see header)"}}
+  supported_kernels: [gemm, conv2d]
+  local_memory:
+    - {level: weight_buffer, kib: 16, circuit_class: sram_hd}
+    - {level: accumulator, kib: 64, circuit_class: sram_hp}
+confidence: theoretical
+sources:
+  - "N. P. Jouppi et al., 'In-Datacenter Performance Analysis of a Tensor Processing Unit', ISCA 2017; doi:10.1145/3079856.3080246 (matrix-unit organization)"
+  - "M. Horowitz, 'Computing's Energy Problem (and what we can do about it)', ISSCC 2014, Fig. 1.1.9 (45 nm, 0.9 V); doi:10.1109/ISSCC.2014.6757323"
+last_updated: "2026-09-15"

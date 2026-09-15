@@ -59,6 +59,7 @@ LEGACY_TILE_KEY_ORDER = [
     "power_domain_id",
     "placement",
     "interconnect",
+    "tile_class_ref",  # B6: appended, so every earlier key keeps its position
 ]
 
 

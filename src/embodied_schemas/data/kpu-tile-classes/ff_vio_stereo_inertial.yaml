@@ -1,0 +1,62 @@
+# fixed_function: stereo visual-inertial odometry (branes-ai/graphs#268 B6).
+#
+# Anchored on the Navion VIO accelerator (Suleiman, Zhang, Carlone, Karaman,
+# Sze; VLSI 2018 and JSSC 2019), 65 nm CMOS at 1.0 V:
+#   - 752x480 stereo, IMU up to 52 kHz, 854 kB on-chip SRAM, 2,043 kgates;
+#     chip 20 mm^2, core 3.54 x 4.54 = 16.07 mm^2 (JSSC Fig. 10).
+#   - Max configuration: 62.5 MHz VFE / 83.3 MHz BE clocks, 24 mW average,
+#     71 fps average tracking throughput over EuRoC (JSSC Table III).
+#   - SRAM is 77% of the area but only 21% of the power (JSSC p. 9).
+# DERIVED: energy per frame = 24 mW / 71 fps = 0.338 mJ; cycles per frame at
+# the VFE clock = 62.5 MHz / 71 fps = 8.8e5. With per-sequence adaptation at
+# a fixed 20 fps Navion averages 2 mW (0.1 mJ/frame, JSSC Table V); the
+# max-configuration figure is used here.
+# Silicon split: 77% of the core (12.37 mm^2) SRAM, the rest logic.
+# Footprint: 2x2 compute sites with the paired memory cells absorbed, since
+# the core carries ~0.8 MiB of persistent state.
+
+id: ff_vio_stereo_inertial
+name: Stereo visual-inertial odometry (Navion-class)
+description: >-
+  Fully integrated stereo VIO: vision frontend (feature tracking, stereo
+  matching, RANSAC) and factor-graph backend with an IMU frontend, producing
+  a 6-DoF pose per frame.
+tile:
+  tile_kind: fixed_function
+  tile_type: VIO
+  footprint: {rows: 2, cols: 2, absorbs_memory_cells: true}
+  core:
+    function_id: vio.stereo_inertial
+    description: "Navion-class VIO (frontend + factor-graph backend)"
+    contract:
+      inputs: [stereo_gray_frame, imu_sample]
+      outputs: [pose_6dof]
+      config_limits: {max_width: 752, max_height: 480, max_imu_rate_hz: 52000, max_features_per_frame: 200}
+    numeric_formats: [fixed16.16, fp32]
+    throughput: {unit: frame, cycles_per_unit: 8.8e5, fmax_mhz_ref: 62.5}
+    energy:
+      pj_per_unit: 3.38e8
+      ref_node_id: tsmc_n65
+      logic_fraction: 0.79
+      sram_fraction: 0.21
+      source: "Navion JSSC 2019: 24 mW at 71 fps average (Table III); SRAM 21% of power (p. 9)"
+    io: {input_bytes_per_unit: 721920, output_bytes_per_unit: 64}
+    local_memory:
+      - {level: state, kib: 854}
+    silicon:
+      - {name: vio_logic, circuit_class: balanced_logic, area_mm2: 3.70, ref_node_id: tsmc_n65}
+      - {name: vio_sram, circuit_class: sram_hd, area_mm2: 12.37, ref_node_id: tsmc_n65}
+    source: "Suleiman et al., Navion, IEEE JSSC 54(4) 2019"
+ref_node_id: tsmc_n65
+confidence: theoretical
+sources:
+  - "A. Suleiman, Z. Zhang, L. Carlone, S. Karaman, V. Sze, 'Navion: A 2mW Fully Integrated Real-Time Visual-Inertial Odometry Accelerator for Autonomous Navigation of Nano Drones', IEEE J. Solid-State Circuits 54(4), 2019; Fig. 10, Fig. 11, Tables III and V"
+  - "A. Suleiman, Z. Zhang, L. Carlone, S. Karaman, V. Sze, 'Navion: A Fully Integrated Energy-Efficient Visual-Inertial Odometry Accelerator for Autonomous Navigation of Nano Drones', Symp. VLSI Circuits 2018, pp. 133-134"
+last_updated: "2026-09-15"
+notes: >-
+  Numeric formats are representative (fixed-point vision frontend,
+  floating-point backend; the paper reports 5.7 GFLOPS peak). IO: an 8-bit
+  752x480 stereo pair in, one pose out (64 B assumed). The 77% SRAM area
+  share is stated for the chip; it is applied to the core here. Plan
+  acceptance (phase E): scaled back to tsmc_n65 this tile must reproduce
+  Navion's published power within 20%.
