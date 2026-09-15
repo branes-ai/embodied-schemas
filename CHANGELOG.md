@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `FixedFunctionTile`: wraps a `FunctionCore`. Its
     `ops_per_tile_per_clock` is always empty, so it never adds to
     programmable TOPS, and its memory is declared in the core.
+  - `KPUArchitectureBase` now rejects a `total_tiles` that differs from
+    `sum(num_tiles)` over the tile classes. Every catalog SKU already
+    satisfies this.
 - **Function cores** (new module `function_core.py`, architecture-neutral):
   `FunctionCore` is one encapsulated compute segment (ISP, SGM, VIO,
   radar, ...). It carries:

@@ -348,6 +348,11 @@ def test_references_span_all_tile_kinds():
     data["tiles"][-1]["placement"] = {"adjacent_to": ["systolic_int8"]}
     assert KPUArchitecture.model_validate(data).tiles[-1].placement.adjacent_to == ["systolic_int8"]
 
+    wrong_total = _heterogeneous_arch()
+    wrong_total["total_tiles"] += 1
+    with pytest.raises(ValidationError, match=r"total_tiles 71 != 70"):
+        KPUArchitecture.model_validate(wrong_total)
+
     dup = _heterogeneous_arch()
     dup["tiles"][-1]["tile_class_id"] = "isp"
     with pytest.raises(ValidationError, match="duplicate tile_class_id"):

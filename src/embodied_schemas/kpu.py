@@ -605,6 +605,11 @@ class KPUArchitectureBase(BaseModel):
         dup = sorted({i for i in ids if ids.count(i) > 1})
         if dup:
             raise ValueError(f"duplicate tile_class_id {dup}; each tile class needs a unique id")
+        count = sum(t.num_tiles for t in self.tiles)
+        if self.total_tiles != count:
+            raise ValueError(
+                f"total_tiles {self.total_tiles} != {count}, the sum of num_tiles over tile classes"
+            )
         known = set(ids)
         for tile in self.tiles:
             if tile.placement is None:
