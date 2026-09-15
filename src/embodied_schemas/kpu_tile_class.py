@@ -63,6 +63,8 @@ class KPUTileClassEntry(BaseModel):
 
     @model_validator(mode="after")
     def _check_template(self) -> "KPUTileClassEntry":
+        if any(not s.strip() for s in self.sources):
+            raise ValueError(f"tile class {self.id!r}: sources must not contain blank citations")
         t = self.tile
         if t.tile_class_id != self.id:
             raise ValueError(

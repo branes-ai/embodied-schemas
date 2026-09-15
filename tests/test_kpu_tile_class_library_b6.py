@@ -107,6 +107,9 @@ def test_template_rules(tile_over, match):
         KPUTileClassEntry.model_validate(data)
     with pytest.raises(ValidationError):
         KPUTileClassEntry.model_validate(_template(sources=[]))
+    for blank in ([""], ["cited", "   "]):
+        with pytest.raises(ValidationError, match="blank citations"):
+            KPUTileClassEntry.model_validate(_template(sources=blank))
 
 
 def test_instantiate_resolves_a_self_contained_tile():
@@ -197,6 +200,23 @@ def test_load_kpus_warns_on_unrepresentable_kpu_products(tmp_path):
         entries = load_kpus(base)
     assert set(entries) == {T64_ID}
     assert len(rec) == 1  # the non-KPU product is skipped silently
+
+
+def test_load_kpus_warns_on_a_missing_process_node(tmp_path):
+    base = tmp_path / "data"
+    shutil.copytree(get_data_dir() / "process-nodes", base / "process-nodes")
+    data = T64.model_dump(mode="json")
+    _write(base / "compute_products", "t64.yaml", data)
+    orphan = copy.deepcopy({**data, "id": "kpu_orphan"})
+    orphan["dies"][0]["process_node_id"] = "tsmc_n1"
+    _write(base / "compute_products", "orphan.yaml", orphan)
+
+    with pytest.warns(
+        UserWarning, match=r"skipping 'kpu_orphan': process node 'tsmc_n1' is not in the catalog"
+    ) as rec:
+        entries = load_kpus(base)
+    assert set(entries) == {T64_ID}
+    assert len(rec) == 1
 
 
 def test_catalog_load_kpus_is_warning_free(recwarn):
