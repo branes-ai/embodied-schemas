@@ -1,0 +1,612 @@
+id: kpu_h64_auto1_lp5x4_7nm_tsmc_hpc
+name: Stillwater KPU-H64 Auto1
+vendor: stillwater
+kind: chip
+packaging:
+  kind: monolithic
+  num_dies: 1
+  package_type: monolithic
+lifecycle: production
+dies:
+- die_id: kpu_compute
+  die_role: compute
+  process_node_id: tsmc_n7
+  die_size_mm2: 13.2
+  transistors_billion: 1.214
+  silicon_bin:
+    blocks:
+    - name: pe_int8
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: per_pe
+        per_unit_mtx: 0.006
+        count_ref: tile.pe_int8_mac_i32
+      notes: ''
+    - name: pe_minplus
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: per_pe
+        per_unit_mtx: 0.004
+        count_ref: tile.pe_minplus_i16
+      notes: ''
+    - name: l2_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: per_kib
+        per_unit_mtx: 0.052
+        count_ref: l2_total_kib
+      notes: ''
+    - name: l3_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: per_kib
+        per_unit_mtx: 0.052
+        count_ref: l3_total_kib
+      notes: Distributed per-site L3 scratchpad
+    - name: noc_routers
+      circuit_class: hp_logic
+      transistor_source:
+        kind: per_router
+        per_unit_mtx: 0.8
+        count_ref: noc
+      notes: ''
+    - name: memory_phys
+      circuit_class: analog
+      transistor_source:
+        kind: per_controller
+        per_unit_mtx: 6.0
+        count_ref: memory
+      notes: LPDDR5 PHY per controller
+    - name: io_pads
+      circuit_class: io
+      transistor_source:
+        kind: fixed
+        mtx: 5.0
+      notes: ''
+    - name: control_logic
+      circuit_class: balanced_logic
+      transistor_source:
+        kind: fixed
+        mtx: 8.0
+      notes: Top-level scheduler, host interface, DMA controllers
+  clocks:
+    base_clock_mhz: 450.0
+    boost_clock_mhz: 750.0
+  blocks:
+  - kind: kpu
+    total_tiles: 45
+    multi_precision_alu:
+    - int4
+    - int8
+    - bf16
+    - fp32
+    tiles:
+    - tile_kind: pe_fabric
+      tile_type: INT8-MAC
+      tile_class_id: pe_int8_mac_i32
+      num_tiles: 24
+      pe_array_rows: 32
+      pe_array_cols: 32
+      pe_circuit_class: balanced_logic
+      ops_per_tile_per_clock:
+        int8: 2048.0
+        int4: 4096.0
+        bf16: 1024.0
+        fp16: 1024.0
+      schedule_class: output_stationary
+      pipeline_fill_cycles: 32
+      pipeline_drain_cycles: 32
+      notes: ''
+      datapath:
+        datapath_id: int8_mac_i32
+        functional_units:
+        - unit_id: mac
+          op: mac
+          modes:
+          - operand_format: int8
+            accumulate_format: int32
+            lanes: 1
+            issue_interval_cycles: 1
+            energy:
+              kind: relative
+              anchor: balanced_logic:int8
+              ratio: 1.0
+              confidence: theoretical
+              source: ''
+          - operand_format: int4
+            accumulate_format: int32
+            lanes: 2
+            issue_interval_cycles: 1
+            energy:
+              kind: relative
+              anchor: balanced_logic:int4
+              ratio: 1.0
+              confidence: theoretical
+              source: ''
+          - operand_format: bf16
+            accumulate_format: fp32
+            lanes: 1
+            issue_interval_cycles: 2
+            energy:
+              kind: relative
+              anchor: balanced_logic:bf16
+              ratio: 1.0
+              confidence: theoretical
+              source: ''
+          - operand_format: fp16
+            accumulate_format: fp32
+            lanes: 1
+            issue_interval_cycles: 2
+            energy:
+              kind: relative
+              anchor: balanced_logic:bf16
+              ratio: 1.0
+              confidence: theoretical
+              source: no fp16 anchor in the catalog; same width as bf16
+          notes: ''
+        operand_regs: 2
+        accumulator_bits: 32
+        token_match: true
+        confidence: theoretical
+        source: Implied by the catalog INT8-primary ops_per_tile_per_clock
+        notes: ''
+      interconnect:
+        base: nearest_neighbor_4
+        link_bits: 32
+        overlays:
+        - overlay_id: row_bcast
+          kind: row_broadcast
+          instances_per: row
+          instances: 1
+          width_bits: 32
+          configuration: static_per_schedule
+          circuit_class: balanced_logic
+          mtx_per_instance: 0.002
+          notes: ''
+      tile_class_ref: pe_int8_mac_i32
+    - tile_kind: pe_fabric
+      tile_type: LNS16-MAC
+      tile_class_id: pe_lns16_mac
+      num_tiles: 8
+      pe_array_rows: 32
+      pe_array_cols: 32
+      pe_circuit_class: balanced_logic
+      ops_per_tile_per_clock:
+        lns16: 2048.0
+        lns8: 4096.0
+      schedule_class: output_stationary
+      pipeline_fill_cycles: 32
+      pipeline_drain_cycles: 32
+      notes: ''
+      datapath:
+        datapath_id: lns16_mac
+        functional_units:
+        - unit_id: mac
+          op: mac
+          modes:
+          - operand_format: lns16
+            accumulate_format: lns16
+            lanes: 1
+            issue_interval_cycles: 1
+            energy:
+              kind: relative
+              anchor: balanced_logic:bf16
+              ratio: 0.45
+              confidence: theoretical
+              source: 'Derived: an LNS multiply is an adder, so the MAC costs roughly
+                an add plus the log-domain accumulate table lookup.'
+          - operand_format: lns8
+            accumulate_format: lns16
+            lanes: 2
+            issue_interval_cycles: 1
+            energy:
+              kind: relative
+              anchor: balanced_logic:int8
+              ratio: 0.45
+              confidence: theoretical
+              source: Derived, as lns16 above, at half width.
+          notes: ''
+        operand_regs: 2
+        token_match: true
+        mtx_per_pe: 0.009
+        confidence: theoretical
+        source: ''
+        notes: ''
+      tile_class_ref: pe_lns16_mac
+    - tile_kind: pe_fabric
+      tile_type: MINPLUS-I16
+      tile_class_id: pe_minplus_i16
+      num_tiles: 6
+      pe_array_rows: 32
+      pe_array_cols: 32
+      pe_circuit_class: balanced_logic
+      ops_per_tile_per_clock: {}
+      schedule_class: no_local_reuse
+      pipeline_fill_cycles: 32
+      pipeline_drain_cycles: 32
+      notes: ''
+      datapath:
+        datapath_id: minplus_i16
+        functional_units:
+        - unit_id: min_plus
+          op: min_plus
+          modes:
+          - operand_format: int16
+            lanes: 1
+            issue_interval_cycles: 1
+            energy:
+              kind: relative
+              anchor: balanced_logic:int8
+              ratio: 0.45
+              confidence: theoretical
+              source: Derived from Horowitz ISSCC 2014 add costs (structural estimate)
+          notes: ''
+        - unit_id: abs_diff
+          op: abs_diff
+          modes:
+          - operand_format: uint8
+            lanes: 1
+            issue_interval_cycles: 1
+            energy:
+              kind: relative
+              anchor: balanced_logic:int8
+              ratio: 0.26
+              confidence: theoretical
+              source: Derived from Horowitz ISSCC 2014 add costs (structural estimate)
+          notes: ''
+        - unit_id: cmp_select
+          op: cmp_select
+          modes:
+          - operand_format: int16
+            lanes: 1
+            issue_interval_cycles: 1
+            energy:
+              kind: relative
+              anchor: balanced_logic:int8
+              ratio: 0.22
+              confidence: theoretical
+              source: Derived from Horowitz ISSCC 2014 add costs (structural estimate)
+          notes: ''
+        operand_regs: 2
+        token_match: true
+        confidence: theoretical
+        source: ''
+        notes: ''
+      tile_class_ref: pe_minplus_i16
+    - tile_kind: systolic
+      tile_type: Systolic-INT8-WS
+      tile_class_id: systolic_int8_ws
+      num_tiles: 4
+      array_rows: 64
+      array_cols: 64
+      dataflow: weight_stationary
+      circuit_class: balanced_logic
+      mac:
+        unit_id: mac
+        op: mac
+        modes:
+        - operand_format: int8
+          accumulate_format: int32
+          lanes: 1
+          issue_interval_cycles: 1
+          energy:
+            kind: relative
+            anchor: balanced_logic:int8
+            ratio: 0.65
+            confidence: theoretical
+            source: embodied-schemas tile-class library systolic_int8_ws (Jouppi ISCA
+              2017 organization; Horowitz ISSCC 2014).
+        mtx: 0.004
+        notes: ''
+      supported_kernels:
+      - gemm
+      - conv2d
+      notes: ''
+      footprint:
+        rows: 1
+        cols: 2
+        absorbs_memory_cells: true
+      local_memory:
+      - level: weight_buffer
+        kib: 16.0
+        per: tile
+        circuit_class: sram_hd
+      - level: accumulator
+        kib: 64.0
+        per: tile
+        circuit_class: sram_hp
+      tile_class_ref: systolic_int8_ws
+    - tile_kind: fixed_function
+      tile_type: ISP
+      tile_class_id: ff_isp_raw2yuv
+      num_tiles: 1
+      core:
+        function_id: isp.raw_to_yuv
+        description: Darkroom-class line-buffered ISP pipeline
+        contract:
+          inputs:
+          - bayer_raw_frame
+          outputs:
+          - yuv_frame
+          config_limits: {}
+        numeric_formats:
+        - uint16
+        throughput:
+          unit: pixel
+          units_per_clock: 1.0
+        energy:
+          pj_per_unit: 224.0
+          ref_node_id: tsmc_n40
+          logic_fraction: 1.0
+          sram_fraction: 0.0
+          confidence: theoretical
+          source: Darkroom Fig. 12 (45 nm synthesis), compute only; DRAM (1360 pJ/pixel)
+            excluded
+        ops_equivalent_per_unit: {}
+        io:
+          input_bytes_per_unit: 2.0
+          output_bytes_per_unit: 1.5
+        silicon:
+        - name: isp_logic
+          circuit_class: balanced_logic
+          area_mm2: 0.17
+          ref_node_id: tsmc_n40
+          notes: ''
+        - name: isp_line_buffers
+          circuit_class: sram_hd
+          area_mm2: 0.19
+          ref_node_id: tsmc_n40
+          notes: ''
+        confidence: theoretical
+        source: Hegarty et al., Darkroom, ACM TOG 33(4) 2014
+        notes: ''
+      notes: ''
+      placement:
+        affinity: io_edge
+        adjacent_to:
+        - ff_stereo_sgm
+      tile_class_ref: ff_isp_raw2yuv
+    - tile_kind: fixed_function
+      tile_type: SGM
+      tile_class_id: ff_stereo_sgm
+      num_tiles: 1
+      core:
+        function_id: stereo.sgm
+        description: 8-path SGM, 128 disparities x 4 sub-pixel levels
+        contract:
+          inputs:
+          - rectified_stereo_pair
+          outputs:
+          - disparity_map
+          config_limits:
+            max_width: 1920
+            max_height: 1080
+            max_fps: 30
+            disparities: 128
+            subpixel_levels: 4
+            paths: 8
+        numeric_formats:
+        - uint8
+        - int16
+        throughput:
+          unit: pixel
+          units_per_clock: 0.366
+          fmax_mhz_ref: 170.0
+        energy:
+          pj_per_unit: 13440.0
+          ref_node_id: tsmc_n40
+          logic_fraction: 1.0
+          sram_fraction: 0.0
+          confidence: theoretical
+          source: 'Li et al. ISSCC 2017: 836 mW at 1920x1080x30 fps, 0.75 V (derived
+            per pixel)'
+        ops_equivalent_per_unit: {}
+        io:
+          input_bytes_per_unit: 2.0
+          output_bytes_per_unit: 2.0
+        local_memory:
+        - level: line_buffer
+          kib: 133.0
+          per: tile
+          circuit_class: sram_hd
+        silicon:
+        - name: sgm_core
+          circuit_class: balanced_logic
+          area_mm2: 10.8
+          ref_node_id: tsmc_n40
+          notes: ''
+        confidence: theoretical
+        source: Li et al., ISSCC 2017, paper 3.7
+        notes: ''
+      notes: ''
+      footprint:
+        rows: 2
+        cols: 4
+        absorbs_memory_cells: true
+      placement:
+        affinity: any
+        adjacent_to:
+        - ff_vio_stereo_inertial
+      tile_class_ref: ff_stereo_sgm
+    - tile_kind: fixed_function
+      tile_type: VIO
+      tile_class_id: ff_vio_stereo_inertial
+      num_tiles: 1
+      core:
+        function_id: vio.stereo_inertial
+        description: Navion-class VIO (frontend + factor-graph backend)
+        contract:
+          inputs:
+          - stereo_gray_frame
+          - imu_sample
+          outputs:
+          - pose_6dof
+          config_limits:
+            max_width: 752
+            max_height: 480
+            max_imu_rate_hz: 52000
+            max_features_per_frame: 200
+        numeric_formats:
+        - fixed16.16
+        - fp32
+        throughput:
+          unit: frame
+          cycles_per_unit: 880000.0
+          fmax_mhz_ref: 62.5
+        energy:
+          pj_per_unit: 338000000.0
+          ref_node_id: tsmc_n65
+          logic_fraction: 0.79
+          sram_fraction: 0.21
+          confidence: theoretical
+          source: 'Navion JSSC 2019: 24 mW at 71 fps average (Table III); SRAM 21%
+            of power (p. 9)'
+        ops_equivalent_per_unit: {}
+        io:
+          input_bytes_per_unit: 721920.0
+          output_bytes_per_unit: 64.0
+        local_memory:
+        - level: state
+          kib: 854.0
+          per: tile
+          circuit_class: sram_hd
+        silicon:
+        - name: vio_logic
+          circuit_class: balanced_logic
+          area_mm2: 3.7
+          ref_node_id: tsmc_n65
+          notes: ''
+        - name: vio_sram
+          circuit_class: sram_hd
+          area_mm2: 12.37
+          ref_node_id: tsmc_n65
+          notes: ''
+        confidence: theoretical
+        source: Suleiman et al., Navion, IEEE JSSC 54(4) 2019
+        notes: ''
+      notes: ''
+      footprint:
+        rows: 2
+        cols: 2
+        absorbs_memory_cells: true
+      tile_class_ref: ff_vio_stereo_inertial
+    noc:
+      topology: mesh_2d
+      mesh_rows: 8
+      mesh_cols: 8
+      flit_bytes: 16
+      router_circuit_class: hp_logic
+      bisection_bandwidth_gbps: 64.0
+      overlays:
+      - overlay_id: isp_sgm_vio
+        kind: stream_link
+        endpoints:
+        - ff_isp_raw2yuv
+        - ff_stereo_sgm
+        - ff_vio_stereo_inertial
+        width_bytes: 32
+        instances: 1
+        configuration: static_per_schedule
+        circuit_class: hp_logic
+        mtx_per_instance: 0.5
+        notes: ''
+    memory:
+      memory_type: lpddr5
+      memory_size_gb: 8.0
+      memory_bus_bits: 64
+      memory_bandwidth_gbps: 64.0
+      memory_controllers: 4
+      l3_kib_per_tile: 256
+      l2_kib_per_tile: 32
+      l1_kib_per_pe: 4
+    checkerboard:
+      compute_sites:
+        rows: 8
+        cols: 8
+      placement: auto
+      spare_sites: 5
+  interconnects: []
+performance:
+  int8_tops: 49.2
+  bf16_tflops: 14.7
+  fp32_tflops: 0.0
+  int4_tops: 59.0
+  peak_ops_per_sec_by_precision:
+    int8: 49152000000000.0
+    int4: 58982400000000.0
+    bf16: 14745600000000.0
+    fp16: 14745600000000.0
+    lns16: 9830400000000.0
+    lns8: 19660800000000.0
+  by_tile_kind:
+    pe_fabric:
+      int8: 29491200000000.0
+      int4: 58982400000000.0
+      bf16: 14745600000000.0
+      fp16: 14745600000000.0
+      lns16: 9830400000000.0
+      lns8: 19660800000000.0
+    systolic:
+      int8: 19660800000000.0
+  fixed_function_throughput:
+    isp.raw_to_yuv: 600000000.0
+    stereo.sgm: 219600000.0
+    vio.stereo_inertial: 681.8181818181819
+power:
+  tdp_watts: 1.2
+  max_power_watts: 1.8
+  min_power_watts: 0.5
+  idle_power_watts: 0.13
+  default_thermal_profile: default
+  thermal_profiles:
+  - name: lp
+    tdp_watts: 0.5
+    clock_mhz: 450.0
+    cooling_solution_id: passive_heatsink_large
+    efficiency_factor_by_precision:
+      int8: 0.6
+      bf16: 0.55
+      int4: 0.65
+    tile_utilization_by_precision:
+      int8: 0.9
+      bf16: 0.85
+      int4: 0.92
+    vdd_v: 0.5
+  - name: default
+    tdp_watts: 1.2
+    clock_mhz: 600.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.65
+      bf16: 0.6
+      int4: 0.7
+    tile_utilization_by_precision:
+      int8: 0.93
+      bf16: 0.88
+      int4: 0.95
+    vdd_v: 0.65
+  - name: boost
+    tdp_watts: 1.8
+    clock_mhz: 700.0
+    cooling_solution_id: active_fan
+    efficiency_factor_by_precision:
+      int8: 0.7
+      bf16: 0.65
+      int4: 0.75
+    tile_utilization_by_precision:
+      int8: 0.95
+      bf16: 0.9
+      int4: 0.97
+    vdd_v: 0.75
+market:
+  launch_date: 2025-Q4
+  target_market: edge
+  product_family: Stillwater KPU
+  model_tier: entry
+  is_available: false
+confidence: theoretical
+notes: 'Reference heterogeneous KPU for embodied autonomy: a PE fabric of three datapath
+  classes, a weight-stationary systolic array for dense GEMM and convolution, and
+  an ISP -> SGM -> VIO fixed-function chain. Every tile class comes from the embodied-schemas
+  tile-class library; the SKU only states how many of each and where they sit.'
+last_updated: '2026-09-16'

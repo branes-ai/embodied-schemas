@@ -20,6 +20,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from tests.kpu_catalog import legacy_kpu_blocks
 from embodied_schemas import (
     BlockKind,
     ComputeProduct,
@@ -40,17 +41,9 @@ LEGACY_ARCH_KEY_ORDER = [
 ] + ADDED_KEYS
 
 
-def _kpu_blocks() -> dict[str, KPUBlock]:
-    out = {}
-    for sku_id, cp in load_compute_products().items():
-        for die in cp.dies:
-            for block in die.blocks:
-                if isinstance(block, KPUBlock):
-                    out[sku_id] = block
-    return out
-
-
-KPU_BLOCKS = _kpu_blocks()
+# The backward-compatibility contract is about the SKUs that shipped
+# before the heterogeneous work; see tests/kpu_catalog.py.
+KPU_BLOCKS = legacy_kpu_blocks()
 
 
 def test_catalog_has_kpu_blocks():

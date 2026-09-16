@@ -96,7 +96,7 @@ def test_kpu_skus_unaffected_by_thor_addition(all_products):
     """Tighten to ==12: protects against a KPU SKU silently disappearing
     from the catalog while we're touching the GPU vendor directory."""
     stillwater_skus = [s for s, cp in all_products.items() if cp.vendor == "stillwater"]
-    assert len(stillwater_skus) == 12
+    assert len(stillwater_skus) == 14
 
 
 # ---------------------------------------------------------------------------

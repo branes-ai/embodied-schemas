@@ -17,6 +17,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from tests.kpu_catalog import legacy_kpu_blocks
 from embodied_schemas import (
     DEFAULT_OPS_PER_INVOCATION,
     AbsoluteEnergy,
@@ -37,17 +38,9 @@ from embodied_schemas import (
 from embodied_schemas.process_node import CircuitClass
 
 
-def _kpu_blocks() -> dict[str, KPUBlock]:
-    return {
-        sku: b
-        for sku, cp in load_compute_products().items()
-        for d in cp.dies
-        for b in d.blocks
-        if isinstance(b, KPUBlock)
-    }
-
-
-KPU_BLOCKS = _kpu_blocks()
+# The backward-compatibility contract is about the SKUs that shipped
+# before the heterogeneous work; see tests/kpu_catalog.py.
+KPU_BLOCKS = legacy_kpu_blocks()
 
 
 # ---------------------------------------------------------------------------

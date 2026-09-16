@@ -418,7 +418,7 @@ def test_v4_does_not_break_existing_catalog():
         if isinstance(cp.dies[0].blocks[0], NPUBlock)
     )
 
-    assert kpu_count == 12
+    assert kpu_count == 14
     assert gpu_count == 2
     assert cpu_count == 9  # ... + Xeon 8490H + Xeon 8592+ (sprint #68 PR 1-3))
     # NPU count history: 0 at the v4 schema PR (#25); Hailo-8 (#26)

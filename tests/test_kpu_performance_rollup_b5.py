@@ -22,6 +22,7 @@ import math
 import pytest
 from pydantic import ValidationError
 
+from tests.kpu_catalog import LEGACY_KPU_SKU_IDS
 from embodied_schemas import (
     PROGRAMMABLE_TILE_KINDS,
     ComputeProduct,
@@ -37,11 +38,9 @@ from embodied_schemas import (
 
 T64_ID = "kpu_t64_32x32_lp5x4_16nm_tsmc_ffp"
 CATALOG = load_compute_products()
-KPU_PRODUCTS = {
-    sku: cp
-    for sku, cp in CATALOG.items()
-    if any(isinstance(b, KPUBlock) for d in cp.dies for b in d.blocks)
-}
+# The backward-compatibility contract is about the SKUs that shipped
+# before the heterogeneous work; see tests/kpu_catalog.py.
+KPU_PRODUCTS = {sku: CATALOG[sku] for sku in LEGACY_KPU_SKU_IDS}
 T64 = KPU_PRODUCTS[T64_ID]
 LEGACY = ("int8_tops", "bf16_tflops", "fp32_tflops", "int4_tops")
 PE, SYS = KPUTileKind.PE_FABRIC, KPUTileKind.SYSTOLIC

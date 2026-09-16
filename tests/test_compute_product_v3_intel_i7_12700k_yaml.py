@@ -120,7 +120,8 @@ def test_catalog_has_15_total_products(all_products):
     # v4 data PR (#26-pending) adds hailo_hailo_8 as the first NPU SKU;
     # the catalog total grew from 15 to 16 then. This assertion
     # tolerates that addition while still pinning the KPU/GPU/CPU counts.
-    expected_subset = {"kpu": 12, "gpu": 2, "cpu": 9}
+    # graphs#268 E1 added the two kpu_h64_auto1 reference designs.
+    expected_subset = {"kpu": 14, "gpu": 2, "cpu": 9}
     for kind, count in expected_subset.items():
         assert counts_by_kind.get(kind, 0) == count, (
         f"unexpected catalog composition: {counts_by_kind}"
@@ -132,7 +133,7 @@ def test_kpu_and_gpu_skus_unaffected_by_cpu_addition(all_products):
     perturb stillwater/ or nvidia/ loading."""
     stillwater = [s for s, cp in all_products.items() if cp.vendor == "stillwater"]
     nvidia = [s for s, cp in all_products.items() if cp.vendor == "nvidia"]
-    assert len(stillwater) == 12
+    assert len(stillwater) == 14
     assert len(nvidia) == 2
 
 

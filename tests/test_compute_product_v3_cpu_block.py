@@ -529,7 +529,7 @@ def test_v3_does_not_break_existing_catalog():
         if isinstance(cp.dies[0].blocks[0], CPUBlock)
     )
 
-    assert kpu_count == 12
+    assert kpu_count == 14
     assert gpu_count == 2
     # cpu_count was 0 at the v3 schema PR (#22) baseline; v3 data PR
     # added intel_core_i7_12700k as the first CPU SKU. Sprint #62
