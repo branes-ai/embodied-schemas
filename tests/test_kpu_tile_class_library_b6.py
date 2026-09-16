@@ -220,7 +220,7 @@ def test_load_kpus_warns_on_a_missing_process_node(tmp_path):
 
 
 def test_catalog_load_kpus_is_warning_free(recwarn):
-    assert len(load_kpus()) == 12
+    assert len(load_kpus()) == 14
     assert not [w for w in recwarn if issubclass(w.category, UserWarning)]
 
 

@@ -46,6 +46,9 @@ EXPECTED_SKU_IDS = {
     "kpu_t512_32x32_lp5x32_12nm_gf_fdx",
     "kpu_t512_32x32_lp5x32_7nm_tsmc_hpc",
     "kpu_t768_16x8_hbm3x16_7nm_tsmc_hpc",
+    # The heterogeneous reference design (graphs#268 E1), at both nodes.
+    "kpu_h64_auto1_lp5x4_16nm_tsmc_ffp",
+    "kpu_h64_auto1_lp5x4_7nm_tsmc_hpc",
 }
 
 
@@ -63,10 +66,11 @@ def kpus():
 # Catalog completeness
 # ---------------------------------------------------------------------------
 
-def test_catalog_has_all_12_kpu_skus(cps):
+def test_catalog_has_all_14_kpu_skus(cps):
     """Every expected KPU SKU has a ComputeProduct YAML. (Originally
     asserted "no extra SKUs", but v2 added a Jetson AGX Orin GPU SKU
-    so the assertion now scopes to the KPU subset.)"""
+    so the assertion now scopes to the KPU subset. graphs#268 E1 added
+    the two kpu_h64_auto1 reference designs, taking the set to 14.)"""
     kpu_ids = {sku for sku, cp in cps.items() if cp.vendor == "stillwater"}
     missing = EXPECTED_SKU_IDS - kpu_ids
     extra = kpu_ids - EXPECTED_SKU_IDS
@@ -171,14 +175,20 @@ def test_compute_product_content_matches_legacy_kpu_entry(sku_id, cps, kpus):
 # ---------------------------------------------------------------------------
 
 def test_tile_count_coverage(cps):
-    """The KPU subset of the catalog covers tile counts {64, 128, 256, 512, 768}.
-    GPU SKUs don't have tile_count -- scoping the assertion to KPUs."""
+    """The KPU subset of the catalog covers the uniform tile counts
+    {64, 128, 256, 512, 768} plus the heterogeneous reference design's 45.
+    GPU SKUs don't have tile_count -- scoping the assertion to KPUs.
+
+    45 is not a power of two on purpose: kpu_h64_auto1 fills an 8x8
+    checkerboard with tiles of different footprints, so its tile count and
+    its site count are different numbers (graphs#268 E1).
+    """
     tile_counts = {
         cp.dies[0].blocks[0].total_tiles
         for cp in cps.values()
         if cp.dies[0].blocks[0].kind == BlockKind.KPU
     }
-    assert tile_counts == {64, 128, 256, 512, 768}, (
+    assert tile_counts == {45, 64, 128, 256, 512, 768}, (
         f"unexpected tile_count set: {sorted(tile_counts)}"
     )
 

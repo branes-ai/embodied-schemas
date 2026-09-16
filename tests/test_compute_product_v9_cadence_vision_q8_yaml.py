@@ -91,7 +91,7 @@ def test_other_vendors_unaffected_by_cadence_addition(all_products):
     counts_by_vendor: dict[str, int] = {}
     for cp in all_products.values():
         counts_by_vendor[cp.vendor] = counts_by_vendor.get(cp.vendor, 0) + 1
-    assert counts_by_vendor.get("stillwater") == 12
+    assert counts_by_vendor.get("stillwater") == 14
     assert counts_by_vendor.get("nvidia") == 2
     assert counts_by_vendor.get("intel") == 4  # i7-12700k + 3 Xeons: 8490H + 8592+ + 6980P (sprint #68 PR 1-3)
     assert counts_by_vendor.get("hailo") == 2

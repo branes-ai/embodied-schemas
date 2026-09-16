@@ -92,7 +92,7 @@ def test_other_vendors_unaffected_by_plasticine_addition(all_products):
     intel = [s for s, cp in all_products.items() if cp.vendor == "intel"]
     hailo = [s for s, cp in all_products.items() if cp.vendor == "hailo"]
     google = [s for s, cp in all_products.items() if cp.vendor == "google"]
-    assert len(stillwater) == 12
+    assert len(stillwater) == 14
     assert len(nvidia) == 2
     assert len(intel) == 4  # i7-12700k + 3 Xeons: 8490H + 8592+ + 6980P (sprint #68 PR 1-3)
     assert len(hailo) == 2

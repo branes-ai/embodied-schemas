@@ -23,6 +23,7 @@ import pytest
 from pydantic import ValidationError
 
 import embodied_schemas.compute_block_common as cbc
+from tests.test_kpu_catalog import HETEROGENEOUS_KPU_SKU_IDS, LEGACY_KPU_SKU_IDS
 from embodied_schemas import (
     SPARE_SITE,
     CheckerboardPlacement,
@@ -36,17 +37,16 @@ from embodied_schemas import (
     PowerDomain,
     PowerDomainKind,
     SiteRange,
+    KPUTileKind,
     load_compute_products,
     load_kpus,
 )
 
 T64_ID = "kpu_t64_32x32_lp5x4_16nm_tsmc_ffp"
 CATALOG = load_compute_products()
-KPU_PRODUCTS = {
-    sku: cp
-    for sku, cp in CATALOG.items()
-    if any(isinstance(b, KPUBlock) for d in cp.dies for b in d.blocks)
-}
+# The backward-compatibility contract is about the SKUs that shipped
+# before the heterogeneous work; see tests/kpu_catalog.py.
+KPU_PRODUCTS = {sku: CATALOG[sku] for sku in LEGACY_KPU_SKU_IDS}
 T64 = KPU_PRODUCTS[T64_ID]
 
 
@@ -178,10 +178,30 @@ def test_catalog_skus_have_no_b4_fields(sku):
 
 
 def test_legacy_kpu_entries_still_load():
+    """The legacy KPUEntry view still round-trips. Scoped to the SKUs that
+    predate the checkerboard: kpu_h64_auto1 has one by design, and
+    test_heterogeneous_kpu_entries_carry_their_checkerboard covers it."""
     entries = load_kpus()
     assert entries
-    for e in entries.values():
+    for sku in LEGACY_KPU_SKU_IDS:
+        e = entries[sku]
         assert e.kpu_architecture.checkerboard is None
+        assert KPUEntry.model_validate(e.model_dump(mode="json")) == e
+
+
+def test_heterogeneous_kpu_entries_carry_their_checkerboard():
+    """The legacy view is not lossy for a heterogeneous SKU: KPUEntry holds
+    the same KPUArchitectureBase, so its checkerboard and tile kinds
+    survive and round-trip."""
+    entries = load_kpus()
+    for sku in HETEROGENEOUS_KPU_SKU_IDS:
+        e = entries[sku]
+        arch = e.kpu_architecture
+        assert arch.checkerboard is not None
+        assert {t.tile_kind for t in arch.tiles} == {
+            KPUTileKind.PE_FABRIC, KPUTileKind.SYSTOLIC,
+            KPUTileKind.FIXED_FUNCTION,
+        }
         assert KPUEntry.model_validate(e.model_dump(mode="json")) == e
 
 
