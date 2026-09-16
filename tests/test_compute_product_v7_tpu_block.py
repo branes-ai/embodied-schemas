@@ -490,7 +490,7 @@ def test_v7_does_not_break_existing_catalog():
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts[kind] = counts.get(kind, 0) + 1
 
-    assert counts["kpu"] == 12
+    assert counts["kpu"] == 14
     assert counts["gpu"] == 2
     assert counts["cpu"] == 9  # ... + Xeon 8490H + Xeon 8592+ (sprint #68 PR 1-3))
     assert counts["npu"] == 3

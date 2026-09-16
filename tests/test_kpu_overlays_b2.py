@@ -15,6 +15,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from tests.test_kpu_catalog import legacy_kpu_blocks
 from embodied_schemas import (
     FabricInterconnect,
     FabricOverlay,
@@ -30,17 +31,9 @@ from embodied_schemas import (
 )
 
 
-def _kpu_blocks() -> dict[str, KPUBlock]:
-    return {
-        sku: b
-        for sku, cp in load_compute_products().items()
-        for d in cp.dies
-        for b in d.blocks
-        if isinstance(b, KPUBlock)
-    }
-
-
-KPU_BLOCKS = _kpu_blocks()
+# The backward-compatibility contract is about the SKUs that shipped
+# before the heterogeneous work; see tests/kpu_catalog.py.
+KPU_BLOCKS = legacy_kpu_blocks()
 T64 = KPU_BLOCKS["kpu_t64_32x32_lp5x4_16nm_tsmc_ffp"]
 
 

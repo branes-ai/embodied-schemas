@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-16
+
+The first heterogeneous KPU SKUs in the catalog: `kpu_h64_auto1` at
+`tsmc_n16` and `tsmc_n7` (branes-ai/graphs#268 E1).
+
+**Data, not schema.** No schema change: these are the first products to
+use the capability phases B1-B6 added. 64 compute sites on an 8x8
+checkerboard carrying three PE-fabric datapath classes (INT8 MAC, LNS16,
+min-plus), a weight-stationary systolic array at a 1x2 footprint, and an
+ISP -> SGM -> VIO stream-linked chain of fixed-function cores, the VIO at
+2x2 absorbing the memory cells it covers. Every tile class comes from the
+tile-class library; the two variants differ only in process node, clock
+and thermal envelope, and the systolic accumulator's SRAM library
+(`tsmc_n7` offers `sram_hp`, `tsmc_n16` does not).
+
+**What this means for consumers.**
+- `load_compute_products()` returns 14 KPU products, not 12.
+- `load_kpus()` likewise returns 14, and the legacy `KPUEntry` view is not
+  lossy for them: `KPUEntry.kpu_architecture` is the same
+  `KPUArchitectureBase`, so tile kinds, the checkerboard and the NoC
+  overlays all survive and round-trip.
+- Code that assumed every catalog KPU tile is a `KPUTileSpec`, or that no
+  catalog SKU declares a checkerboard, overlays or a non-`pe_fabric` tile
+  kind, needs to say which SKUs it means. The B1-B6 backward-compatibility
+  tests now scope themselves to an explicit list of the twelve SKUs that
+  predate this work (`tests/kpu_catalog.py`), rather than to "whatever is
+  in the catalog" -- deriving that set would have made the contract
+  vacuous the moment a SKU changed shape.
+
 ## [0.9.0] - 2026-09-15
 
 Phases B2-B6 of the KPU heterogeneous-tile sprint (branes-ai/graphs#268;
