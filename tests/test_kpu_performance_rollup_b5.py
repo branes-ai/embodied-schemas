@@ -22,7 +22,7 @@ import math
 import pytest
 from pydantic import ValidationError
 
-from tests.kpu_catalog import LEGACY_KPU_SKU_IDS
+from tests.test_kpu_catalog import LEGACY_KPU_SKU_IDS
 from embodied_schemas import (
     PROGRAMMABLE_TILE_KINDS,
     ComputeProduct,

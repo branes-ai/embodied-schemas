@@ -19,6 +19,11 @@ proved nothing about the SKUs it was written for.
 it (say, "every SKU with one tile kind") would make the contract vacuous:
 a legacy SKU that accidentally grew a systolic tile would silently drop
 out of its own regression test instead of failing it.
+
+Named ``test_*`` so pytest collects the guard at the bottom: ``python_files
+= ["test_*.py"]`` means a plain ``kpu_catalog.py`` would be importable but
+never run, which is exactly the kind of guard that looks present and is
+not.
 """
 
 from __future__ import annotations

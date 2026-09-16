@@ -23,7 +23,7 @@ import pytest
 from pydantic import ValidationError
 
 import embodied_schemas.compute_block_common as cbc
-from tests.kpu_catalog import HETEROGENEOUS_KPU_SKU_IDS, LEGACY_KPU_SKU_IDS
+from tests.test_kpu_catalog import HETEROGENEOUS_KPU_SKU_IDS, LEGACY_KPU_SKU_IDS
 from embodied_schemas import (
     SPARE_SITE,
     CheckerboardPlacement,

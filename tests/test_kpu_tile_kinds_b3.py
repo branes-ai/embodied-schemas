@@ -19,7 +19,7 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from tests.kpu_catalog import legacy_kpu_blocks
+from tests.test_kpu_catalog import legacy_kpu_blocks
 from embodied_schemas import (
     AnyKPUTile,
     CoreSiliconBlock,
