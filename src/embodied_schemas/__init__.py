@@ -376,7 +376,16 @@ from embodied_schemas.loaders import (
     load_compute_products,
 )
 
-__version__ = "0.9.0"
+# Kept equal to pyproject.toml's version by
+# test_version_matches_pyproject. It is a literal rather than a read of
+# the installed distribution metadata, because an editable install can
+# carry stale metadata -- this very checkout reports 0.8.0 that way -- and
+# a development consumer would then see the wrong number.
+#
+# It drifted before that test existed: 0.10.0 and 0.11.0 both shipped
+# reporting "0.9.0", because a release bumps pyproject and nothing pointed
+# back here.
+__version__ = "0.12.0"
 
 __all__ = [
     # Hardware

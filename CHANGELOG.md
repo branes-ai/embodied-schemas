@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-16
+
+Vdd re-tune for the four `7nm_tsmc_hpc` KPU SKUs (branes-ai/graphs#268 F4).
+
+Their `lp` and `default` profiles declared more TDP than the power model
+computes -- the T512's `lp` claimed 10.3 W against a computed 8.9 W -- and
+had done since leakage gained its Vdd scaling. `tsmc_n7` carries
+`leakage_vdd_exponent: 4.5`, so below nominal Vdd the leakage term falls
+steeply; these four SKUs kept the round 0.500 / 0.650 / 0.750 V they were
+authored with, while the 16 nm family and the T768 were re-tuned at the
+time.
+
+The tell was which profile looked healthy. `boost` sits exactly at the
+node's nominal 0.75 V, where the scaling is a no-op, so the one profile
+that could not reveal the problem was the one that passed.
+
+The declared envelope is the target and Vdd is the knob, so the Vdds move,
+not the envelopes:
+
+| SKU | `lp` | `default` |
+|---|---|---|
+| kpu_t64_32x32_lp5x4_7nm_tsmc_hpc | 0.500 -> 0.538 | 0.650 -> 0.668 |
+| kpu_t128_32x32_lp5x8_7nm_tsmc_hpc | 0.500 -> 0.539 | 0.650 -> 0.663 |
+| kpu_t256_32x32_lp5x16_7nm_tsmc_hpc | 0.500 -> 0.534 | 0.650 -> 0.660 |
+| kpu_t512_32x32_lp5x32_7nm_tsmc_hpc | 0.500 -> 0.537 | 0.650 -> 0.662 |
+
+All four converge on the same band and stay below the node's nominal
+0.75 V. Every KPU profile in the catalog now computes the TDP it declares,
+and graphs gains a `declared_tdp_matches_model` validator so this cannot
+drift unnoticed again.
+
 ## [0.11.0] - 2026-09-16
 
 **Breaking (data model):** `KPUMemorySubsystem.l1_kib_per_pe` is renamed
