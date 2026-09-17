@@ -152,6 +152,64 @@ dies:
       l3_kib_per_tile: 256
       l2_kib_per_tile: 32
       l1_kib_per_tile: 4
+    # Default per-cluster DVFS partition (graphs#268 F2): one domain per
+    # k x k block of compute sites with its own rail and PLL, plus the
+    # uncore. No operating points: every cluster runs at its profile's
+    # Vdd and clock, so TDP, performance and area are unchanged.
+    power_domains:
+    - domain_id: c_0_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 0, col_max: 3}
+      rail_id: vdd_c_0_0
+      clock_domain_id: clk_c_0_0
+    - domain_id: c_0_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 4, col_max: 7}
+      rail_id: vdd_c_0_1
+      clock_domain_id: clk_c_0_1
+    - domain_id: c_1_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 0, col_max: 3}
+      rail_id: vdd_c_1_0
+      clock_domain_id: clk_c_1_0
+    - domain_id: c_1_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 4, col_max: 7}
+      rail_id: vdd_c_1_1
+      clock_domain_id: clk_c_1_1
+    - domain_id: c_2_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 0, col_max: 3}
+      rail_id: vdd_c_2_0
+      clock_domain_id: clk_c_2_0
+    - domain_id: c_2_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 4, col_max: 7}
+      rail_id: vdd_c_2_1
+      clock_domain_id: clk_c_2_1
+    - domain_id: c_3_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 0, col_max: 3}
+      rail_id: vdd_c_3_0
+      clock_domain_id: clk_c_3_0
+    - domain_id: c_3_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 4, col_max: 7}
+      rail_id: vdd_c_3_1
+      clock_domain_id: clk_c_3_1
+    - domain_id: uncore
+      kind: uncore
+      members: [memory_phys, io_pads, control_logic]
+      rail_id: vdd_uncore
+      clock_domain_id: clk_uncore
   interconnects: []
 performance:
   int8_tops: 157.3
