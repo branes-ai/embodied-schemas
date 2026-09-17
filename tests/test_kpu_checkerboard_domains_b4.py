@@ -165,6 +165,16 @@ def _invalid(data: dict, match: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+#: The default partition per SKU family: (cluster edge in sites, clusters).
+_DEFAULT_PARTITION = {
+    "t64": (2, 16),
+    "t128": (4, 8),
+    "t256": (4, 16),
+    "t512": (4, 32),
+    "t768": (4, 48),
+}
+
+
 @pytest.mark.parametrize("sku", sorted(KPU_PRODUCTS))
 def test_legacy_skus_carry_only_the_default_cluster_partition(sku):
     """The uniform SKUs gained the default per-cluster DVFS partition in
@@ -196,8 +206,16 @@ def test_legacy_skus_carry_only_the_default_cluster_partition(sku):
     shapes = {(r.rows, r.cols) for d in clusters for r in d.site_ranges}
     assert len(shapes) == 1
     (edge_r, edge_c), = shapes
-    assert edge_r == edge_c in (2, 4)
-    assert 8 <= len(clusters) <= 64  # the DVFS design's count range
+    family = sku.split("_")[1]  # t64, t128, ...
+    # Exact, per family, rather than a range: a range -- whether the design's
+    # 8-64 or the shipped 8-48 -- would still accept a T256 partitioned into
+    # 32 clusters. The DVFS design's table gives 2x2 for the T64 (4x4 would
+    # leave only 4 clusters) and 4x4 elsewhere; the T768 is absent from the
+    # table and gets 4x4 by the same rule.
+    expected_edge, expected_count = _DEFAULT_PARTITION[family]
+    assert edge_r == edge_c == expected_edge
+    assert len(clusters) == expected_count
+    assert 8 <= len(clusters) <= 64  # and inside the design's range
 
     assert len({d.rail_id for d in clusters}) == len(clusters)
     assert len({d.clock_domain_id for d in clusters}) == len(clusters)
