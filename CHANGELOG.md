@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-16
+
+**Breaking (data model):** `KPUMemorySubsystem.l1_kib_per_pe` is renamed
+`l1_kib_per_tile`, and every KPU SKU gains an `l1_sram` silicon_bin block
+(branes-ai/graphs#268 F1).
+
+L1 was declared per PE, which is the wrong denominator. The KPU hierarchy
+is a streaming pipeline, not a cache hierarchy:
+
+- **L3** is the block linear-algebra reuse scratchpad, allocated to its
+  own memory tile;
+- **L2** reformats L3 blocks so streaming preparation is easy at fabric
+  clock rates, and may sit in the L3 memory tile or the compute tile
+  depending on the bank layout needed to feed L1;
+- **L1** is tightly coupled to the fabric edges: it turns row and column
+  fetches out of L2 into streams of operands pushed into the edges of the
+  fabric. It is per compute **tile**.
+
+A PE is an ALU with datapath registers and a small token CAM; it holds no
+SRAM. At 0.052 Mtx/KiB the declared 4 KiB/PE is ~208,000 transistors per
+PE, against the 6,000 the catalog's own `per_pe` block budgets for "MAC +
+reg + sequencing" -- and binning it would have added 835-851% of the die.
+The figure was right; the denominator was wrong.
+
+The `l1_sram` block (`count_ref: l1_total_kib`) adds 0.17-0.45% of die
+area per SKU. Leakage rises by under 1 mW, two orders of magnitude below
+the 0.1 W the thermal profiles declare their TDP at, so **no Vdd re-tune
+was needed** -- measured rather than assumed.
+
+The field descriptions now carry the role of each level, so the next
+reader does not have to infer the denominator.
+
 ## [0.10.0] - 2026-09-16
 
 The first heterogeneous KPU SKUs in the catalog: `kpu_h64_auto1` at

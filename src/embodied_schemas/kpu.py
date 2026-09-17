@@ -559,14 +559,39 @@ class KPUMemorySubsystem(BaseModel):
     memory_bus_bits: int = Field(..., gt=0, description="DRAM bus width in bits")
     memory_bandwidth_gbps: float = Field(..., gt=0, description="Peak DRAM bandwidth")
     memory_controllers: int = Field(..., gt=0, description="Number of memory controllers")
+    # The KPU hierarchy is a streaming pipeline, not a cache hierarchy.
+    # Each level has a distinct job, and the level a figure belongs to
+    # decides what it is multiplied by -- which is how l1 came to be
+    # declared per PE and imply 835% of a die in SRAM (graphs#268 F1).
     l3_kib_per_tile: int = Field(
-        ..., gt=0, description="Distributed L3 SRAM per tile (KiB)"
+        ...,
+        gt=0,
+        description=(
+            "Distributed L3 SRAM per tile (KiB): the block linear-algebra "
+            "reuse scratchpad. Allocated to its own memory tile."
+        ),
     )
     l2_kib_per_tile: int = Field(
-        0, ge=0, description="Per-tile L2 SRAM (KiB); 0 if absent"
+        0,
+        ge=0,
+        description=(
+            "Per-tile L2 SRAM (KiB); 0 if absent. Reformats L3 blocks so "
+            "that streaming preparation is easy at fabric clock rates. Its "
+            "placement is a design choice: it can sit in the L3 memory tile "
+            "or in the compute tile, depending on the concurrent bank "
+            "layout needed to feed L1."
+        ),
     )
-    l1_kib_per_pe: int = Field(
-        0, ge=0, description="Per-PE L1 SRAM (KiB); 0 if absent"
+    l1_kib_per_tile: int = Field(
+        0,
+        ge=0,
+        description=(
+            "Per-compute-tile L1 SRAM (KiB); 0 if absent. Tightly coupled "
+            "to the fabric edges: it turns row and column fetches out of L2 "
+            "into streams of operands pushed into the edges of the fabric. "
+            "Per TILE, never per PE -- a PE is an ALU with datapath "
+            "registers and a small token CAM, and holds no SRAM."
+        ),
     )
 
     model_config = {"extra": "forbid"}

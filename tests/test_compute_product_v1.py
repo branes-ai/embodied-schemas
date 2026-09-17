@@ -272,7 +272,7 @@ def test_block_discriminator_dispatch():
             "memory_controllers": 4,
             "l3_kib_per_tile": 256,
             "l2_kib_per_tile": 32,
-            "l1_kib_per_pe": 4,
+            "l1_kib_per_tile": 4,
         },
     }
     block = KPUBlock.model_validate(raw)
