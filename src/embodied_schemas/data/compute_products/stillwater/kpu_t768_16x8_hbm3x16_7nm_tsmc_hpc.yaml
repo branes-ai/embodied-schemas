@@ -41,11 +41,13 @@ dies:
         kind: per_pe
         per_unit_mtx: 0.3
         count_ref: tile.Matrix
-      notes: 'Matrix PE is much larger -- systolic cell with 8x-deep
+      notes: 'Systolic Matrix cell: 64 MAC lanes (8-bit multiplier + 32-bit
 
-        accumulator pipeline + weight registers + input forwarding +
+        accumulator + registers, ~4.7K transistors each) plus weight
 
-        per-PE L1. ~300K transistors per cell.
+        registers and input forwarding. ~300K transistors per cell. L1 and
+
+        L2 are the tile''s own local_memory, not in this block.
 
         '
     - name: l1_sram
@@ -135,25 +137,45 @@ dies:
       pipeline_fill_cycles: 16
       pipeline_drain_cycles: 16
       notes: ''
-    - tile_type: Matrix
+    # Matrix, migrated to the systolic tile kind (graphs#268 D8). The
+    # throughput is the legacy SKU's, unchanged: 8192 INT8 ops per clock
+    # over 8x8 cells is 128 ops per cell, which a systolic tile states as
+    # its mechanism -- 64 MAC lanes per cell at 2 ops each (32 lanes in the
+    # 16-bit float modes). That is consistent with the 0.3 Mtx per cell the
+    # pe_matrix block budgets: ~4.7K transistors per lane for an 8-bit
+    # multiplier, a 32-bit accumulator adder and its registers.
+    #
+    # Energy is deliberately not declared, so each op is charged the node's
+    # hp_logic anchor exactly as the pe_fabric tile was. A systolic discount
+    # (systolic_int8_ws derives 0.65x) would be its own model change with a
+    # Vdd re-tune.
+    #
+    # The tile states its L1 and L2 because a systolic tile does not inherit
+    # the chip-level figures: the same 4 KiB fabric-edge stream storage and
+    # 32 KiB reformatting buffer every other compute tile of this SKU has.
+    - tile_kind: systolic
+      tile_type: Matrix
       num_tiles: 77
-      pe_array_rows: 8
-      pe_array_cols: 8
-      pe_circuit_class: hp_logic
-      ops_per_tile_per_clock:
-        int8: 8192.0
-        bf16: 4096.0
-        fp16: 4096.0
-      schedule_class: weight_stationary
-      pipeline_fill_cycles: 8
-      pipeline_drain_cycles: 8
-      notes: 'Tensor-core-style tile: 8x8 PE array runs as systolic matmul with
+      array_rows: 8
+      array_cols: 8
+      dataflow: weight_stationary
+      circuit_class: hp_logic
+      mac:
+        unit_id: mac
+        op: mac
+        modes:
+        - {operand_format: int8, accumulate_format: int32, lanes: 64}
+        - {operand_format: bf16, lanes: 32}
+        - {operand_format: fp16, lanes: 32}
+      supported_kernels: [gemm, conv2d, attention]
+      local_memory:
+      - {level: l1, kib: 4}
+      - {level: l2, kib: 32}
+      notes: 'Tensor-core-style weight-stationary systolic array for large-matrix
 
-        weight-stationary accumulation, yielding 128 INT8 ops/PE/cycle
+        LLM inference: 64 MAC lanes per cell give 128 INT8 ops per cell per
 
-        (vs 8 ops/PE/cycle for the simple rows*cols*2 model). Used for
-
-        large-matrix LLM inference workloads.
+        clock (vs 2 for a single-MAC cell).
 
         '
     noc:
@@ -476,6 +498,23 @@ performance:
   bf16_tflops: 676.9
   fp32_tflops: 27.1
   int4_tops: 756.1
+  peak_ops_per_sec_by_precision:
+    int8: 1353792000000000.0
+    int4: 756096000000000.0
+    bf16: 676896000000000.0
+    fp16: 676896000000000.0
+    fp32: 27104000000000.0
+  by_tile_kind:
+    pe_fabric:
+      int8: 486464000000000.0
+      int4: 756096000000000.0
+      bf16: 243232000000000.0
+      fp16: 243232000000000.0
+      fp32: 27104000000000.0
+    systolic:
+      int8: 867328000000000.0
+      bf16: 433664000000000.0
+      fp16: 433664000000000.0
 power:
   tdp_watts: 60.0
   max_power_watts: 100.0
@@ -533,7 +572,7 @@ notes: 'Datacenter-class KPU SKU for AI inference at scale. 768 heterogeneous
 
   tiles in a 32x24 grid; INT8/BF16 tiles use 16x8 PE arrays while Matrix
 
-  tiles use 8x8 systolic blocks (tensor-core-style) for LLM inference.
+  tiles are 8x8 systolic arrays (tensor-core-style) for LLM inference.
 
   192 MiB distributed L3 scratchpad. HBM3 64 GB / 1.6 TB/s. TSMC N7
 
@@ -542,13 +581,11 @@ notes: 'Datacenter-class KPU SKU for AI inference at scale. 768 heterogeneous
   liquid cooling.
 
 
-  Validates the schema''s tensor-core-style tile path: Matrix tiles have
+  Matrix tiles are systolic (graphs#268 D8): 8192 INT8 ops/clock from 64
 
-  8192 INT8 ops/clock at 64 PEs (128 ops/PE/cycle) via systolic
+  cells of 64 MAC lanes each, stated on the tile rather than implied by a
 
-  accumulation, which the simple rows*cols*ops_per_pe model would
-
-  underestimate by 16x.
+  PE-array throughput figure.
 
   '
-last_updated: '2026-05-09'
+last_updated: '2026-09-17'

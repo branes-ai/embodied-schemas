@@ -20,7 +20,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from tests.test_kpu_catalog import legacy_kpu_blocks
+from tests.test_kpu_catalog import shipped_kpu_blocks
 from embodied_schemas import (
     BlockKind,
     ComputeProduct,
@@ -42,8 +42,10 @@ LEGACY_ARCH_KEY_ORDER = [
 
 
 # The backward-compatibility contract is about the SKUs that shipped
-# before the heterogeneous work; see tests/kpu_catalog.py.
-KPU_BLOCKS = legacy_kpu_blocks()
+# before the heterogeneous work, including the T768 whose Matrix class was
+# migrated to systolic (graphs#268 D8): the block contract is about the
+# block, not its tile kinds. See tests/test_kpu_catalog.py.
+KPU_BLOCKS = shipped_kpu_blocks()
 
 
 def test_catalog_has_kpu_blocks():

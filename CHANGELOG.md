@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-17
+
+The T768 `Matrix` tile class migrated to the `systolic` tile kind
+(branes-ai/graphs#268 D8), the first catalog SKU to move onto a new kind
+after shipping.
+
+**Data.** `kpu_t768_16x8_hbm3x16_7nm_tsmc_hpc`'s Matrix class was a PE-fabric
+tile whose throughput (8192 INT8 ops per clock on an 8x8 array) carried a
+systolic mechanism in a note. It is now a `SystolicTile` that states it:
+
+- 8x8 weight-stationary cells in `hp_logic`, each a MAC unit with **64 lanes**
+  in INT8 (128 ops per cell per clock) and 32 in BF16 / FP16. That matches
+  the 0.3 Mtx per cell the `pe_matrix` silicon block already budgets, about
+  4.7K transistors per lane.
+- **Throughput unchanged:** 1353.8 INT8 TOPS, 676.9 BF16 TFLOPS, 27.1 FP32,
+  756.1 INT4. `performance` now also declares the derived roll-up
+  (`peak_ops_per_sec_by_precision`, `by_tile_kind`).
+- **Energy basis unchanged:** no mode declares energy, so every op is still
+  charged the node's `hp_logic` anchor. A systolic discount (the library's
+  `systolic_int8_ws` derives 0.65x) would cut the computed TDP by about 22%
+  and need a Vdd re-tune, so it is left to a separate model change.
+- **Memory:** a systolic tile does not inherit the chip's L1 / L2, so the
+  Matrix class declares its own `local_memory`, 4 KiB L1 and 32 KiB L2, the
+  figures it used to inherit. As tile-carried silicon these are priced at
+  0.052 Mtx/KiB, where this SKU's `l2_sram` block uses 0.022 (every other
+  catalog SKU uses 0.052), so the chip gains about 74 Mtx (13.302 -> 13.376 B
+  modeled) and under 3 mW of leakage. No profile's TDP moves by 0.05 W.
+- The `pe_matrix` block stays the single count of the cells' logic
+  (`mac.mtx` is unset, so nothing is counted twice). Its note no longer
+  claims a per-PE L1 (graphs#268 F1).
+
+**Tests.** `tests/test_kpu_catalog.py` adds `MIGRATED_KPU_SKU_IDS` (the T768)
+beside the legacy and heterogeneous lists, and `SHIPPED_KPU_SKU_IDS` (legacy
+plus migrated) for the contracts that survive a tile-kind change: block
+round trip and key order, no overlays, the implicit mesh and its cluster
+partition. The contracts that are about every tile being a `KPUTileSpec`
+stay on the legacy list. A guard checks the three lists partition the
+catalog and say what they claim. `tests/test_kpu_t768_systolic_d8.py` pins
+the throughput, lanes, energy basis, single silicon count and memory.
+`test_products_without_a_kpu_block_are_not_checked_against_tiles` now picks
+a product without a KPU block explicitly; "not a legacy SKU" could have
+picked a KPU.
+
 ## [0.13.0] - 2026-09-17
 
 The default per-cluster DVFS partition on the twelve uniform KPU SKUs
