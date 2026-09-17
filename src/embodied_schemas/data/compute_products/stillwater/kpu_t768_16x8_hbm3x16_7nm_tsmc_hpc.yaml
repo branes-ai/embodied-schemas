@@ -48,6 +48,13 @@ dies:
         per-PE L1. ~300K transistors per cell.
 
         '
+    - name: l1_sram
+      circuit_class: sram_hd
+      transistor_source:
+        kind: per_kib
+        per_unit_mtx: 0.052
+        count_ref: l1_total_kib
+      notes: Fabric-edge stream storage, per compute tile
     - name: l2_sram
       circuit_class: sram_hd
       transistor_source:
@@ -164,7 +171,7 @@ dies:
       memory_controllers: 8
       l3_kib_per_tile: 256
       l2_kib_per_tile: 32
-      l1_kib_per_pe: 4
+      l1_kib_per_tile: 4
   interconnects: []
 performance:
   int8_tops: 1353.8
