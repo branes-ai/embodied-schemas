@@ -177,7 +177,7 @@ power:
       int8: 0.95
       bf16: 0.9
       int4: 0.97
-    vdd_v: 0.5
+    vdd_v: 0.537
   - name: default
     tdp_watts: 21.1
     clock_mhz: 600.0
@@ -190,7 +190,7 @@ power:
       int8: 0.95
       bf16: 0.9
       int4: 0.97
-    vdd_v: 0.65
+    vdd_v: 0.662
   - name: boost
     tdp_watts: 31.8
     clock_mhz: 700.0
