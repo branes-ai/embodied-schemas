@@ -172,6 +172,304 @@ dies:
       l3_kib_per_tile: 256
       l2_kib_per_tile: 32
       l1_kib_per_tile: 4
+    # Default per-cluster DVFS partition (graphs#268 F2): one domain per
+    # k x k block of compute sites with its own rail and PLL, plus the
+    # uncore. No operating points: every cluster runs at its profile's
+    # Vdd and clock, so TDP, performance and area are unchanged.
+    power_domains:
+    - domain_id: c_0_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 0, col_max: 3}
+      rail_id: vdd_c_0_0
+      clock_domain_id: clk_c_0_0
+    - domain_id: c_0_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 4, col_max: 7}
+      rail_id: vdd_c_0_1
+      clock_domain_id: clk_c_0_1
+    - domain_id: c_0_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 8, col_max: 11}
+      rail_id: vdd_c_0_2
+      clock_domain_id: clk_c_0_2
+    - domain_id: c_0_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 12, col_max: 15}
+      rail_id: vdd_c_0_3
+      clock_domain_id: clk_c_0_3
+    - domain_id: c_0_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 16, col_max: 19}
+      rail_id: vdd_c_0_4
+      clock_domain_id: clk_c_0_4
+    - domain_id: c_0_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 0, row_max: 3, col_min: 20, col_max: 23}
+      rail_id: vdd_c_0_5
+      clock_domain_id: clk_c_0_5
+    - domain_id: c_1_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 0, col_max: 3}
+      rail_id: vdd_c_1_0
+      clock_domain_id: clk_c_1_0
+    - domain_id: c_1_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 4, col_max: 7}
+      rail_id: vdd_c_1_1
+      clock_domain_id: clk_c_1_1
+    - domain_id: c_1_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 8, col_max: 11}
+      rail_id: vdd_c_1_2
+      clock_domain_id: clk_c_1_2
+    - domain_id: c_1_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 12, col_max: 15}
+      rail_id: vdd_c_1_3
+      clock_domain_id: clk_c_1_3
+    - domain_id: c_1_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 16, col_max: 19}
+      rail_id: vdd_c_1_4
+      clock_domain_id: clk_c_1_4
+    - domain_id: c_1_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 4, row_max: 7, col_min: 20, col_max: 23}
+      rail_id: vdd_c_1_5
+      clock_domain_id: clk_c_1_5
+    - domain_id: c_2_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 0, col_max: 3}
+      rail_id: vdd_c_2_0
+      clock_domain_id: clk_c_2_0
+    - domain_id: c_2_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 4, col_max: 7}
+      rail_id: vdd_c_2_1
+      clock_domain_id: clk_c_2_1
+    - domain_id: c_2_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 8, col_max: 11}
+      rail_id: vdd_c_2_2
+      clock_domain_id: clk_c_2_2
+    - domain_id: c_2_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 12, col_max: 15}
+      rail_id: vdd_c_2_3
+      clock_domain_id: clk_c_2_3
+    - domain_id: c_2_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 16, col_max: 19}
+      rail_id: vdd_c_2_4
+      clock_domain_id: clk_c_2_4
+    - domain_id: c_2_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 8, row_max: 11, col_min: 20, col_max: 23}
+      rail_id: vdd_c_2_5
+      clock_domain_id: clk_c_2_5
+    - domain_id: c_3_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 0, col_max: 3}
+      rail_id: vdd_c_3_0
+      clock_domain_id: clk_c_3_0
+    - domain_id: c_3_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 4, col_max: 7}
+      rail_id: vdd_c_3_1
+      clock_domain_id: clk_c_3_1
+    - domain_id: c_3_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 8, col_max: 11}
+      rail_id: vdd_c_3_2
+      clock_domain_id: clk_c_3_2
+    - domain_id: c_3_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 12, col_max: 15}
+      rail_id: vdd_c_3_3
+      clock_domain_id: clk_c_3_3
+    - domain_id: c_3_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 16, col_max: 19}
+      rail_id: vdd_c_3_4
+      clock_domain_id: clk_c_3_4
+    - domain_id: c_3_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 12, row_max: 15, col_min: 20, col_max: 23}
+      rail_id: vdd_c_3_5
+      clock_domain_id: clk_c_3_5
+    - domain_id: c_4_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 16, row_max: 19, col_min: 0, col_max: 3}
+      rail_id: vdd_c_4_0
+      clock_domain_id: clk_c_4_0
+    - domain_id: c_4_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 16, row_max: 19, col_min: 4, col_max: 7}
+      rail_id: vdd_c_4_1
+      clock_domain_id: clk_c_4_1
+    - domain_id: c_4_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 16, row_max: 19, col_min: 8, col_max: 11}
+      rail_id: vdd_c_4_2
+      clock_domain_id: clk_c_4_2
+    - domain_id: c_4_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 16, row_max: 19, col_min: 12, col_max: 15}
+      rail_id: vdd_c_4_3
+      clock_domain_id: clk_c_4_3
+    - domain_id: c_4_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 16, row_max: 19, col_min: 16, col_max: 19}
+      rail_id: vdd_c_4_4
+      clock_domain_id: clk_c_4_4
+    - domain_id: c_4_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 16, row_max: 19, col_min: 20, col_max: 23}
+      rail_id: vdd_c_4_5
+      clock_domain_id: clk_c_4_5
+    - domain_id: c_5_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 20, row_max: 23, col_min: 0, col_max: 3}
+      rail_id: vdd_c_5_0
+      clock_domain_id: clk_c_5_0
+    - domain_id: c_5_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 20, row_max: 23, col_min: 4, col_max: 7}
+      rail_id: vdd_c_5_1
+      clock_domain_id: clk_c_5_1
+    - domain_id: c_5_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 20, row_max: 23, col_min: 8, col_max: 11}
+      rail_id: vdd_c_5_2
+      clock_domain_id: clk_c_5_2
+    - domain_id: c_5_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 20, row_max: 23, col_min: 12, col_max: 15}
+      rail_id: vdd_c_5_3
+      clock_domain_id: clk_c_5_3
+    - domain_id: c_5_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 20, row_max: 23, col_min: 16, col_max: 19}
+      rail_id: vdd_c_5_4
+      clock_domain_id: clk_c_5_4
+    - domain_id: c_5_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 20, row_max: 23, col_min: 20, col_max: 23}
+      rail_id: vdd_c_5_5
+      clock_domain_id: clk_c_5_5
+    - domain_id: c_6_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 24, row_max: 27, col_min: 0, col_max: 3}
+      rail_id: vdd_c_6_0
+      clock_domain_id: clk_c_6_0
+    - domain_id: c_6_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 24, row_max: 27, col_min: 4, col_max: 7}
+      rail_id: vdd_c_6_1
+      clock_domain_id: clk_c_6_1
+    - domain_id: c_6_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 24, row_max: 27, col_min: 8, col_max: 11}
+      rail_id: vdd_c_6_2
+      clock_domain_id: clk_c_6_2
+    - domain_id: c_6_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 24, row_max: 27, col_min: 12, col_max: 15}
+      rail_id: vdd_c_6_3
+      clock_domain_id: clk_c_6_3
+    - domain_id: c_6_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 24, row_max: 27, col_min: 16, col_max: 19}
+      rail_id: vdd_c_6_4
+      clock_domain_id: clk_c_6_4
+    - domain_id: c_6_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 24, row_max: 27, col_min: 20, col_max: 23}
+      rail_id: vdd_c_6_5
+      clock_domain_id: clk_c_6_5
+    - domain_id: c_7_0
+      kind: cluster
+      site_ranges:
+      - {row_min: 28, row_max: 31, col_min: 0, col_max: 3}
+      rail_id: vdd_c_7_0
+      clock_domain_id: clk_c_7_0
+    - domain_id: c_7_1
+      kind: cluster
+      site_ranges:
+      - {row_min: 28, row_max: 31, col_min: 4, col_max: 7}
+      rail_id: vdd_c_7_1
+      clock_domain_id: clk_c_7_1
+    - domain_id: c_7_2
+      kind: cluster
+      site_ranges:
+      - {row_min: 28, row_max: 31, col_min: 8, col_max: 11}
+      rail_id: vdd_c_7_2
+      clock_domain_id: clk_c_7_2
+    - domain_id: c_7_3
+      kind: cluster
+      site_ranges:
+      - {row_min: 28, row_max: 31, col_min: 12, col_max: 15}
+      rail_id: vdd_c_7_3
+      clock_domain_id: clk_c_7_3
+    - domain_id: c_7_4
+      kind: cluster
+      site_ranges:
+      - {row_min: 28, row_max: 31, col_min: 16, col_max: 19}
+      rail_id: vdd_c_7_4
+      clock_domain_id: clk_c_7_4
+    - domain_id: c_7_5
+      kind: cluster
+      site_ranges:
+      - {row_min: 28, row_max: 31, col_min: 20, col_max: 23}
+      rail_id: vdd_c_7_5
+      clock_domain_id: clk_c_7_5
+    - domain_id: uncore
+      kind: uncore
+      members: [memory_phys, io_pads, control_logic]
+      rail_id: vdd_uncore
+      clock_domain_id: clk_uncore
   interconnects: []
 performance:
   int8_tops: 1353.8

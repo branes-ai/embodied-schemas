@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-17
+
+The default per-cluster DVFS partition on the twelve uniform KPU SKUs
+(branes-ai/graphs#268 F2), from
+`graphs/docs/designs/kpu-cluster-organization-for-dvfs-and-floorsweeping.md`.
+
+**Data.** Each uniform SKU gains `power_domains`: one `cluster` domain per
+k x k block of compute sites, each naming its own `rail_id` and
+`clock_domain_id` (one regulator and one PLL per cluster, as the design
+specifies), plus one `uncore` domain for the memory PHYs, IO and control
+logic. Following the design's table and its "recommended k=4":
+
+| SKU family | mesh | cluster | clusters |
+|---|---|---|---:|
+| T64 | 8x8 | 2x2 | 16 |
+| T128 | 16x8 | 4x4 | 8 |
+| T256 | 16x16 | 4x4 | 16 |
+| T512 | 32x16 | 4x4 | 32 |
+| T768 | 32x24 | 4x4 | 48 |
+
+No thermal profile declares `domain_operating_points`, so every cluster
+runs at its profile's own Vdd and clock: **TDP, performance and area are
+unchanged** (unrounded TDP delta 0.0 W on every profile). What a DVFS
+policy then does with the clusters is a per-profile choice on top.
+
+**Schema.** A `cluster` domain's `site_ranges` now resolve against the
+implicit one-tile-per-site mesh (`noc.mesh_rows x noc.mesh_cols`) when there
+is no checkerboard, which is what the `checkerboard` field already
+documents `None` to mean. Previously a cluster domain required an explicit
+checkerboard, which would have pushed a uniform SKU onto the heterogeneous
+floorplan path just to name its DVFS clusters.
+
+**Not modeled** (each needs a schema field or data the catalog does not
+carry): the quadrant level, per-cluster regulator and PLL silicon and power,
+per-cluster harvest, and process-variation bins. Clusters are not
+`gateable`: in the design the tile is the gating unit and the quadrant the
+region-gating unit; the cluster is the DVFS and floorsweeping unit.
+
 ## [0.12.0] - 2026-09-16
 
 Vdd re-tune for the four `7nm_tsmc_hpc` KPU SKUs (branes-ai/graphs#268 F4).

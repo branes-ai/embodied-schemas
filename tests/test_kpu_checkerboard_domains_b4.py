@@ -165,15 +165,63 @@ def _invalid(data: dict, match: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+#: The default partition per SKU family: (cluster edge in sites, clusters).
+_DEFAULT_PARTITION = {
+    "t64": (2, 16),
+    "t128": (4, 8),
+    "t256": (4, 16),
+    "t512": (4, 32),
+    "t768": (4, 48),
+}
+
+
 @pytest.mark.parametrize("sku", sorted(KPU_PRODUCTS))
-def test_catalog_skus_have_no_b4_fields(sku):
+def test_legacy_skus_carry_only_the_default_cluster_partition(sku):
+    """The uniform SKUs gained the default per-cluster DVFS partition in
+    graphs#268 F2, and nothing else from B4.
+
+    Still no checkerboard (clusters resolve against the implicit mesh), and
+    no operating points or TDP scenario -- so every cluster runs at its
+    profile's Vdd and clock and the power model is unchanged. The partition
+    itself is checked for what makes it a DVFS partition: it tiles the mesh
+    exactly once, in one repeated square shape, each cluster on its own rail
+    and PLL, with one uncore domain.
+    """
     cp = KPU_PRODUCTS[sku]
-    for die in cp.dies:
-        for b in die.blocks:
-            if isinstance(b, KPUBlock):
-                assert b.checkerboard is None and b.power_domains is None
+    (block,) = [b for d in cp.dies for b in d.blocks if isinstance(b, KPUBlock)]
+    assert block.checkerboard is None
     for p in cp.power.thermal_profiles:
         assert p.domain_operating_points is None and p.tdp_scenario is None
+
+    domains = block.power_domains
+    clusters = [d for d in domains if d.kind == PowerDomainKind.CLUSTER]
+    uncore = [d for d in domains if d.kind == PowerDomainKind.UNCORE]
+    assert len(uncore) == 1
+    assert len(clusters) + len(uncore) == len(domains)  # no tile_class domains
+
+    rows, cols = block.noc.mesh_rows, block.noc.mesh_cols
+    covered = [site for d in clusters for site in d.sites()]
+    assert len(covered) == len(set(covered)) == rows * cols  # exactly once
+
+    shapes = {(r.rows, r.cols) for d in clusters for r in d.site_ranges}
+    assert len(shapes) == 1
+    (edge_r, edge_c), = shapes
+    family = sku.split("_")[1]  # t64, t128, ...
+    # Exact, per family, rather than a range: a range -- whether the design's
+    # 8-64 or the shipped 8-48 -- would still accept a T256 partitioned into
+    # 32 clusters. The DVFS design's table gives 2x2 for the T64 (4x4 would
+    # leave only 4 clusters) and 4x4 elsewhere; the T768 is absent from the
+    # table and gets 4x4 by the same rule.
+    expected_edge, expected_count = _DEFAULT_PARTITION[family]
+    assert edge_r == edge_c == expected_edge
+    assert len(clusters) == expected_count
+    assert 8 <= len(clusters) <= 64  # and inside the design's range
+
+    assert len({d.rail_id for d in clusters}) == len(clusters)
+    assert len({d.clock_domain_id for d in clusters}) == len(clusters)
+    assert all(d.rail_id and d.clock_domain_id for d in domains)
+    assert not any(d.gateable for d in domains)
+
     assert ComputeProduct.model_validate(cp.model_dump(mode="json")) == cp
 
 
@@ -400,9 +448,20 @@ def test_power_domain_references():
     _domains(data)["ff_vio"]["members"] = ["vio", "isp"]
     _invalid(data, "tile class 'isp' is in two tile_class power domains")
 
-    data = _arch()
-    data["checkerboard"] = None
-    _invalid(data, "a cluster domain's site_ranges need a checkerboard")
+    # Without a checkerboard, cluster site ranges resolve against the
+    # implicit one-tile-per-site mesh (noc.mesh_rows x noc.mesh_cols), so a
+    # uniform SKU can name DVFS clusters without being forced onto the
+    # heterogeneous floorplan path (graphs#268 F2).
+    uniform = T64.dies[0].blocks[0].to_architecture().model_dump(mode="json")
+    assert uniform["checkerboard"] is None
+    rows, cols = uniform["noc"]["mesh_rows"], uniform["noc"]["mesh_cols"]
+    uniform["power_domains"] = [
+        {"domain_id": "c_0_0", "kind": "cluster",
+         "site_ranges": [{"row_min": 0, "row_max": 1, "col_min": 0, "col_max": 1}]},
+    ]
+    KPUArchitecture.model_validate(uniform)  # fits the 8x8 mesh
+    uniform["power_domains"][0]["site_ranges"][0]["col_max"] = cols
+    _invalid(uniform, f"is outside the {rows}x{cols} compute-site grid")
 
     data = _arch()
     _domains(data)["pe_c1"]["site_ranges"][0]["col_max"] = 4

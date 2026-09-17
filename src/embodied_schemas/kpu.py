@@ -896,19 +896,24 @@ class KPUArchitectureBase(BaseModel):
                         )
                     owner[m] = d.domain_id
                 continue
-            # CLUSTER: the site ranges need the explicit grid.
-            if self.checkerboard is None:
-                raise ValueError(
-                    f"power domain {d.domain_id!r}: a cluster domain's site_ranges "
-                    f"need a checkerboard"
-                )
-            grid = self.checkerboard.compute_sites
+            # CLUSTER: the site ranges resolve against the compute-site grid --
+            # the explicit checkerboard's, or, without one, the implicit
+            # one-tile-per-site mesh the checkerboard field documents
+            # (noc.mesh_rows x noc.mesh_cols). Requiring an explicit
+            # checkerboard here would force a uniform SKU onto the
+            # heterogeneous floorplan path just to name its DVFS clusters
+            # (graphs#268 F2).
+            if self.checkerboard is not None:
+                grid_rows = self.checkerboard.compute_sites.rows
+                grid_cols = self.checkerboard.compute_sites.cols
+            else:
+                grid_rows, grid_cols = self.noc.mesh_rows, self.noc.mesh_cols
             for rng in d.site_ranges:
-                if not rng.fits(grid.rows, grid.cols):
+                if not rng.fits(grid_rows, grid_cols):
                     raise ValueError(
                         f"power domain {d.domain_id!r}: site range rows "
                         f"{rng.row_min}..{rng.row_max}, cols {rng.col_min}..{rng.col_max} "
-                        f"is outside the {grid.rows}x{grid.cols} compute-site grid"
+                        f"is outside the {grid_rows}x{grid_cols} compute-site grid"
                     )
             for site in sorted(d.sites()):
                 if site in cluster_sites:

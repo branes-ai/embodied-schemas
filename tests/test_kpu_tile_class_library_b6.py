@@ -188,7 +188,13 @@ def test_load_kpus_warns_on_unrepresentable_kpu_products(tmp_path):
     _write(products, "t64.yaml", data)
     # A die with two KPU blocks is a valid ComputeProduct but not a KPUEntry.
     two_blocks = copy.deepcopy({**data, "id": "kpu_two_blocks"})
-    two_blocks["dies"][0]["blocks"].append(copy.deepcopy(data["dies"][0]["blocks"][0]))
+    second = copy.deepcopy(data["dies"][0]["blocks"][0])
+    # Power domain ids must be unique across the product, and the T64 now
+    # carries the default cluster partition (graphs#268 F2); a verbatim copy
+    # would make this an *invalid* product rather than the valid-but-not-a-
+    # KPUEntry one the test needs.
+    second["power_domains"] = None
+    two_blocks["dies"][0]["blocks"].append(second)
     _write(products, "two_blocks.yaml", two_blocks)
     gpu = next(
         c for c in load_compute_products().values()
