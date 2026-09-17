@@ -105,7 +105,7 @@ def _arch(with_ff: bool = True) -> dict:
 def test_catalog_performance_is_legacy_and_derivable(sku):
     cp = KPU_PRODUCTS[sku]
     perf = cp.performance
-    assert not perf.declares_rollup
+    assert not perf.declares_rollup  # the migrated T768 does: test_kpu_t768_systolic_d8
     derived = derive_kpu_performance(_kpu_tiles(cp), _default_clock(cp.power))
     for field in LEGACY:
         assert getattr(derived, field) == getattr(perf, field), field
@@ -275,8 +275,14 @@ def test_legacy_only_performance_is_not_checked_against_tiles():
     assert ComputeProduct.model_validate(data).performance.int8_tops == 1.0
 
 
+def _product_without_a_kpu_block():
+    # By what the product is, not by list membership: "not a legacy SKU"
+    # also matches the heterogeneous and migrated KPUs.
+    return next(c for c in CATALOG.values() if not _kpu_tiles(c))
+
+
 def test_products_without_a_kpu_block_are_not_checked_against_tiles():
-    cp = next(c for c in CATALOG.values() if c.id not in KPU_PRODUCTS)
+    cp = _product_without_a_kpu_block()
     perf = cp.performance.model_dump(mode="json")
     perf["peak_ops_per_sec_by_precision"] = {
         "int8": perf["int8_tops"] * 1e12,
@@ -291,7 +297,7 @@ def test_products_without_a_kpu_block_are_not_checked_against_tiles():
 def test_unknown_default_profile_is_a_validation_error():
     # Checked by Power itself, so it surfaces as a normal ValidationError
     # rather than a StopIteration from the roll-up check (CodeRabbit on #93).
-    for cp in (T64, next(c for c in CATALOG.values() if c.id not in KPU_PRODUCTS)):
+    for cp in (T64, _product_without_a_kpu_block()):
         data = cp.model_dump(mode="json")
         data["power"]["default_thermal_profile"] = "9000W"
         with pytest.raises(ValidationError, match="default_thermal_profile='9000W' is not in"):

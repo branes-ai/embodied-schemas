@@ -15,7 +15,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from tests.test_kpu_catalog import legacy_kpu_blocks
+from tests.test_kpu_catalog import shipped_kpu_blocks
 from embodied_schemas import (
     FabricInterconnect,
     FabricOverlay,
@@ -33,7 +33,7 @@ from embodied_schemas import (
 
 # The backward-compatibility contract is about the SKUs that shipped
 # before the heterogeneous work; see tests/kpu_catalog.py.
-KPU_BLOCKS = legacy_kpu_blocks()
+KPU_BLOCKS = shipped_kpu_blocks()
 T64 = KPU_BLOCKS["kpu_t64_32x32_lp5x4_16nm_tsmc_ffp"]
 
 
@@ -63,7 +63,9 @@ def _tile(**over):
 def test_catalog_loads_unchanged(sku):
     block = KPU_BLOCKS[sku]
     assert block.noc.overlays is None
-    assert all(t.interconnect is None for t in block.tiles)
+    # Only a pe_fabric tile has an interconnect field (the migrated T768's
+    # Matrix class is systolic, graphs#268 D8).
+    assert all(getattr(t, "interconnect", None) is None for t in block.tiles)
 
 
 # ---------------------------------------------------------------------------
