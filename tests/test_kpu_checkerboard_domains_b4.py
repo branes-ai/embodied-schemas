@@ -23,7 +23,11 @@ import pytest
 from pydantic import ValidationError
 
 import embodied_schemas.compute_block_common as cbc
-from tests.test_kpu_catalog import HETEROGENEOUS_KPU_SKU_IDS, LEGACY_KPU_SKU_IDS
+from tests.test_kpu_catalog import (
+    HETEROGENEOUS_KPU_SKU_IDS,
+    LEGACY_KPU_SKU_IDS,
+    SHIPPED_KPU_SKU_IDS,
+)
 from embodied_schemas import (
     SPARE_SITE,
     CheckerboardPlacement,
@@ -46,7 +50,9 @@ T64_ID = "kpu_t64_32x32_lp5x4_16nm_tsmc_ffp"
 CATALOG = load_compute_products()
 # The backward-compatibility contract is about the SKUs that shipped
 # before the heterogeneous work; see tests/kpu_catalog.py.
-KPU_PRODUCTS = {sku: CATALOG[sku] for sku in LEGACY_KPU_SKU_IDS}
+# The T768 keeps its implicit mesh and cluster partition through the D8
+# tile-kind migration, so the partition contract covers it too.
+KPU_PRODUCTS = {sku: CATALOG[sku] for sku in SHIPPED_KPU_SKU_IDS}
 T64 = KPU_PRODUCTS[T64_ID]
 
 
