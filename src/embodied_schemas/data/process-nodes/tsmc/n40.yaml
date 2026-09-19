@@ -12,9 +12,10 @@
 # anchor serves both. No KPU SKU targets this node. THEORETICAL throughout.
 #
 # Derivation (DERIVED unless a source says otherwise):
-#   - Energy: tsmc_n28hpm values x (40/28) x (0.9/0.9)^2 = 1.43. Cross-check:
-#     Horowitz gives an int8 multiply (0.2 pJ) + 32b add (0.1 pJ) = 0.3 pJ of
-#     bare arithmetic at 45 nm / 0.9 V; the 0.60 pJ roll-up below adds
+#   - Energy: tsmc_n28hpm fp32 and integer values x (40/28) x (0.9/0.9)^2
+#     = 1.43 (fp16 / bf16 then follow from fp32). Cross-check: Horowitz
+#     gives an int8 multiply (0.2 pJ) + 32b add (0.1 pJ) = 0.3 pJ of bare
+#     arithmetic at 45 nm / 0.9 V; the 0.60 pJ roll-up below adds
 #     operand registers and clocking, as the catalog's energy_per_op_pj does.
 #     SRAM access energy is scaled from tsmc_n16 by (40/16) x (0.9/0.8)^2.
 #   - Density: tsmc_n65 x (65/40)^2 = 2.64, rounded.
@@ -84,13 +85,23 @@ leakage_w_per_mm2:
 
 energy_per_op_pj:
   hp_logic:fp32: 6.4
-  hp_logic:bf16: 3.3
+  hp_logic:bf16: 1.47
+  hp_logic:fp16: 2.09
   hp_logic:int8: 0.86
   balanced_logic:fp32: 4.9
-  balanced_logic:bf16: 2.4
+  balanced_logic:bf16: 1.13
+  balanced_logic:fp16: 1.6
   balanced_logic:int8: 0.60
   balanced_logic:int4: 0.36
   lp_logic:int8: 0.46
+
+# The fp16 and bf16 entries are DERIVED from fp32 by embodied_schemas.fp_energy
+# (Horowitz ISSCC 2014); a test holds them to it, so change fp32 and re-derive.
+energy_per_op_sources:
+  hp_logic:bf16: "DERIVED: hp_logic:fp32 x 0.230, BF16/FP32 FMA energy, BF16 fitted by significand width from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  hp_logic:fp16: "DERIVED: hp_logic:fp32 x 0.326, FP16/FP32 FMA energy from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  balanced_logic:bf16: "DERIVED: balanced_logic:fp32 x 0.230, BF16/FP32 FMA energy, BF16 fitted by significand width from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  balanced_logic:fp16: "DERIVED: balanced_logic:fp32 x 0.326, FP16/FP32 FMA energy from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
 
 sram_access_pj_per_byte:
   sram_hd: 0.95

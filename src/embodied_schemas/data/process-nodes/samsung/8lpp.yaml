@@ -55,12 +55,22 @@ leakage_w_per_mm2:
 
 energy_per_op_pj:
   hp_logic:fp32: 2.0
-  hp_logic:bf16: 1.0
+  hp_logic:bf16: 0.46
+  hp_logic:fp16: 0.652
   hp_logic:int8: 0.25
   balanced_logic:fp32: 1.6
-  balanced_logic:bf16: 0.8
+  balanced_logic:bf16: 0.368
+  balanced_logic:fp16: 0.522
   balanced_logic:int8: 0.18
   balanced_logic:int4: 0.11
+
+# The fp16 and bf16 entries are DERIVED from fp32 by embodied_schemas.fp_energy
+# (Horowitz ISSCC 2014); a test holds them to it, so change fp32 and re-derive.
+energy_per_op_sources:
+  hp_logic:bf16: "DERIVED: hp_logic:fp32 x 0.230, BF16/FP32 FMA energy, BF16 fitted by significand width from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  hp_logic:fp16: "DERIVED: hp_logic:fp32 x 0.326, FP16/FP32 FMA energy from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  balanced_logic:bf16: "DERIVED: balanced_logic:fp32 x 0.230, BF16/FP32 FMA energy, BF16 fitted by significand width from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  balanced_logic:fp16: "DERIVED: balanced_logic:fp32 x 0.326, FP16/FP32 FMA energy from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
 
 em_j_max_by_temp_c:
   85: 1.7e6

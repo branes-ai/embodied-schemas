@@ -361,14 +361,14 @@ performance:
   fp32_tflops: 31.33
   int4_tops: 879.8
 power:
-  tdp_watts: 21.1
-  max_power_watts: 31.8
-  min_power_watts: 10.3
+  tdp_watts: 15.4
+  max_power_watts: 23.3
+  min_power_watts: 7.5
   idle_power_watts: 1.66
   default_thermal_profile: default
   thermal_profiles:
   - name: lp
-    tdp_watts: 10.3
+    tdp_watts: 7.5
     clock_mhz: 450.0
     cooling_solution_id: passive_heatsink_large
     efficiency_factor_by_precision:
@@ -381,7 +381,7 @@ power:
       int4: 0.97
     vdd_v: 0.537
   - name: default
-    tdp_watts: 21.1
+    tdp_watts: 15.4
     clock_mhz: 600.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:
@@ -394,7 +394,7 @@ power:
       int4: 0.97
     vdd_v: 0.662
   - name: boost
-    tdp_watts: 31.8
+    tdp_watts: 23.3
     clock_mhz: 700.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:
