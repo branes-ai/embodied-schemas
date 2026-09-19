@@ -516,14 +516,14 @@ performance:
       bf16: 433664000000000.0
       fp16: 433664000000000.0
 power:
-  tdp_watts: 60.0
-  max_power_watts: 100.0
-  min_power_watts: 30.0
+  tdp_watts: 41.5
+  max_power_watts: 68.3
+  min_power_watts: 21.1
   idle_power_watts: 3.35
   default_thermal_profile: 60W
   thermal_profiles:
   - name: 30W
-    tdp_watts: 30.0
+    tdp_watts: 21.1
     clock_mhz: 1075.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:
@@ -536,7 +536,7 @@ power:
       int4: 0.96
     vdd_v: 0.572
   - name: 60W
-    tdp_watts: 60.0
+    tdp_watts: 41.5
     clock_mhz: 1375.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:
@@ -549,7 +549,7 @@ power:
       int4: 0.97
     vdd_v: 0.704
   - name: 100W
-    tdp_watts: 100.0
+    tdp_watts: 68.3
     clock_mhz: 1550.0
     cooling_solution_id: liquid_cooled
     efficiency_factor_by_precision:
@@ -576,9 +576,9 @@ notes: 'Datacenter-class KPU SKU for AI inference at scale. 768 heterogeneous
 
   192 MiB distributed L3 scratchpad. HBM3 64 GB / 1.6 TB/s. TSMC N7
 
-  process. 60W default TDP with 30W and 100W profiles; 100W requires
+  process. Profiles 30W / 60W (default) / 100W, which compute 21.1 / 41.5 / 68.3 W;
 
-  liquid cooling.
+  the 100W profile is specified with liquid cooling.
 
 
   Matrix tiles are systolic (graphs#268 D8): 8192 INT8 ops/clock from 64

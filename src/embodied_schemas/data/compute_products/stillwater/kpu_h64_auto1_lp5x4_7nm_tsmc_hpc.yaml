@@ -146,10 +146,10 @@ dies:
             issue_interval_cycles: 2
             energy:
               kind: relative
-              anchor: balanced_logic:bf16
+              anchor: balanced_logic:fp16
               ratio: 1.0
               confidence: theoretical
-              source: no fp16 anchor in the catalog; same width as bf16
+              source: ''
           notes: ''
         operand_regs: 2
         accumulator_bits: 32
@@ -560,14 +560,14 @@ performance:
     stereo.sgm: 219600000.0
     vio.stereo_inertial: 681.8181818181819
 power:
-  tdp_watts: 1.2
-  max_power_watts: 1.8
-  min_power_watts: 0.5
+  tdp_watts: 1.0
+  max_power_watts: 1.6
+  min_power_watts: 0.4
   idle_power_watts: 0.13
   default_thermal_profile: default
   thermal_profiles:
   - name: lp
-    tdp_watts: 0.5
+    tdp_watts: 0.4
     clock_mhz: 450.0
     cooling_solution_id: passive_heatsink_large
     efficiency_factor_by_precision:
@@ -580,7 +580,7 @@ power:
       int4: 0.92
     vdd_v: 0.5
   - name: default
-    tdp_watts: 1.2
+    tdp_watts: 1.0
     clock_mhz: 600.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:
@@ -593,7 +593,7 @@ power:
       int4: 0.95
     vdd_v: 0.65
   - name: boost
-    tdp_watts: 1.8
+    tdp_watts: 1.6
     clock_mhz: 700.0
     cooling_solution_id: active_fan
     efficiency_factor_by_precision:

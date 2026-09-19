@@ -77,13 +77,23 @@ leakage_vdd_exponent: 4.5
 
 energy_per_op_pj:
   hp_logic:fp32: 1.4
-  hp_logic:bf16: 0.7
+  hp_logic:bf16: 0.322
+  hp_logic:fp16: 0.457
   hp_logic:int8: 0.18
   balanced_logic:fp32: 1.1
-  balanced_logic:bf16: 0.55
+  balanced_logic:bf16: 0.253
+  balanced_logic:fp16: 0.359
   balanced_logic:int8: 0.13
   balanced_logic:int4: 0.075
   lp_logic:int8: 0.10
+
+# The fp16 and bf16 entries are DERIVED from fp32 by embodied_schemas.fp_energy
+# (Horowitz ISSCC 2014); a test holds them to it, so change fp32 and re-derive.
+energy_per_op_sources:
+  hp_logic:bf16: "DERIVED: hp_logic:fp32 x 0.230, BF16/FP32 FMA energy, BF16 fitted by significand width from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  hp_logic:fp16: "DERIVED: hp_logic:fp32 x 0.326, FP16/FP32 FMA energy from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  balanced_logic:bf16: "DERIVED: balanced_logic:fp32 x 0.230, BF16/FP32 FMA energy, BF16 fitted by significand width from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
+  balanced_logic:fp16: "DERIVED: balanced_logic:fp32 x 0.326, FP16/FP32 FMA energy from Horowitz ISSCC 2014 Fig. 1.1.9 (doi:10.1109/ISSCC.2014.6757323); see embodied_schemas.fp_energy"
 
 # Per-byte SRAM access energy (~half of N16 due to capacitance scaling).
 sram_access_pj_per_byte:

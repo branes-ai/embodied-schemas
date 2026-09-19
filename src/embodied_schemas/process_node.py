@@ -25,7 +25,7 @@ are intentionally different vocabularies.
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from embodied_schemas.gpu import Foundry
 
@@ -208,6 +208,16 @@ class ProcessNodeEntry(BaseModel):
             "Examples: 'balanced_logic:int8', 'hp_logic:bf16'."
         ),
     )
+    energy_per_op_sources: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Per-entry source for energy_per_op_pj figures that carry their own "
+            "provenance, keyed the same way. A derived entry states the figure "
+            "it is derived from and the reference for the ratio: the fp16 and "
+            "bf16 entries are derived from fp32 by embodied_schemas.fp_energy. "
+            "Entries without a key here fall under the node-level source."
+        ),
+    )
     sram_access_pj_per_byte: dict[CircuitClass, float] = Field(
         default_factory=dict,
         description=(
@@ -270,6 +280,15 @@ class ProcessNodeEntry(BaseModel):
     notes: str = Field("", description="Additional notes")
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _sources_name_entries(self) -> "ProcessNodeEntry":
+        stray = sorted(set(self.energy_per_op_sources) - set(self.energy_per_op_pj))
+        if stray:
+            raise ValueError(
+                f"energy_per_op_sources names entries not in energy_per_op_pj: {stray}"
+            )
+        return self
 
     # ---------------------------- Lookups ----------------------------
 
