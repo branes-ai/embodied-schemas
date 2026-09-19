@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-19
+
+FP16 energy per op for every process node, and BF16 re-derived from the same
+source. **BF16 figures fall by about 54%**, and the KPU SKUs' declared TDPs
+fall by 9-32% to match.
+
+**Derivation** (`embodied_schemas.fp_energy`, new). Every node authors one
+floating-point figure per logic library, `<class>:fp32`. The `fp16` and
+`bf16` entries are now DERIVED from it, from Horowitz, "Computing's Energy
+Problem", ISSCC 2014, Fig. 1.1.9 (45 nm):
+
+- **FP16 = 0.326 x FP32**: an FMA is a multiply plus an add, FP16
+  1.1 + 0.4 = 1.5 pJ against FP32 3.7 + 0.9 = 4.6 pJ.
+- **BF16 = 0.230 x FP32**. BF16 is not in the table. The multiply is fitted
+  as a + b*m^2 and the add as c + d*m in the significand width m, through
+  the FP16 (m = 11) and FP32 (m = 24) points, then evaluated at BF16's m = 8.
+  That gives 0.774 + 0.285 = 1.059 pJ. It is an extrapolation below the
+  fitted range, and the exponent width (5 bits in FP16, 8 in BF16) is not
+  modeled.
+
+The previous BF16 figures were FP32 x ~0.5, with no stated source. The
+derived figures are rounded to three significant figures and are
+THEORETICAL. `tests/test_fp_energy.py` holds every node to the derivation.
+
+**Schema.** `ProcessNodeEntry.energy_per_op_sources` (new, optional) gives a
+per-entry source keyed like `energy_per_op_pj`. Each derived entry cites
+its ratio and the paper. A key that names no energy entry is rejected.
+
+**KPU tile classes.** Every FP16 mode that charged the BF16 anchor ("no fp16
+anchor in the catalog; same width as bf16") now charges `balanced_logic:fp16`:
+
+- `pe_int8_mac_i32`, `pe_bf16_fma` and `pe_fp16_lerp` (the lerp stays at
+  1.3x, now of its own format);
+- the FP16 mode of both `kpu_h64_auto1` SKUs;
+- `pe_lns16_mac`, whose LNS-Madam ratios are relative to an FP16 PE.
+
+**KPU SKU envelopes.** BF16 was every KPU's maximum-power precision. With it
+cheaper, FP16 sets the TDP (INT8 on the heterogeneous H64). The model
+computes 9-32% less than each profile declared. Holding the envelopes by
+re-tuning Vdd, as 0.12.0 did, would put most mid and top profiles above
+nominal Vdd, up to 1.05 V on a 0.8 V node. So the envelopes are corrected
+instead: every profile's `tdp_watts` and the `tdp_watts`, `max_power_watts`
+and `min_power_watts` roll-ups are set to what the power model computes, and
+Vdd and clocks are unchanged. Profile names such as `10W` are now labels.
+For example, T64 N16 is 2.2 / 4.3 / 7.1 W, and T768 is 21.1 / 41.5 / 68.3 W.
+
 ## [0.14.0] - 2026-09-17
 
 The T768 `Matrix` tile class migrated to the `systolic` tile kind

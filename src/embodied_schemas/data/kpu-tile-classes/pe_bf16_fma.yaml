@@ -31,12 +31,11 @@ tile:
           - {operand_format: bf16, accumulate_format: fp32,
              energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0}}
           - {operand_format: fp16, accumulate_format: fp32,
-             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0,
-                      source: "no fp16 anchor in the catalog; same width as bf16"}}
+             energy: {kind: relative, anchor: "balanced_logic:fp16", ratio: 1.0}}
           - {operand_format: fp32, accumulate_format: fp32, issue_interval_cycles: 2,
              energy: {kind: relative, anchor: "balanced_logic:fp32", ratio: 1.0}}
 confidence: theoretical
 sources:
-  - "Energy: the target ProcessNodeEntry energy_per_op_pj anchors (balanced_logic:bf16 / fp32)"
+  - "Energy: the target ProcessNodeEntry energy_per_op_pj anchors (balanced_logic:bf16 / fp16 / fp32)"
   - "Relative FP16 vs FP32 arithmetic cost: M. Horowitz, 'Computing's Energy Problem (and what we can do about it)', ISSCC 2014, Fig. 1.1.9 (45 nm): FP16 mult 1.1 pJ + add 0.4 pJ vs FP32 mult 3.7 pJ + add 0.9 pJ; doi:10.1109/ISSCC.2014.6757323"
 last_updated: "2026-09-15"

@@ -5,7 +5,7 @@
 # Two alternative units per PE: a lerp a + t*(b - a) (3 ops, graphs#268 D3)
 # and an FP16 FMA, so the class also runs dense FP16 math.
 #
-# Lerp energy 1.3x the node's BF16 anchor, DERIVED from Horowitz's 45 nm
+# Lerp energy 1.3x the node's FP16 anchor, DERIVED from Horowitz's 45 nm
 # table: a lerp is an FP16 subtract (0.4 pJ) plus an FP16 FMA (mult 1.1 +
 # add 0.4 pJ), 1.9 pJ vs 1.5 pJ for the FMA alone, i.e. ~1.27x.
 
@@ -33,14 +33,13 @@ tile:
         op: lerp
         modes:
           - {operand_format: fp16,
-             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.3,
+             energy: {kind: relative, anchor: "balanced_logic:fp16", ratio: 1.3,
                       source: "Derived: Horowitz ISSCC 2014 Fig. 1.1.9, (0.4 + 1.1 + 0.4) / (1.1 + 0.4) pJ"}}
       - unit_id: fma
         op: fma
         modes:
           - {operand_format: fp16, accumulate_format: fp32,
-             energy: {kind: relative, anchor: "balanced_logic:bf16", ratio: 1.0,
-                      source: "no fp16 anchor in the catalog; same width as bf16"}}
+             energy: {kind: relative, anchor: "balanced_logic:fp16", ratio: 1.0}}
 confidence: theoretical
 sources:
   - "M. Horowitz, 'Computing's Energy Problem (and what we can do about it)', ISSCC 2014, Fig. 1.1.9 (45 nm, 0.9 V); doi:10.1109/ISSCC.2014.6757323"
