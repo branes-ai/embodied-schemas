@@ -303,20 +303,30 @@ def _contained_sum(
     products: Mapping[str, ComputeProduct] | None,
     getter,
     what: str,
+    seen: tuple[str, ...] = (),
 ) -> tuple[SourcedValue | None, str | None]:
-    """D5 roll-up of one additive axis over ``product.contains``."""
+    """D5 roll-up of one additive axis over ``product.contains``. A contained
+    product that states no value of its own is rolled up from its own
+    contents, recursively."""
     if not product.contains:
         return None, None
     if products is None:
         return None, f"{what}: not stated, and contains cannot be rolled up without products"
+    seen = seen + (product.id,)
     total, inputs = 0.0, []
     for ref in product.contains:
+        if ref.id in seen:
+            return None, f"{what}: contains cycle at {ref.id!r}"
         child = products.get(ref.id)
         if child is None:
             return None, f"{what}: contained product {ref.id!r} is not in products"
         sv = getter(child)
         if sv is None:
-            return None, f"{what}: contained product {ref.id!r} states no {what}"
+            sv, why = _contained_sum(child, products, getter, what, seen)
+            if why:
+                return None, why
+            if sv is None:
+                return None, f"{what}: contained product {ref.id!r} states no {what}"
         total += ref.count * sv.value
         inputs.append(sv)
     rolled = combine(total, inputs, f"sum over contains ({what})")

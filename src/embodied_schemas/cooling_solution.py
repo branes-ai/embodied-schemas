@@ -21,7 +21,13 @@ thermal-hotspot validator needs that resolution.
 
 from enum import Enum
 
-from pydantic import BaseModel, Field, SerializerFunctionWrapHandler, model_serializer
+from pydantic import (
+    BaseModel,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from embodied_schemas.process_node import DataConfidence
 from embodied_schemas.serialization import omit_if_default
@@ -93,6 +99,15 @@ class CoolingSolutionEntry(BaseModel):
         ...,
         description="Maximum ambient operating temperature (C) for this rating",
     )
+    surface_c_max: float | None = Field(
+        None,
+        description=(
+            "Maximum temperature at the solution's reference surface (C), for "
+            "entries rated at a surface rather than in air -- e.g. a SMARC / COM "
+            "heat spreader, which vendors rate at the spreader plate. "
+            "ambient_c_max must not exceed it"
+        ),
+    )
     junction_c_max: float = Field(
         ...,
         description=(
@@ -163,6 +178,7 @@ class CoolingSolutionEntry(BaseModel):
     @model_serializer(mode="wrap")
     def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
         return omit_if_default(self, handler, (
+            "surface_c_max",
             "dimensions_mm",
             "volume_cm3",
             "parasitic_power_w",
@@ -171,6 +187,15 @@ class CoolingSolutionEntry(BaseModel):
             "cost_usd_per_w",
             "basis",
         ))
+
+    @model_validator(mode="after")
+    def _ambient_below_surface(self) -> "CoolingSolutionEntry":
+        """Heat cannot flow from a surface into hotter air."""
+        if self.surface_c_max is not None and self.ambient_c_max > self.surface_c_max:
+            raise ValueError(
+                f"ambient_c_max {self.ambient_c_max} exceeds surface_c_max {self.surface_c_max}"
+            )
+        return self
 
     @property
     def is_active(self) -> bool:

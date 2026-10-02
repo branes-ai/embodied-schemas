@@ -14,7 +14,8 @@ name: "SMARC 2.1.1 standard heat spreader (82 x 50 mm module)"
 cooling_mechanism: passive_heatsink_small
 max_power_density_w_per_mm2: 0.5
 max_total_w: 15.0
-ambient_c_max: 85.0
+ambient_c_max: 85.0        # ceiling only (= surface_c_max); no sourced air rating, see notes
+surface_c_max: 85.0        # SECO: rated "at any point of SECO standard heatspreader"
 junction_c_max: 100.0
 form_factor_constraints:
   - "plate 82x42x3mm, 3mm above module"
@@ -41,8 +42,14 @@ notes: |
   Thermal ratings:
     - max_total_w 15 W: the SMARC module power ceiling ("designs up to
       about 15W are possible"), not a measured spreader rating.
-    - ambient_c_max 85 C: SECO rates its industrial modules at -30/-40 to
-      +85 C measured on the spreader surface; it is a spreader-temperature
-      limit, not an air temperature.
+    - surface_c_max 85 C (sourced): SECO rates its industrial modules at
+      -30/-40 to +85 C "measured at any point of SECO standard heatspreader",
+      and states that the actual temperature "will widely depend on
+      application, enclosure and/or environment".
+    - ambient_c_max 85 C is NOT an air rating. No source gives one: it
+      depends on the enclosure or heatsink the spreader is coupled to. The
+      field is required, so it holds the physical ceiling -- a passive
+      spreader cannot reject heat into air hotter than its own 85 C surface
+      limit. Real enclosures need ambient well below it.
     - junction_c_max 100 C and max_power_density 0.5 W/mm^2 are
       placeholders copied from passive_heatsink_small.

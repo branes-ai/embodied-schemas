@@ -32,7 +32,7 @@ serializes exactly as in 0.15.0.
   Each result keeps the weakest confidence of its inputs. An axis it cannot
   resolve is None, with a reason in `unresolved`.
 - A module or board with no mass or price of its own rolls them up from
-  `contains`, as an estimate.
+  `contains`, recursively, as an estimate.
 
 **Levels of integration (D6, D8).**
 
@@ -70,7 +70,9 @@ tiles).
   - `dimensions_mm` and `volume_cm3`;
   - `parasitic_power_w`, the fan / pump load at the input rail;
   - per-W sizing: `mass_g_per_w`, `volume_cm3_per_w`, `cost_usd_per_w`;
-  - `basis`.
+  - `basis`;
+  - `surface_c_max`, for solutions rated at a surface (COM heat spreaders).
+    `ambient_c_max` may not exceed it.
 - `ProcessNodeEntry` gains optional silicon-cost estimator inputs:
   `wafer_cost_usd`, `wafer_diameter_mm`, `defect_density_per_cm2` and
   `wafer_cost_source`.

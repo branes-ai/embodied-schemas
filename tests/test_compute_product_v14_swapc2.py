@@ -401,6 +401,33 @@ class TestResolve:
         # Envelope is not additive: the module states no dimensions.
         assert r.envelope is None
 
+    def test_nested_contains_rollup(self, chip, catalog):
+        """A board -> module (no mass of its own) -> chip rolls up through the
+        intermediate module."""
+        child = chip.model_copy(update={"swapc2": full_spec()})
+        module = make_module(chip, id="mid_module", contains=[{"id": chip.id, "count": 2}])
+        board = bind(
+            make_module(chip, id="top_board", kind="board", contains=[{"id": "mid_module"}]),
+            "test_sink",
+        )
+        products = {**catalog, chip.id: child, "mid_module": module}
+        r = resolve_swapc2(board, "10W", {"test_sink": fixed_cooling()}, products)
+        assert r.mass_g.value == pytest.approx(2 * 30 + 20)
+        assert r.unit_cost_1_usd.value == pytest.approx(2 * 200 + 5)
+        assert r.mass_g.basis == ValueBasis.ESTIMATED
+
+    def test_nested_rollup_reports_the_missing_leaf(self, chip, catalog):
+        module = make_module(chip, id="mid_module")
+        board = bind(
+            make_module(chip, id="top_board", kind="board", contains=[{"id": "mid_module"}]),
+            "test_sink",
+        )
+        r = resolve_swapc2(
+            board, "10W", {"test_sink": fixed_cooling()}, {**catalog, "mid_module": module}
+        )
+        assert r.mass_g is None
+        assert any(f"{chip.id!r} states no mass_g" in u for u in r.unresolved)
+
     def test_rollup_needs_products(self, chip):
         module = bind(make_module(chip), "test_sink")
         r = resolve_swapc2(module, "10W", {"test_sink": fixed_cooling()})
@@ -440,6 +467,17 @@ class TestCoolingSizing:
 
     def test_fanless_occupies_nothing(self, cooling):
         assert cooling["passive_fanless"].volume_cm3_at(5) == 0.0
+
+    def test_surface_rating_bounds_ambient(self):
+        with pytest.raises(ValidationError, match="exceeds surface_c_max"):
+            fixed_cooling(ambient_c_max=90.0, surface_c_max=85.0)
+        assert fixed_cooling(ambient_c_max=50.0, surface_c_max=85.0).surface_c_max == 85.0
+
+    def test_smarc_spreader_is_surface_rated(self, cooling):
+        spreader = cooling["smarc_heat_spreader_82x50"]
+        assert spreader.surface_c_max == 85.0
+        assert spreader.ambient_c_max <= spreader.surface_c_max
+        assert cooling["active_fan"].surface_c_max is None
 
     def test_is_active(self, cooling):
         assert cooling["active_fan"].is_active
