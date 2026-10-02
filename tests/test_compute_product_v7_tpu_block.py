@@ -195,6 +195,8 @@ def test_anyblock_still_dispatches_other_block_kinds():
     adapter = TypeAdapter(AnyBlock)
     by_kind = {}
     for cp in products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         by_kind.setdefault(kind, []).append(block)
@@ -486,6 +488,8 @@ def test_v7_does_not_break_existing_catalog():
 
     counts = {"kpu": 0, "gpu": 0, "cpu": 0, "npu": 0, "cgra": 0, "dpu": 0, "tpu": 0}
     for cp in products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts[kind] = counts.get(kind, 0) + 1
@@ -502,4 +506,5 @@ def test_v7_does_not_break_existing_catalog():
     # PR 3 Bucket A long-tail) bumped it to 2 -- first
     # TPUFabricKind.TPU_V1_STYLE SKU.
     assert counts["tpu"] == 5  # +google_tpu_edge_pro (sprint #72 PR 6, closes sprint)
-    assert sum(counts.values()) == len(products)
+    # Modules / boards (v14) contain chips rather than carry a block.
+    assert sum(counts.values()) == sum(1 for cp in products.values() if cp.dies)

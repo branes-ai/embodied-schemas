@@ -186,7 +186,7 @@ def test_tile_count_coverage(cps):
     tile_counts = {
         cp.dies[0].blocks[0].total_tiles
         for cp in cps.values()
-        if cp.dies[0].blocks[0].kind == BlockKind.KPU
+        if cp.dies and cp.dies[0].blocks[0].kind == BlockKind.KPU
     }
     assert tile_counts == {45, 64, 128, 256, 512, 768}, (
         f"unexpected tile_count set: {sorted(tile_counts)}"
@@ -198,7 +198,7 @@ def test_process_node_coverage(cps):
     {tsmc_n16, gf_12fdx, tsmc_n7}; v2 added samsung_8lpp via Jetson
     AGX Orin. Asserts each KPU node is present and that the GPU one
     is too if any GPU SKUs exist."""
-    nodes = {cp.dies[0].process_node_id for cp in cps.values()}
+    nodes = {cp.dies[0].process_node_id for cp in cps.values() if cp.dies}
     expected_kpu_nodes = {"tsmc_n16", "gf_12fdx", "tsmc_n7"}
     assert expected_kpu_nodes.issubset(nodes), (
         f"missing expected KPU process nodes; got: {sorted(nodes)}"

@@ -50,7 +50,7 @@ def test_qualcomm_vendor_has_at_least_two_skus(all_products):
 def test_catalog_dsp_count_at_least_nine(all_products):
     dsp_count = sum(
         1 for cp in all_products.values()
-        if cp.dies[0].blocks[0].kind == "dsp"
+        if cp.dies and cp.dies[0].blocks[0].kind == "dsp"
     )
     assert dsp_count >= 9
 

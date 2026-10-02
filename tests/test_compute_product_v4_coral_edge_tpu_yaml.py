@@ -74,6 +74,8 @@ def test_catalog_has_three_npu_skus(all_products):
     the CGRA PR's own contract test pins the new total."""
     counts_by_kind: dict[str, int] = {}
     for cp in all_products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts_by_kind[kind] = counts_by_kind.get(kind, 0) + 1

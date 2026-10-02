@@ -237,8 +237,27 @@ from embodied_schemas.overlay import (
     NoCOverlayKind,
     NoCOverlay,
 )
+from embodied_schemas.swapc2 import (
+    CostSpec,
+    InputPowerSpec,
+    ResolvedSWaPC2,
+    SWaPC2Spec,
+    SizeSpec,
+    SourcedDimensions,
+    SourcedValue,
+    ValueBasis,
+    WeightSpec,
+    resolve_swapc2,
+)
 from embodied_schemas.compute_product import (
     ComputeProduct,
+    MemorySummary,
+    PeakAggregation,
+    ProductRef,
+    aggregate_peak,
+    block_peak_ops,
+    check_contains_references,
+    headline_ops,
     ProductKind,
     PackagingKind,
     LifecycleStatus,
@@ -385,7 +404,7 @@ from embodied_schemas.loaders import (
 # It drifted before that test existed: 0.10.0 and 0.11.0 both shipped
 # reporting "0.9.0", because a release bumps pyproject and nothing pointed
 # back here.
-__version__ = "0.15.0"
+__version__ = "0.16.0"
 
 __all__ = [
     # Hardware
@@ -630,6 +649,25 @@ __all__ = [
     "NoCOverlay",
     # ComputeProduct (v1 + v2) -- unified spine, additive
     "ComputeProduct",
+    # v14: levels of integration (D6/D8), D4 peak aggregation
+    "MemorySummary",
+    "PeakAggregation",
+    "ProductRef",
+    "aggregate_peak",
+    "block_peak_ops",
+    "check_contains_references",
+    "headline_ops",
+    # SWaP-C² (RFC 0001 R1, S1)
+    "CostSpec",
+    "InputPowerSpec",
+    "ResolvedSWaPC2",
+    "SWaPC2Spec",
+    "SizeSpec",
+    "SourcedDimensions",
+    "SourcedValue",
+    "ValueBasis",
+    "WeightSpec",
+    "resolve_swapc2",
     "ProductKind",
     "PackagingKind",
     "LifecycleStatus",

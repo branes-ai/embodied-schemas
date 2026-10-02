@@ -30,7 +30,21 @@ v2 scope (additive): GPU block kind.
   - Existing KPU YAMLs validate identically -- v2 only adds new types,
     it does not modify or rename anything in v1.
 
-Deferred to v3+:
+v14 scope (additive): SWaP-C², levels of integration, HardwareEntry
+absorption. RFC 0001 rev 2-4, phase S1.
+
+  - ``ProductKind.MODULE`` and ``contains: list[ProductRef]`` (D6): a
+    module / board / system references the products it is built from.
+  - ``swapc2: SWaPC2Spec`` (R1): size, mass, input power and variable unit
+    cost, each with provenance. ``swapc2.resolve_swapc2`` adds the cooling
+    bound by a thermal profile (D7).
+  - ``environmental`` / ``interfaces`` / ``software`` / ``memory`` and the
+    packaging form-factor fields (D8): the ``HardwareEntry`` sections that
+    have no other home, reused verbatim from ``hardware.py``.
+  - ``performance_by_aggregation`` / ``aggregate_peak`` (D4): peak ops/s
+    as sum, min and max over compute blocks.
+
+Deferred to v3+ (items not yet shipped):
 
   - CPU / NPU / DSP / Memory / IO / Bridge / ISP / VideoCodec /
     AudioCodec block kinds (GPU shipped in v2)
@@ -59,6 +73,7 @@ other existing schema. The migration path is parallel + adapter:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import Enum
 from typing import Annotated, Literal, Union
 
@@ -83,8 +98,17 @@ from embodied_schemas.kpu import (
     KPUThermalProfile,
     check_performance_rollup,
     check_profile_domain_references,
+    derive_kpu_performance,
+)
+from embodied_schemas.hardware import (
+    EnvironmentalSpec,
+    FormFactor,
+    InterfaceSpec,
+    SoftwareSpec,
 )
 from embodied_schemas.process_node import DataConfidence
+from embodied_schemas.serialization import omit_if_default
+from embodied_schemas.swapc2 import SWaPC2Spec
 
 
 # ---------------------------------------------------------------------------
@@ -99,8 +123,14 @@ class ProductKind(str, Enum):
     CHIP = "chip"           # monolithic single-die product
     MCM = "mcm"             # multi-chip module (deferred to v2)
     CHIPLET = "chiplet"     # chiplet package (deferred to v2)
-    BOARD = "board"         # board-level product (deferred to v2)
-    SYSTEM = "system"       # rack / chassis level (deferred to v2)
+    MODULE = "module"       # SoM / COM (SMARC, Jetson), M.2 card, OAM / SXM (v14)
+    BOARD = "board"         # board-level product
+    SYSTEM = "system"       # rack / chassis level
+
+    @property
+    def is_silicon(self) -> bool:
+        """Chip-level kinds, which must describe at least one die."""
+        return self in (ProductKind.CHIP, ProductKind.MCM, ProductKind.CHIPLET)
 
 
 class PackagingKind(str, Enum):
@@ -392,7 +422,27 @@ class Packaging(BaseModel):
         ),
     )
 
+    # v14 (D8): mechanical form factor, from ``HardwareEntry.physical``.
+    form_factor: FormFactor | None = Field(None, description="Mechanical form factor")
+    mounting: str | None = Field(None, description="Mounting, e.g. 'SMARC 314-pin MXM edge'")
+    vita_standard: str | None = Field(None, description="VITA standard, e.g. 'VITA 90'")
+    sosa_profile: str | None = Field(None, description="SOSA slot / module profile")
+    conduction_cooled: bool | None = Field(None, description="Conduction-cooled variant")
+    conformal_coated: bool | None = Field(None, description="Conformal coating applied")
+
     model_config = {"extra": "forbid"}
+
+    # v14 additive fields are left out of dumps while unset (``serialization``).
+    @model_serializer(mode="wrap")
+    def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
+        return omit_if_default(self, handler, (
+            "form_factor",
+            "mounting",
+            "vita_standard",
+            "sosa_profile",
+            "conduction_cooled",
+            "conformal_coated",
+        ))
 
 
 class Power(BaseModel):
@@ -448,6 +498,41 @@ class Market(BaseModel):
         description="entry / mid / high / enthusiast / datacenter",
     )
     is_available: bool = Field(False)
+    suitable_for: list[str] | None = Field(
+        None, description="Use-case ids this product suits (from HardwareEntry, D8)"
+    )
+    target_applications: list[str] | None = Field(
+        None, description="Free-form application tags (from HardwareEntry, D8)"
+    )
+
+    model_config = {"extra": "forbid"}
+
+    # v14 additive fields are left out of dumps while unset (``serialization``).
+    @model_serializer(mode="wrap")
+    def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
+        return omit_if_default(self, handler, ("suitable_for", "target_applications"))
+
+
+class ProductRef(BaseModel):
+    """A product contained in a module / board / system (RFC D6). ``slot``
+    and ``role`` carry what ``SystemConfiguration.SlotAssignment`` did."""
+
+    id: str = Field(..., description="ComputeProduct id of the contained product")
+    count: int = Field(1, gt=0)
+    slot: int | None = Field(None, ge=1, description="Backplane / carrier slot (1-based)")
+    role: str | None = Field(None, description="e.g. 'compute', 'switch', 'io'")
+    notes: str = ""
+
+    model_config = {"extra": "forbid"}
+
+
+class MemorySummary(BaseModel):
+    """Product-level memory as sold (from ``HardwareEntry.capabilities``, D8).
+    Per-block memory hierarchies stay on the blocks."""
+
+    memory_gb: float = Field(..., gt=0, description="Total attached memory in GB")
+    memory_type: str | None = Field(None, description="e.g. 'LPDDR5', 'HBM3'")
+    memory_bandwidth_gbps: float | None = Field(None, gt=0, description="Peak GB/s")
 
     model_config = {"extra": "forbid"}
 
@@ -501,15 +586,20 @@ class ComputeProduct(BaseModel):
         description="Procurement-relevant lifecycle state",
     )
 
-    # Per-die structure (at least one die required)
+    # Per-die structure. Chip-level kinds need at least one die; a module /
+    # board / system needs dies or contains (v14).
     dies: list[Die] = Field(
-        ...,
-        min_length=1,
+        default_factory=list,
         description=(
             "Per-die structure. v1 KPU monolithic always has exactly "
             "one Die. v2 chiplet products will have multiple, "
-            "potentially on different process nodes."
+            "potentially on different process nodes. A module / board / "
+            "system lists only silicon it adds itself; usually none."
         ),
+    )
+    contains: list[ProductRef] = Field(
+        default_factory=list,
+        description="Products this module / board / system is built from (D6)",
     )
 
     # Roll-ups (chip-level)
@@ -524,6 +614,15 @@ class ComputeProduct(BaseModel):
     power: Power = Field(...)
     market: Market = Field(...)
 
+    # v14: SWaP-C² (R1) and the HardwareEntry sections (D8). All optional.
+    swapc2: SWaPC2Spec | None = Field(
+        None, description="Size, weight, input power and unit cost (RFC 0001 R1)"
+    )
+    memory: MemorySummary | None = Field(None, description="Memory as sold (D8)")
+    environmental: EnvironmentalSpec | None = Field(None, description="Environmental specs (D8)")
+    interfaces: InterfaceSpec | None = Field(None, description="I/O interfaces (D8)")
+    software: SoftwareSpec | None = Field(None, description="Software ecosystem (D8)")
+
     # Confidence / provenance
     confidence: DataConfidence = Field(
         DataConfidence.THEORETICAL,
@@ -531,9 +630,42 @@ class ComputeProduct(BaseModel):
     )
     notes: str = Field("")
     datasheet_url: str | None = Field(None)
+    product_url: str | None = Field(None)
     last_updated: str = Field(..., description="YYYY-MM-DD")
 
     model_config = {"extra": "forbid"}
+
+    # v14 additive fields are left out of dumps while unset (``serialization``).
+    @model_serializer(mode="wrap")
+    def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
+        return omit_if_default(self, handler, (
+            "contains",
+            "swapc2",
+            "memory",
+            "environmental",
+            "interfaces",
+            "software",
+            "product_url",
+        ))
+
+    @model_validator(mode="after")
+    def _check_structure(self) -> ComputeProduct:
+        """Chip-level kinds describe their dies. A module / board / system is
+        built from dies of its own, contained products, or both (D8)."""
+        if self.kind.is_silicon and not self.dies:
+            raise ValueError(f"a {self.kind.value} product needs at least one die")
+        if not self.kind.is_silicon and not (self.dies or self.contains):
+            raise ValueError(f"a {self.kind.value} product needs dies or contains")
+        if any(ref.id == self.id for ref in self.contains):
+            raise ValueError(f"product {self.id!r} contains itself")
+        return self
+
+    @property
+    def performance_by_aggregation(self) -> PeakAggregation:
+        """D4: peak ops/s as sum, min and max over this product's own compute
+        blocks. Contained products are not expanded; use ``aggregate_peak``
+        with a product catalog for that."""
+        return aggregate_peak(self)
 
     @model_validator(mode="after")
     def _check_profile_references(self) -> ComputeProduct:
@@ -580,3 +712,155 @@ class ComputeProduct(BaseModel):
         if tiles:
             check_performance_rollup(self.performance, tiles, self.power.default_profile.clock_mhz)
         return self
+
+
+# ---------------------------------------------------------------------------
+# D4: peak aggregation over compute blocks
+# ---------------------------------------------------------------------------
+
+class PeakAggregation(BaseModel):
+    """Peak ops/s of a product's compute blocks, in three forms (RFC D4).
+
+    - ``sum``: every block busy at once. An upper bound that assumes perfect
+      partitioning and ignores shared memory bandwidth and power limits.
+    - ``max``: the best single block.
+    - ``min``: the weakest block.
+
+    Each is keyed by precision and covers only the blocks that support that
+    precision (a zero peak means unsupported). ``block_count`` says how many
+    block instances contributed to each precision.
+    """
+
+    sum: dict[str, float] = Field(default_factory=dict)
+    min: dict[str, float] = Field(default_factory=dict)
+    max: dict[str, float] = Field(default_factory=dict)
+    block_count: dict[str, int] = Field(default_factory=dict)
+    blocks: list[str] = Field(
+        default_factory=list, description="Contributing blocks, 'product/die/kind[i]'"
+    )
+    blocks_without_peak: list[str] = Field(
+        default_factory=list, description="Compute blocks that state no peak; left out"
+    )
+    headline_fallback: list[str] = Field(
+        default_factory=list,
+        description="Products whose single compute block took the product's "
+        "``performance`` headline as its peak",
+    )
+    not_expanded: list[str] = Field(
+        default_factory=list, description="Contained product ids that could not be expanded"
+    )
+
+    model_config = {"extra": "forbid"}
+
+
+def headline_ops(perf: KPUTheoreticalPerformance) -> dict[str, float]:
+    """A ``performance`` headline as ops/s by precision, unsupported (zero)
+    precisions dropped."""
+    if perf.peak_ops_per_sec_by_precision:
+        ops = dict(perf.peak_ops_per_sec_by_precision)
+    else:
+        ops = {
+            "int8": perf.int8_tops * 1e12,
+            "bf16": perf.bf16_tflops * 1e12,
+            "fp32": perf.fp32_tflops * 1e12,
+        }
+        if perf.int4_tops is not None:
+            ops["int4"] = perf.int4_tops * 1e12
+    return {k: v for k, v in ops.items() if v > 0}
+
+
+def block_peak_ops(block: AnyBlock, clock_mhz: float) -> dict[str, float] | None:
+    """Peak ops/s by precision of one compute block, or None if it states none.
+
+    A KPU block's peak is derived from its tiles at ``clock_mhz`` (the B5
+    roll-up). Other kinds use their optional ``theoretical_performance``.
+    """
+    if isinstance(block, KPUBlock):
+        return headline_ops(derive_kpu_performance(block.tiles, clock_mhz))
+    perf = getattr(block, "theoretical_performance", None)
+    if perf is None:
+        return None
+    return {k: v for k, v in perf.peak_ops_per_sec_by_precision.items() if v > 0}
+
+
+def aggregate_peak(
+    product: ComputeProduct,
+    products: Mapping[str, ComputeProduct] | None = None,
+) -> PeakAggregation:
+    """D4 aggregation over the product's own compute blocks and, given a
+    product catalog, those of every contained product (expanded by count).
+
+    A product with exactly one compute block, no contents and no per-block
+    peak uses its ``performance`` headline for that block. IO blocks are
+    not compute and are skipped.
+    """
+    result = PeakAggregation()
+    instances: list[tuple[dict[str, float], int]] = []
+    _collect_peaks(product, products, 1, product.id, (), result, instances)
+    for ops, mult in instances:
+        for precision, value in ops.items():
+            result.sum[precision] = result.sum.get(precision, 0.0) + value * mult
+            result.min[precision] = min(result.min.get(precision, value), value)
+            result.max[precision] = max(result.max.get(precision, value), value)
+            result.block_count[precision] = result.block_count.get(precision, 0) + mult
+    return result
+
+
+def _collect_peaks(
+    product: ComputeProduct,
+    products: Mapping[str, ComputeProduct] | None,
+    mult: int,
+    prefix: str,
+    seen: tuple[str, ...],
+    result: PeakAggregation,
+    instances: list[tuple[dict[str, float], int]],
+) -> None:
+    if product.id in seen:
+        raise ValueError(f"contains cycle: {' > '.join(seen + (product.id,))}")
+    seen = seen + (product.id,)
+    clock = product.power.default_profile.clock_mhz
+    compute = [
+        (f"{prefix}/{die.die_id}/{getattr(b.kind, 'value', b.kind)}[{i}]", b)
+        for die in product.dies
+        for i, b in enumerate(die.blocks)
+        if not isinstance(b, IOBlock)
+    ]
+    peaks = [(label, block_peak_ops(b, clock)) for label, b in compute]
+    if len(peaks) == 1 and peaks[0][1] is None and not product.contains:
+        peaks = [(peaks[0][0], headline_ops(product.performance))]
+        result.headline_fallback.append(product.id)
+    for label, ops in peaks:
+        if ops is None:
+            result.blocks_without_peak.append(label)
+        else:
+            result.blocks.append(label if mult == 1 else f"{label} x{mult}")
+            instances.append((ops, mult))
+    for ref in product.contains:
+        child = products.get(ref.id) if products is not None else None
+        if child is None:
+            result.not_expanded.append(ref.id)
+            continue
+        _collect_peaks(
+            child, products, mult * ref.count, f"{prefix}>{ref.id}", seen, result, instances
+        )
+
+
+def check_contains_references(products: Mapping[str, ComputeProduct]) -> list[str]:
+    """Catalog-level ``contains`` checks: every reference resolves, and there
+    are no cycles. Returns error messages; empty means clean."""
+    errors: list[str] = []
+    for pid, product in products.items():
+        for ref in product.contains:
+            if ref.id not in products:
+                errors.append(f"{pid}: contains unknown product {ref.id!r}")
+
+    def visit(pid: str, path: tuple[str, ...]) -> None:
+        if pid in path:
+            errors.append(f"contains cycle: {' > '.join(path + (pid,))}")
+            return
+        for ref in products[pid].contains if pid in products else []:
+            visit(ref.id, path + (pid,))
+
+    for pid in products:
+        visit(pid, ())
+    return sorted(set(errors))

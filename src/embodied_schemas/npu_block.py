@@ -55,7 +55,15 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
+
+from embodied_schemas.serialization import omit_if_default
 
 from embodied_schemas.compute_block_common import DramAttachment
 from embodied_schemas.gpu import MemoryType
@@ -515,6 +523,18 @@ class NPUBlock(BaseModel):
 
     # Precisions supported chip-wide -- union of compute_fabrics[*].ops_per_unit_per_clock
     multi_precision_alu: list[str] = Field(default_factory=list)
+
+    # Per-block peak (RFC 0001 D4, v14). Optional; feeds the product's
+    # sum / min / max peak aggregation.
+    theoretical_performance: TheoreticalPerformance | None = Field(
+        None,
+        description="Peak ops/s of this block at the product's default thermal profile",
+    )
+
+    # Left out of dumps while unset, so catalog dumps are unchanged (v14).
+    @model_serializer(mode="wrap")
+    def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
+        return omit_if_default(self, handler, ("theoretical_performance",))
 
     memory: NPUMemorySubsystem = Field(...)
     noc: NPUOnDieFabric = Field(...)

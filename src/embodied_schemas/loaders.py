@@ -32,6 +32,7 @@ from embodied_schemas.kpu import (
 )
 from embodied_schemas.compute_product import (
     ComputeProduct,
+    check_contains_references,
     KPUBlock,
     LifecycleStatus,
     PackagingKind,
@@ -638,5 +639,12 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
                 load_and_validate(yaml_path, model_class)
             except Exception as e:
                 errors.append(f"{yaml_path}: {e}")
+
+    # Cross-file: ``contains`` references resolve and have no cycles (D6).
+    try:
+        products = load_compute_products(data_dir)
+    except Exception:
+        products = {}  # per-file errors are reported above
+    errors.extend(check_contains_references(products))
 
     return errors

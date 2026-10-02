@@ -59,7 +59,7 @@ def test_catalog_includes_qualcomm_sa8775p(all_products):
 def test_catalog_dsp_count_at_least_eight(all_products):
     dsp_count = sum(
         1 for cp in all_products.values()
-        if cp.dies[0].blocks[0].kind == "dsp"
+        if cp.dies and cp.dies[0].blocks[0].kind == "dsp"
     )
     assert dsp_count >= 8
 
