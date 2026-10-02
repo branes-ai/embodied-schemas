@@ -3,7 +3,7 @@
 **Status:** Accepted -- in progress (Phases 1-3 partially complete; SWaP-C² requirement and `HardwareEntry` absorption added)
 **Author:** Theo Omtzigt
 **Date:** 2026-05-08
-**Revised:** 2026-10-02 (rev 3)
+**Revised:** 2026-10-02 (rev 4)
 **Target completion:** Phases 3-5 by end of Q4 2026; SWaP-C² phases S1-S3 before the 1.0 release
 
 ### Revision history
@@ -13,6 +13,7 @@
 | 1 | 2026-05-08 | Initial draft (#7) |
 | 2 | 2026-10-01 | Status brought in line with the implementation (schema v1-v13, 45 catalog products, package 0.15.0). Original schema sketch replaced by the as-built design. D1-D5 resolved. Migration plan re-baselined. **New requirement R1: track and estimate SWaP-C² per compute product.** |
 | 3 | 2026-10-02 | Sign-off decisions: second C of SWaP-C² is Cooling; `HardwareEntry` (and `SystemConfiguration`) absorbed into `ComputeProduct` (D8); estimators live in `scripts/`; D4 resolved -- multi-block peak reported as sum, min and max over blocks. |
+| 4 | 2026-10-02 | Cost basis decided (D9): SWaP-C² cost is variable unit cost only, at quantity 1 and 1K; NRE never enters. All sign-off questions closed. |
 
 ---
 
@@ -331,7 +332,7 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
   | `capabilities.memory_gb` / `memory_type` / `memory_bandwidth_gbps` | new top-level `memory` summary (the rev 1 sketch's `memory`) |
   | `capabilities.compute_units`, `tensor_cores`, `simd_width`, `sparse_acceleration` | the contained products' blocks |
   | `hardware_type`, `compute_paradigm`, `optimized_for` | dropped; derived from block kinds |
-  | `cost_usd` | `swapc2.cost.unit_prices` |
+  | `cost_usd` | `swapc2.cost.unit_price_1_usd` |
   | `availability`, `lifecycle_status` | `lifecycle`, `market.is_available` |
   | `suitable_for`, `target_applications` | `market` (new optional lists) |
   | `chip_id`, `gpu_id` | `contains` |
@@ -345,6 +346,23 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
   BCM2711/2712, Hawk Point, Hailo-8L) must be migrated first. The
   unrelated `HardwareEntry`-based `LifecycleStatus` in `hardware.py` is
   removed with it, leaving one `LifecycleStatus`.
+
+- **D9 (new, rev 4): SWaP-C² cost is variable unit cost, never NRE.**
+  The Cost axis answers "what does one more unit add to the vehicle's
+  bill of materials". It is recorded at exactly two quantities:
+  `unit_price_1_usd` and `unit_price_1k_usd`. No other volume tiers are
+  recorded. Non-recurring engineering never enters any SWaP-C² value:
+  mask sets, design, IP licensing up-front fees, qualification, and tooling
+  are neither stored nor amortized into a unit figure. Consequences:
+  - For purchased products (modules, chips, cooling), the value is the
+    integrator's unit price at that quantity.
+  - For in-house or pre-silicon parts (KPU SKUs), the `scripts/` silicon
+    estimator produces variable manufacturing cost: wafer cost / good dies
+    per wafer + package + test. It must not add an NRE-amortization term,
+    and `source` names the estimator so the figure isn't read as a quote.
+  - Per-unit IP royalties are variable and may be included. Up-front
+    license fees are NRE and may not.
+  - `contains` roll-ups (D5) sum unit costs at the same quantity tier.
 
 ---
 
@@ -361,7 +379,7 @@ For a compute product at operating point *p*:
 | Size | Envelope L x W x H, volume, board footprint | mm, cm³, mm² |
 | Weight | Mass | g |
 | Power | Sustained electrical draw at *p*, at the input rail | W |
-| Cost | Unit price at stated quantity | USD |
+| Cost | Variable unit cost at quantity 1 and 1K; never NRE (D9) | USD |
 | Cooling | Cooling solution required at *p*, and *its* size, weight, power and cost | -- |
 
 The cooling axis is what makes a product's own SWaP-C numbers incomplete.
@@ -426,12 +444,11 @@ swapc2:
     input_voltage_v: [<min>, <max>]
     conversion_efficiency: {value: <0..1>, basis: estimated, confidence: theoretical,
                             source: "<converter model>"}
-  cost:
-    unit_prices:
-    - {quantity: 1,    price_usd: {value: <usd>, basis: datasheet, confidence: calibrated,
-                                    source: "<vendor list price, date>"}}
-    - {quantity: 1000, price_usd: {value: <usd>, basis: estimated, confidence: theoretical,
-                                    source: "<volume-discount model>"}}
+  cost:                              # variable unit cost only -- no NRE (D9)
+    unit_price_1_usd:  {value: <usd>, basis: datasheet, confidence: calibrated,
+                        source: "<vendor list price, date>"}
+    unit_price_1k_usd: {value: <usd>, basis: estimated, confidence: theoretical,
+                        source: "<volume-discount model>"}
 ```
 
 Operating temperature, IP rating, vibration and shock do not go in
@@ -440,7 +457,7 @@ The SWaP-C² fit check reads them, for example the ambient temperature
 that sizes the cooling solution.
 
 `Market.launch_msrp_usd` stays for compatibility. The default for
-`swapc2.cost.unit_prices[quantity=1]` is derived from it, with
+`swapc2.cost.unit_price_1_usd` is derived from it, with
 `basis: datasheet`.
 
 The **cooling** axis stays where D3 already put it, on
@@ -470,7 +487,7 @@ with:
 - `power_w = (profile.tdp_watts + cooling.parasitic_power_w) / conversion_efficiency`
 - `mass_g = product.mass_g + cooling.mass_g(profile.tdp_watts)`
 - `volume_cm3 = product.volume_cm3 + cooling.volume_cm3(profile.tdp_watts)`
-- `cost_usd = product.price(qty) + cooling.cost_usd(profile.tdp_watts)`
+- `cost_usd = product.unit_price(qty) + cooling.cost_usd(profile.tdp_watts)`, `qty` in {1, 1000}
 - each result keeps the *weakest* confidence of its inputs, and reports
   `basis: estimated` if any input was estimated.
 
@@ -480,7 +497,7 @@ The resolved record is what graphs and Embodied-AI-Architect consume.
 
 | Gap | Estimator | New inputs needed here |
 |-----|-----------|------------------------|
-| Silicon cost (bare die, pre-silicon SKUs) | dies per wafer from `die_size_mm2`; yield from a defect-density model; plus package and test adders | `ProcessNodeEntry.wafer_cost_usd`, `defect_density_per_cm2` (new, optional) |
+| Silicon cost (bare die, pre-silicon SKUs) | dies per wafer from `die_size_mm2`; yield from a defect-density model; plus per-unit package and test adders. Variable cost only: no mask set, design or tooling amortization (D9) | `ProcessNodeEntry.wafer_cost_usd`, `defect_density_per_cm2` (new, optional) |
 | Package size | from die area and package type | package-type size table |
 | Module mass / volume | from module dimensions, PCB layer count, shield/heat-spreader presence | none beyond `swapc2.size` |
 | Cooling mass / volume / cost | `CoolingSolutionEntry` per-W sizing model at the profile's TDP and the tier's ambient temperature | fields listed above |
@@ -631,11 +648,13 @@ check exists.
 
 ## Open questions for sign-off
 
-Resolved 2026-10-02: SWaP-C² second C = Cooling; `HardwareEntry`
-absorbed (D8); estimators in `scripts/`; D4 = sum, min and max over blocks.
+None. All resolved 2026-10-02:
 
-1. **Cost basis.** Is quantity-1 list price plus 1 KU price sufficient, or
-   do UAV programs need a 10 KU / NRE split for custom silicon (KPU)?
+- SWaP-C² second C = Cooling.
+- `HardwareEntry` absorbed into `ComputeProduct` (D8).
+- Estimators live in `scripts/`.
+- Multi-block peak = sum, min and max over blocks (D4).
+- Cost = variable unit cost at quantity 1 and 1K; NRE never enters (D9).
 
 ---
 
