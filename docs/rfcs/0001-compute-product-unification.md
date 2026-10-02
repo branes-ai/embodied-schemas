@@ -1,17 +1,17 @@
 # RFC 0001: Unified ComputeProduct Schema
 
-**Status:** Accepted -- in progress (Phases 1-3 partially complete; SWaP-C² requirement and `HardwareEntry` absorption added)
+**Status:** Accepted -- in progress (Phases 1-2 closed; Phase 3 in progress; Phases S, 4, 5 not started)
 **Author:** Theo Omtzigt
 **Date:** 2026-05-08
 **Revised:** 2026-10-02 (rev 4)
 **Target completion:** Phases 3-5 by end of Q4 2026; SWaP-C² phases S1-S3 before the 1.0 release
 
-### Revision history
+## Revision history
 
 | Rev | Date | Change |
 |-----|------|--------|
 | 1 | 2026-05-08 | Initial draft (#7) |
-| 2 | 2026-10-01 | Status brought in line with the implementation (schema v1-v13, 45 catalog products, package 0.15.0). Original schema sketch replaced by the as-built design. D1-D5 resolved. Migration plan re-baselined. **New requirement R1: track and estimate SWaP-C² per compute product.** |
+| 2 | 2026-10-01 | Status brought in line with the implementation (schema v1-v13, 45 catalog products, package 0.15.0). Original schema sketch replaced by the as-built design. D1-D5 recorded as built (D4 partially; completed in rev 3). Migration plan re-baselined. **New requirement R1: track and estimate SWaP-C² per compute product.** |
 | 3 | 2026-10-02 | Sign-off decisions: second C of SWaP-C² is Cooling; `HardwareEntry` (and `SystemConfiguration`) absorbed into `ComputeProduct` (D8); estimators live in `scripts/`; D4 resolved -- multi-block peak reported as sum, min and max over blocks. |
 | 4 | 2026-10-02 | Cost basis decided (D9): SWaP-C² cost is variable unit cost only, at quantity 1 and 1K; NRE never enters. All sign-off questions closed. |
 
@@ -55,7 +55,7 @@ platforms, and the current schema cannot answer it.
 | 3. Bulk migration | All legacy files into `data/products/` | **Partial.** 45 products in `data/compute_products/` (folder name differs from plan) across 14 vendors. About a dozen of the 76 legacy files have a counterpart. All other products are new (KPU SKUs, TPUs, DSP IP, Xeon/AmpereOne). No datacenter GPU is migrated. |
 | 4. Update consumers | Compatibility shims, then graphs and Embodied-AI-Architect switch | **KPU only.** `data/kpus/` retired; `load_kpus()` is a shim over `load_compute_products()` (#18). No GPU/CPU/NPU/chip shims. |
 | 5. Sunset | Remove legacy models, major bump | **Not started.** `data/{gpus,cpus,npus,chips}/` hold 24/36/4/12 files, with no deprecation notices or warnings. |
-| S. SWaP-C² (new) | -- | **Not started.** See [R1](#requirement-r1-swap-c-tracking-and-estimation). |
+| S. SWaP-C² (new) | -- | **Not started.** See [R1](#r1). |
 
 ---
 
@@ -291,7 +291,8 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
     the existing B5 check for KPU products. For a single-block product,
     sum = min = max = the block's peak.
   - For `module`/`board`/`system` products (D6, D8), aggregation runs over
-    the compute blocks of all contained products, expanded by `count`. The
+    the union of the product's own `Die.blocks` (if it has dies) and the
+    compute blocks of all contained products, expanded by `count`. The
     D5 rule still applies to the stated headline.
 
 - **D5 (board/rack top-level figures): decided as policy, refined by R1.**
@@ -366,6 +367,8 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
 
 ---
 
+<a id="r1"></a>
+
 ## Requirement R1: SWaP-C² tracking and estimation
 
 ### Definition
@@ -423,6 +426,17 @@ class SourcedValue(BaseModel):
     confidence: DataConfidence
     source: str                      # citation, or estimator id + version for 'estimated'
     notes: str = ""
+
+
+class SourcedDimensions(BaseModel):
+    """An L x W x H envelope with its provenance (one source for all three)."""
+    length_mm: float
+    width_mm: float
+    height_mm: float
+    basis: Literal["datasheet", "measured", "derived", "estimated"]
+    confidence: DataConfidence
+    source: str
+    notes: str = ""
 ```
 
 A new optional `swapc2` section on `ComputeProduct` holds the
@@ -433,7 +447,8 @@ Shape only; the values below are placeholders, not catalog data:
 ```yaml
 swapc2:
   size:
-    dimensions_mm:   {value: [L, W, H], basis: datasheet, confidence: calibrated,
+    dimensions_mm:   {length_mm: <L>, width_mm: <W>, height_mm: <H>,     # SourcedDimensions
+                      basis: datasheet, confidence: calibrated,
                       source: "<module datasheet, section>"}
     volume_cm3:      {value: <L*W*H/1000>, basis: derived, confidence: calibrated,
                       source: "dimensions_mm"}
@@ -444,6 +459,8 @@ swapc2:
     input_voltage_v: [<min>, <max>]
     conversion_efficiency: {value: <0..1>, basis: estimated, confidence: theoretical,
                             source: "<converter model>"}
+    battery_compatible: <bool>       # from HardwareEntry.power (D8)
+    poe_support: <bool>              # from HardwareEntry.power (D8)
   cost:                              # variable unit cost only -- no NRE (D9)
     unit_price_1_usd:  {value: <usd>, basis: datasheet, confidence: calibrated,
                         source: "<vendor list price, date>"}
@@ -467,7 +484,7 @@ extended so a profile resolves to real numbers:
 | New `CoolingSolutionEntry` field | Purpose |
 |----------------------------------|---------|
 | `volume_cm3` / `dimensions_mm` | Size contribution |
-| `parasitic_power_w` | Fan / pump electrical load, added to the profile's power |
+| `parasitic_power_w` | Fan / pump electrical load, **measured at the input rail** (not behind the product's converter) |
 | `mass_g_per_w`, `volume_cm3_per_w`, `cost_usd_per_w` (optional) | Sizing model, so one mechanism scales with dissipated power instead of using one fixed weight |
 | `max_total_w` (exists) | Validates that the bound solution can remove the profile's TDP |
 
@@ -484,9 +501,19 @@ def resolve_swapc2(product: ComputeProduct, profile: str | None = None,
 
 with:
 
-- `power_w = (profile.tdp_watts + cooling.parasitic_power_w) / conversion_efficiency`
+- `power_w = profile.tdp_watts / conversion_efficiency + cooling.parasitic_power_w`.
+  Power boundary: the vehicle's input rail. Product TDP is behind the
+  product's own converter. Cooling parasitic power is already input-rail
+  power, so conversion loss is not applied to it twice.
 - `mass_g = product.mass_g + cooling.mass_g(profile.tdp_watts)`
-- `volume_cm3 = product.volume_cm3 + cooling.volume_cm3(profile.tdp_watts)`
+- Size is an **envelope**, not a sum of part volumes. The cooling solution
+  is assumed to mount on the product's top face. It occupies the product
+  footprint, and its height is `cooling.volume_cm3(W) / footprint`. A
+  cooling solution with a stated `dimensions_mm` uses that instead, with
+  the footprint taken as the larger of the two. The result:
+  `envelope_mm = (max L, max W, product H + cooling H)`, and
+  `envelope_cm3` = its product. The fit check against
+  `max_compute_volume_cm3` uses `envelope_cm3`.
 - `cost_usd = product.unit_price(qty) + cooling.cost_usd(profile.tdp_watts)`, `qty` in {1, 1000}
 - each result keeps the *weakest* confidence of its inputs, and reports
   `basis: estimated` if any input was estimated.
