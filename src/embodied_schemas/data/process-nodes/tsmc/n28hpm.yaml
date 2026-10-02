@@ -131,6 +131,13 @@ cooling_compatible:
   - vapor_chamber
   - datacenter_direct_to_chip
 
+# SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
+wafer_cost_usd: 2891.0
+wafer_diameter_mm: 300.0
+wafer_cost_source: >-
+  Khan & Mann, "AI Chips: What They Are and Why They Matter", CSET, Apr 2020, Table 9 line 7
+  "Foundry sale price per wafer" (28 nm, not specific to HPM column): model estimate, 2020
+  USD, 300 mm, processed wafer only (masks / design excluded); no sourced D0
 source: "TSMC 28HPM process brief; Wikichip 28nm; NVIDIA Kepler die-shot analyses; Jouppi et al. ISCA 2017 (TPU v1 paper)"
 confidence: theoretical
 last_updated: "2026-05-21"

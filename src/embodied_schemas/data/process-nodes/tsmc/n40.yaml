@@ -122,6 +122,13 @@ cooling_compatible:
   - passive_heatsink_large
   - active_fan
 
+# SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
+wafer_cost_usd: 2274.0
+wafer_diameter_mm: 300.0
+wafer_cost_source: >-
+  Khan & Mann, "AI Chips: What They Are and Why They Matter", CSET, Apr 2020, Table 9 line 7
+  "Foundry sale price per wafer" (40 nm column): model estimate, 2020 USD, 300 mm, processed
+  wafer only (masks / design excluded); no sourced D0
 source: >-
   Derived from tsmc_n28hpm / tsmc_n16 / tsmc_n65 by C x V^2 and area
   scaling; energy cross-checked against M. Horowitz, "Computing's Energy

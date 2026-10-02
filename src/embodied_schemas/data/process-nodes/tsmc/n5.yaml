@@ -106,6 +106,17 @@ cooling_compatible:
   - liquid_cooled
   - datacenter_direct_to_chip
 
+# SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
+wafer_cost_usd: 16988.0
+wafer_diameter_mm: 300.0
+defect_density_per_cm2: 0.1
+wafer_cost_source: >-
+  Khan & Mann, "AI Chips: What They Are and Why They Matter", CSET, Apr 2020, Table 9 line 7
+  "Foundry sale price per wafer" (5 nm column): model estimate, 2020 USD, 300 mm, processed
+  wafer only (masks / design excluded); D0: AnandTech 2020-08-25, "Better Yield on 5nm than
+  7nm: TSMC Update on Defect Rates for N5" (TSMC Technology Symposium): "N5 process
+  currently sits around 0.10 to 0.11 defects per square centimeter" (about HVM + 1 quarter;
+  lower bound used)
 source: "TSMC ISSCC 2020; Wikichip; Apple M1 die-shot analysis"
 confidence: theoretical
 last_updated: "2026-05-09"

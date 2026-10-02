@@ -11,8 +11,15 @@ junction_c_max: 105.0
 form_factor_constraints:
   - "height<=60mm"
   - "requires_unobstructed_airflow"
-weight_g: 400.0
-cost_usd: 25.0
+weight_g: 80.0
+cost_usd: 15.31
+volume_cm3_per_w: 1.9167
+mass_g_per_w: 1.8216
+cost_usd_per_w: 0.091
+volume_cm3: 91.44
+parasitic_power_w: 4.56
+basis: "estimated"
+sizing_source: "cooling_sizing_v1 (scripts/swapc2_estimators.py); r_vol=115 [S. Lee, \"How to Select a Heat Sink\", Electronics Cooling, June 1995, Table 2: 2.5 m/s (500 lfm) 80-150 cm3 C/W, midpoint]; delta_t=60 [entry junction_c_max 105 - ambient_c_max 45; ignores the junction-to-sink drop, so the sink is a lower bound]; solid_fraction=0.352 [0.95 g/cm3 effective density (median mass / envelope volume of 13 catalog aluminum heatsinks: Alpha Novatech N30-25B/N50-15B/N80-40B, ATS KRP/KRA/SF/MF, Wakefield 655-53AB/698-100AB, Toradex SMARC sink; spread 0.57-1.90) / 2.70]; density=2.7 [6063-T5 aluminum, 2.7 g/cc (QuickParts material datasheet)]; base_mass_g=80 [Delta AFB0612EH-A 60 mm 12 V fan datasheet: \"80 GRAMS\"]; base_volume_cm3=91.44 [Delta AFB0612EH-A envelope 60 x 60 x 25.4 mm]; base_cost_usd=15.31 [Delta AFB0612EH-A $10.08 (Avnet, qty 1620, via findchips 2026-10-02) + fixed term of the Alpha Novatech qty-1 price fit (see cost_per_cm3)]; parasitic_power_w=4.56 [Delta AFB0612EH-A datasheet: \"4.56 (MAX. 5.76) W\" rated input]; cost_per_cm3=0.0475 [linear fit cost = 5.23 + 0.0475 x V(cm3) through Alpha Novatech N30-25B ($6.30, 22.5 cm3) and N80-40B ($17.38, 256 cm3), Luxeon Star qty-1 prices 2026-10-02; predicts N50-15B ($6.88) as $7.01]"
 source: "PCIe inference card thermal references; standard server cooling"
 confidence: theoretical
 last_updated: "2026-05-09"

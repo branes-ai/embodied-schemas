@@ -160,6 +160,11 @@ class CoolingSolutionEntry(BaseModel):
     cost_usd_per_w: float | None = Field(
         None, ge=0, description="Unit cost added per W removed (sizing model)"
     )
+    sizing_source: str | None = Field(
+        None,
+        description="Estimator id + version and parameter sources, for entries whose "
+        "SWaP-C² fields scripts/swapc2_estimators.py writes (cooling_sizing_v1)",
+    )
     basis: ValueBasis = Field(
         ValueBasis.ESTIMATED,
         description="Basis of this entry's size / mass / power / cost figures. "
@@ -185,6 +190,7 @@ class CoolingSolutionEntry(BaseModel):
             "mass_g_per_w",
             "volume_cm3_per_w",
             "cost_usd_per_w",
+            "sizing_source",
             "basis",
         ))
 

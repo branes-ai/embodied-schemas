@@ -11,8 +11,12 @@ junction_c_max: 100.0
 form_factor_constraints:
   - "height<=15mm"
   - "no fan"
-weight_g: 30.0
-cost_usd: 2.0
+cost_usd: 5.23
+volume_cm3_per_w: 8.3333
+mass_g_per_w: 7.92
+cost_usd_per_w: 0.3958
+basis: "estimated"
+sizing_source: "cooling_sizing_v1 (scripts/swapc2_estimators.py); r_vol=500 [S. Lee, \"How to Select a Heat Sink\", Electronics Cooling, June 1995, Table 2: natural convection 500-800 cm3 C/W; the low end is for ~100-200 cm3 sinks. Small catalog sinks measure 214-474 (Alpha N30-25B / N50-15B / N80-40B, Toradex SMARC sink: R x envelope), so 500 is conservative (larger, heavier) for UAV-scale sinks]; delta_t=60 [entry junction_c_max 100 - ambient_c_max 40; ignores the junction-to-sink drop, so the sink is a lower bound]; solid_fraction=0.352 [0.95 g/cm3 effective density (median mass / envelope volume of 13 catalog aluminum heatsinks: Alpha Novatech N30-25B/N50-15B/N80-40B, ATS KRP/KRA/SF/MF, Wakefield 655-53AB/698-100AB, Toradex SMARC sink; spread 0.57-1.90) / 2.70]; density=2.7 [6063-T5 aluminum, 2.7 g/cc (QuickParts material datasheet)]; base_cost_usd=5.23 [fixed term of the Alpha Novatech qty-1 price fit (see cost_per_cm3)]; cost_per_cm3=0.0475 [linear fit cost = 5.23 + 0.0475 x V(cm3) through Alpha Novatech N30-25B ($6.30, 22.5 cm3) and N80-40B ($17.38, 256 cm3), Luxeon Star qty-1 prices 2026-10-02; predicts N50-15B ($6.88) as $7.01]"
 source: "Jetson Orin Nano thermal datasheet; Coral USB accelerator notes"
 confidence: theoretical
 last_updated: "2026-05-09"
