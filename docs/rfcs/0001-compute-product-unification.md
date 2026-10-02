@@ -1,9 +1,9 @@
 # RFC 0001: Unified ComputeProduct Schema
 
-**Status:** Accepted -- in progress (Phases 1-3 partially complete; SWaP-C² requirement added)
+**Status:** Accepted -- in progress (Phases 1-3 partially complete; SWaP-C² requirement and `HardwareEntry` absorption added)
 **Author:** Theo Omtzigt
 **Date:** 2026-05-08
-**Revised:** 2026-10-01 (rev 2)
+**Revised:** 2026-10-02 (rev 3)
 **Target completion:** Phases 3-5 by end of Q4 2026; SWaP-C² phases S1-S3 before the 1.0 release
 
 ### Revision history
@@ -12,6 +12,7 @@
 |-----|------|--------|
 | 1 | 2026-05-08 | Initial draft (#7) |
 | 2 | 2026-10-01 | Status brought in line with the implementation (schema v1-v13, 45 catalog products, package 0.15.0). Original schema sketch replaced by the as-built design. D1-D5 resolved. Migration plan re-baselined. **New requirement R1: track and estimate SWaP-C² per compute product.** |
+| 3 | 2026-10-02 | Sign-off decisions: second C of SWaP-C² is Cooling; `HardwareEntry` (and `SystemConfiguration`) absorbed into `ComputeProduct` (D8); estimators live in `scripts/`; D4 resolved -- multi-block peak reported as sum, min and max over blocks. |
 
 ---
 
@@ -260,13 +261,37 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
   `default_thermal_profile` names one of them and must resolve, which a
   validator checks. Single-TDP products have one profile.
 
-- **D4 (peak throughput across blocks): partially decided.**
-  `performance` is the product-level peak at the default thermal profile.
-  For products with KPU tiles, a validator checks it against the tile
-  roll-up (B5). For all other products it is authored from the vendor's
-  stated figure. **Still open:** the aggregation rule for multi-block
-  products (max vs. sum across blocks). It becomes live once D1 backfill
-  puts more than one compute block on a die.
+- **D4 (peak throughput across blocks): decided (rev 3).** A product with
+  several compute blocks reports its peak in **three forms: sum, min and
+  max over its blocks**. Neither form alone answers the questions consumers
+  ask:
+  - **sum**: every block busy at once. Upper bound for a workload that
+    partitions across all engines (e.g. Orin GPU + 2x DLA).
+  - **max**: the best single block. What a workload that maps to one
+    engine can reach.
+  - **min**: the weakest block. Worst-case placement floor.
+
+  Mechanics:
+  - Each compute block exposes its own peak (`TheoreticalPerformance`:
+    `int8_tops`, `bf16_tflops`, `fp32_tflops`, ...) at the default thermal
+    profile. Authored from the datasheet, or derived from block parameters
+    where a roll-up exists (KPU tiles, B5).
+  - Each entry in `Die.blocks` is one block instance. Two DLAs are two
+    entries and count twice in the sum.
+  - Non-compute blocks (`kind: io`) are excluded.
+  - Aggregation is **per precision, over the blocks that support that
+    precision**. A block with no FP32 path is left out of the FP32 sum, min
+    and max; it is not counted as zero, which would make every min zero. The
+    result records how many blocks contributed to each precision.
+  - The three forms are a **computed property** of `ComputeProduct`
+    (`performance_by_aggregation: {sum, min, max}`), not authored YAML, so
+    they cannot drift from the blocks.
+  - `performance` stays as the vendor-stated headline, unchanged, with
+    the existing B5 check for KPU products. For a single-block product,
+    sum = min = max = the block's peak.
+  - For `module`/`board`/`system` products (D6, D8), aggregation runs over
+    the compute blocks of all contained products, expanded by `count`. The
+    D5 rule still applies to the stated headline.
 
 - **D5 (board/rack top-level figures): decided as policy, refined by R1.**
   Throughput and TDP of board- and system-level products are *stated*, with
@@ -285,6 +310,41 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
 - **D7 (new): SWaP-C² is resolved per thermal profile.** Power and cooling
   vary with the operating point, so SWaP-C² is a function of
   `(product, thermal_profile)`, not a scalar per product. See R1.
+
+- **D8 (new, rev 3): `HardwareEntry` is absorbed into `ComputeProduct`.**
+  Dev kits, SoMs, M.2 cards, SBCs, mini-PCs, VPX/VNX cards and chassis
+  become `ComputeProduct`s at `kind: module`, `board` or `system`.
+  `SystemConfiguration` (no catalog data today) becomes a `kind: system`
+  product whose `contains` entries carry slot assignments. Its `total_*`
+  fields become the D5 mass/volume/cost roll-up. Spine changes this
+  requires, all optional, so additive:
+
+  | `HardwareEntry` field | New home |
+  |-----------------------|----------|
+  | `physical.weight_grams`, `dimensions_mm` | `swapc2.weight`, `swapc2.size` |
+  | `physical.form_factor`, `mounting`, `vita_standard`, `sosa_profile`, `conduction_cooled`, `conformal_coated` | `packaging` (new optional fields) |
+  | `environmental` | new top-level `environmental` (reuses `EnvironmentalSpec`) |
+  | `power.power_modes` | `power.thermal_profiles` |
+  | `power.input_voltage_v`, `battery_compatible`, `poe_support` | `swapc2.power` |
+  | `interfaces` | new top-level `interfaces` (reuses `InterfaceSpec`) |
+  | `software`, `capabilities.frameworks` / `quantization_support` / `inference_runtimes` | new top-level `software` (reuses `SoftwareSpec`, merged) |
+  | `capabilities.memory_gb` / `memory_type` / `memory_bandwidth_gbps` | new top-level `memory` summary (the rev 1 sketch's `memory`) |
+  | `capabilities.compute_units`, `tensor_cores`, `simd_width`, `sparse_acceleration` | the contained products' blocks |
+  | `hardware_type`, `compute_paradigm`, `optimized_for` | dropped; derived from block kinds |
+  | `cost_usd` | `swapc2.cost.unit_prices` |
+  | `availability`, `lifecycle_status` | `lifecycle`, `market.is_available` |
+  | `suitable_for`, `target_applications` | `market` (new optional lists) |
+  | `chip_id`, `gpu_id` | `contains` |
+  | `product_url` | top-level `product_url` |
+
+  Validation changes: `chip`/`mcm`/`chiplet` products still require at
+  least one `Die`. `module`/`board`/`system` products require
+  `dies` or `contains` to be non-empty; a carrier board with no silicon of
+  its own has empty `dies`. `contains` references must resolve to
+  `ComputeProduct` ids, so the SoCs a module contains (Orin NX/Nano, TX2,
+  BCM2711/2712, Hawk Point, Hailo-8L) must be migrated first. The
+  unrelated `HardwareEntry`-based `LifecycleStatus` in `hardware.py` is
+  removed with it, leaving one `LifecycleStatus`.
 
 ---
 
@@ -372,9 +432,12 @@ swapc2:
                                     source: "<vendor list price, date>"}}
     - {quantity: 1000, price_usd: {value: <usd>, basis: estimated, confidence: theoretical,
                                     source: "<volume-discount model>"}}
-  environmental:                     # reuses hardware.EnvironmentalSpec
-    operating_temp_c: [<min>, <max>]
 ```
+
+Operating temperature, IP rating, vibration and shock do not go in
+`swapc2`. They go in the top-level `environmental` section (D8).
+The SWaP-C² fit check reads them, for example the ambient temperature
+that sizes the cooling solution.
 
 `Market.launch_msrp_usd` stays for compatibility. The default for
 `swapc2.cost.unit_prices[quantity=1]` is derived from it, with
@@ -425,9 +488,11 @@ The resolved record is what graphs and Embodied-AI-Architect consume.
 
 **Ownership.** Per this repo's charter, datasheet facts and the
 *inputs* to these models (wafer cost, cooling sizing coefficients) live
-here. The **estimator code** that writes `basis: estimated` values into
-catalog YAMLs lives in `scripts/` next to `generate_compute_product_yamls.py`,
-so estimates are reproducible and versioned. The deterministic
+here. **Decided (rev 3):** the estimator code that writes
+`basis: estimated` values into catalog YAMLs lives in this repo's
+`scripts/`, next to `generate_compute_product_yamls.py`, so estimates are
+reproducible and versioned with the data they produce. Each estimator has
+an id and version, which goes into `SourcedValue.source`. The deterministic
 `resolve_swapc2` roll-up lives here. **Airframe-coupled metrics live in graphs or
 Embodied-AI-Architect.** Examples: the extra hover power a payload costs
 (for a multirotor, P_hover ∝ m^(3/2), so dP/dm ≈ 1.5·P_hover/m_total),
@@ -460,7 +525,9 @@ pattern has worked and replaces the converter approach.
   RFC's reference products (H100, B100, DGX H100) and edge parts (Orin
   NX/Nano, i.MX 8M Plus, Hailo-8L, Raspberry Pi BCM2711/2712).
 - D1 backfill: add the missing blocks to heterogeneous SoCs (Orin, Thor,
-  TDA4, Qualcomm).
+  TDA4, Qualcomm), each with its own peak so the D4 sum/min/max is meaningful.
+- Migrate the SoCs that `data/hardware/` modules reference (prerequisite
+  for S3).
 - Deprecation notices in `data/{gpus,cpus,npus,chips}/README.md`.
 - Write `docs/migration-map.md` after the fact: legacy field to new home.
 
@@ -469,16 +536,23 @@ pattern has worked and replaces the converter approach.
 ### Phase S -- SWaP-C² (new, R1)
 
 - **S1 Schema (minor bump):** `SourcedValue`, `ComputeProduct.swapc2`,
-  `ProductKind.MODULE`, `contains: list[ProductRef]`, `CoolingSolutionEntry`
+  `ProductKind.MODULE`, `contains: list[ProductRef]` (with optional slot
+  assignment), the D8 spine additions (`environmental`, `interfaces`,
+  `software`, `memory`, packaging form-factor fields), the
+  `performance_by_aggregation` property (D4), `CoolingSolutionEntry`
   extensions, optional `ProcessNodeEntry` cost fields, `resolve_swapc2()`.
   Schema tests plus one worked example per level (chip, module, board).
 - **S2 Cooling and cost inputs:** re-author the cooling catalog with per-W
   sizing coefficients. Add wafer cost and defect density to the process
   nodes the catalog uses (TSMC N4/N7/16FFP, Samsung 8LPP, GF 12FDX, ...).
-- **S3 Edge catalog backfill:** convert `data/hardware/` modules that
-  matter for UAVs (Jetson Orin family, Hailo M.2, Raspberry Pi) into
-  `module`-level ComputeProducts that `contain` their SoCs. Populate
-  `swapc2` from datasheets. Run the estimators for KPU SKUs.
+- **S3 Absorb `data/hardware/` (D8) and backfill:** convert all 20
+  `HardwareEntry` files: 7 Jetson SoMs and 3 Hailo M.2 cards become
+  `module`s; 2 Raspberry Pi, 2 AMD NUCs and the Elma JetSys 5330 become
+  `board`/`system`; the 5 Elma VPX/VNX cards and chassis become
+  `board`/`system`. Do the UAV-relevant modules first. Depends on the Phase 3
+  migration of the SoCs they contain. `load_hardware()` becomes a shim
+  over `load_compute_products()`, as `load_kpus()` already is. Populate
+  `swapc2` from datasheets; run the `scripts/` estimators for KPU SKUs.
 - **S4 Downstream:** graphs consumes `resolve_swapc2` for SWaP-C²-aware
   ranking. Embodied-AI-Architect adds a verdict-first SWaP-C² fit tool
   against capability tiers and mission profiles.
@@ -489,19 +563,22 @@ check exists.
 
 ### Phase 4 -- Update consumers
 
-- Compatibility shims (`load_gpus`, `load_cpus`, `load_npus`, `load_chips`)
+- Compatibility shims (`load_gpus`, `load_cpus`, `load_npus`, `load_chips`,
+  `load_hardware`)
   over `load_compute_products()`, following the `load_kpus()` pattern, with
   `DeprecationWarning`.
 - Rename debt resolved (vendor-neutral names; KPU names kept as aliases).
-- graphs and Embodied-AI-Architect read `ComputeProduct` directly.
+- graphs and Embodied-AI-Architect read `ComputeProduct` directly. This
+  includes `registry.py` hardware queries, which today filter
+  `HardwareEntry` on weight, power and capabilities.
 
 **Exit:** both consumer repos pass against the new schema with no legacy imports.
 
 ### Phase 5 -- Sunset legacy schemas
 
-- Remove `GPUEntry`, `CPUEntry`, `NPUEntry`, `ChipEntry`, and the module
-  half of `HardwareEntry` absorbed in S3.
-- Remove `data/{gpus,cpus,npus,chips}/`.
+- Remove `GPUEntry`, `CPUEntry`, `NPUEntry`, `ChipEntry`, `HardwareEntry`,
+  `SystemConfiguration`, and `hardware.LifecycleStatus`.
+- Remove `data/{gpus,cpus,npus,chips,hardware}/`.
 - Update `CHANGELOG.md`, `architecture.md`, `README.md`.
 - Release as **1.0.0** (breaking). Downstream pins (`<1.0.0`) need an update.
 
@@ -537,22 +614,27 @@ check exists.
    cooling entries (e.g. one 400 g `active_fan` for 15-60 W) produce
    misleading SWaP-C² for small UAVs. Treat cooling-derived numbers as
    `confidence: unknown` until then.
-9. **Scope growth.** R1 pulls `contains`, `MODULE`, and part of
-   `HardwareEntry` into this RFC. Keep S1-S3 limited to what SWaP-C²
-   needs. Full board/rack composition (DGX) is not a prerequisite.
+9. **Scope growth.** R1 and D8 pull `contains`, `MODULE`, and all of
+   `HardwareEntry` into this RFC. Keep S1-S3 limited to the 20 existing
+   hardware entries and what SWaP-C² needs. Full datacenter board/rack
+   composition (DGX) is not a prerequisite.
+10. **Spine creep from D8.** `interfaces`, `software` and `environmental`
+    are not SWaP-C² data. They are added only because `HardwareEntry`
+    already carries them. Reuse the existing sub-models verbatim rather
+    than redesigning them in this RFC.
+11. **Misreading the D4 forms.** `sum` is not achievable throughput. It
+    assumes perfect partitioning and ignores shared memory bandwidth and
+    power limits. Docstrings and downstream tools must label it as an upper
+    bound and not substitute it for `performance`.
 
 ---
 
 ## Open questions for sign-off
 
-1. **`HardwareEntry` fate.** Absorb dev kits and modules into
-   `ComputeProduct` (`kind: module`/`board`), as proposed in S3. Or keep
-   `HardwareEntry` and have it carry `swapc2` with a `chip_id` reference
-   into ComputeProduct?
-2. **Estimator placement.** `scripts/` in this repo (proposed), or graphs?
-3. **D4 aggregation rule** for multi-block products (max vs. sum),
-   needed before D1 backfill.
-4. **Cost basis.** Is quantity-1 list price plus 1 KU price sufficient, or
+Resolved 2026-10-02: SWaP-C² second C = Cooling; `HardwareEntry`
+absorbed (D8); estimators in `scripts/`; D4 = sum, min and max over blocks.
+
+1. **Cost basis.** Is quantity-1 list price plus 1 KU price sufficient, or
    do UAV programs need a 10 KU / NRE split for custom silicon (KPU)?
 
 ---
