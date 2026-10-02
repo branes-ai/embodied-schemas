@@ -173,6 +173,8 @@ def test_anyblock_still_dispatches_other_block_kinds():
     adapter = TypeAdapter(AnyBlock)
     by_kind = {}
     for cp in products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         by_kind.setdefault(kind, []).append(block)
@@ -488,6 +490,8 @@ def test_v6_does_not_break_existing_catalog():
 
     counts = {"kpu": 0, "gpu": 0, "cpu": 0, "npu": 0, "cgra": 0, "dpu": 0}
     for cp in products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts[kind] = counts.get(kind, 0) + 1
@@ -501,4 +505,5 @@ def test_v6_does_not_break_existing_catalog():
     # data PR bumped it to 1 (first xilinx/ vendor SKU; first
     # FPGA-based architecture in the catalog).
     assert counts["dpu"] == 1
-    assert sum(counts.values()) == len(products)
+    # Modules / boards (v14) contain chips rather than carry a block.
+    assert sum(counts.values()) == sum(1 for cp in products.values() if cp.dies)

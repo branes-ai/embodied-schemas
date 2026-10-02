@@ -324,6 +324,8 @@ def test_existing_catalog_block_kinds_unchanged():
     products = load_compute_products()
     kinds = set()
     for cp in products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kinds.add(block.kind.value if hasattr(block.kind, "value") else str(block.kind))
     assert {"kpu", "gpu", "cpu", "npu", "cgra", "dpu", "tpu", "dsp"}.issubset(kinds)
@@ -846,6 +848,8 @@ def test_v12_backfill_every_external_dram_sku_populates_dram_attachment():
         "chip_attached": [], "host_bus": [], "missing": [],
     }
     for sku_id, cp in products.values_with_id() if hasattr(products, "values_with_id") else [(k, v) for k, v in products.items()]:
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         mem = getattr(block, "memory", None)
         if mem is None:

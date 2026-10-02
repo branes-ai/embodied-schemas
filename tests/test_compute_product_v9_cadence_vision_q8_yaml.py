@@ -72,6 +72,8 @@ def test_catalog_has_22_total_products(all_products):
     DSP follow-ups (graphs#223) don't regress this test."""
     counts_by_kind: dict[str, int] = {}
     for cp in all_products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         counts_by_kind[kind] = counts_by_kind.get(kind, 0) + 1

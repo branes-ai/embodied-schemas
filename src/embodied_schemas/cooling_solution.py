@@ -21,9 +21,11 @@ thermal-hotspot validator needs that resolution.
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SerializerFunctionWrapHandler, model_serializer
 
 from embodied_schemas.process_node import DataConfidence
+from embodied_schemas.serialization import omit_if_default
+from embodied_schemas.swapc2 import ValueBasis
 
 
 class CoolingMechanism(str, Enum):
@@ -108,10 +110,45 @@ class CoolingSolutionEntry(BaseModel):
         ),
     )
     weight_g: float | None = Field(
-        None, description="Solution weight in grams (mechanical budget)"
+        None,
+        ge=0,
+        description="Solution weight in grams (mechanical budget). With "
+        "mass_g_per_w set, the fixed part of the mass",
     )
     cost_usd: float | None = Field(
-        None, description="Approximate BOM cost contribution in USD"
+        None,
+        ge=0,
+        description="Approximate BOM cost contribution in USD (variable unit "
+        "cost, RFC 0001 D9). With cost_usd_per_w set, the fixed part",
+    )
+
+    # SWaP-C² (RFC 0001 R1, phase S1). All optional; see ``swapc2.py``.
+    dimensions_mm: tuple[float, float, float] | None = Field(
+        None,
+        description="Stated L x W x H in mm. Mounted on the product's top face: "
+        "the envelope takes the larger footprint and adds H",
+    )
+    volume_cm3: float | None = Field(
+        None, ge=0, description="Volume in cm^3; with volume_cm3_per_w, the fixed part"
+    )
+    parasitic_power_w: float | None = Field(
+        None,
+        ge=0,
+        description="Electrical load of fans / pumps, at the vehicle input rail",
+    )
+    mass_g_per_w: float | None = Field(
+        None, ge=0, description="Mass added per W removed (sizing model)"
+    )
+    volume_cm3_per_w: float | None = Field(
+        None, ge=0, description="Volume added per W removed (sizing model)"
+    )
+    cost_usd_per_w: float | None = Field(
+        None, ge=0, description="Unit cost added per W removed (sizing model)"
+    )
+    basis: ValueBasis = Field(
+        ValueBasis.ESTIMATED,
+        description="Basis of this entry's size / mass / power / cost figures. "
+        "Mechanism-class entries are estimates; a vendor heatsink part is 'datasheet'",
     )
 
     # Provenance
@@ -121,3 +158,56 @@ class CoolingSolutionEntry(BaseModel):
     notes: str = Field("", description="Additional notes")
 
     model_config = {"extra": "forbid"}
+
+    # v14 additive fields are left out of dumps while unset (``serialization``).
+    @model_serializer(mode="wrap")
+    def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
+        return omit_if_default(self, handler, (
+            "dimensions_mm",
+            "volume_cm3",
+            "parasitic_power_w",
+            "mass_g_per_w",
+            "volume_cm3_per_w",
+            "cost_usd_per_w",
+            "basis",
+        ))
+
+    @property
+    def is_active(self) -> bool:
+        """Whether the mechanism draws electrical power (fan, pump)."""
+        return self.cooling_mechanism in _ACTIVE_MECHANISMS
+
+    @staticmethod
+    def _sized(base: float | None, per_w: float | None, watts: float) -> float | None:
+        if base is None and per_w is None:
+            return None
+        return (base or 0.0) + (per_w or 0.0) * watts
+
+    def mass_g_at(self, watts: float) -> float | None:
+        """Mass in g when removing ``watts``; None if the entry states none."""
+        return self._sized(self.weight_g, self.mass_g_per_w, watts)
+
+    def cost_usd_at(self, watts: float) -> float | None:
+        """Unit cost in USD when removing ``watts``; None if the entry states none."""
+        return self._sized(self.cost_usd, self.cost_usd_per_w, watts)
+
+    def volume_cm3_at(self, watts: float) -> float | None:
+        """Volume in cm^3 when removing ``watts``. A fanless entry with no
+        stated size occupies nothing; otherwise None if the entry states none."""
+        sized = self._sized(self.volume_cm3, self.volume_cm3_per_w, watts)
+        if sized is not None:
+            return sized
+        if self.dimensions_mm is not None:
+            length, width, height = self.dimensions_mm
+            return length * width * height / 1000.0
+        if self.cooling_mechanism == CoolingMechanism.PASSIVE_FANLESS:
+            return 0.0
+        return None
+
+
+_ACTIVE_MECHANISMS = {
+    CoolingMechanism.ACTIVE_FAN,
+    CoolingMechanism.VAPOR_CHAMBER,
+    CoolingMechanism.LIQUID_COOLED,
+    CoolingMechanism.DATACENTER_DTC,
+}

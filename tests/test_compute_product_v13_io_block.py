@@ -162,6 +162,8 @@ def test_anyblock_still_dispatches_other_block_kinds():
     adapter = TypeAdapter(AnyBlock)
     by_kind = {}
     for cp in products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         by_kind.setdefault(kind, []).append(block)

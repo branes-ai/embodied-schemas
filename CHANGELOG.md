@@ -7,6 +7,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-02
+
+SWaP-C² (Size, Weight, Power, Cost, Cooling) for compute products, and
+modules that contain chips. RFC 0001 phase S1 (requirement R1, decisions
+D4, D6-D9). **Additive**: every existing catalog entry validates and
+serializes exactly as in 0.15.0.
+
+**SWaP-C²** (`embodied_schemas.swapc2`, new).
+
+- `ComputeProduct.swapc2` (optional) holds the product's own size, mass,
+  input power and variable unit cost.
+- Every value is a `SourcedValue` with a `basis` (`datasheet`, `measured`,
+  `derived` or `estimated`), a confidence and a source, so an estimate never
+  reads as a datasheet fact.
+- Cost is unit price at quantity 1 and 1K only. NRE never enters (D9).
+- `resolve_swapc2(product, profile)` adds the cooling solution that the
+  thermal profile binds, and returns:
+  - power at the vehicle input rail: TDP / converter efficiency + fan power;
+  - mass;
+  - the envelope, with cooling on the top face;
+  - unit cost.
+
+  Each result keeps the weakest confidence of its inputs. An axis it cannot
+  resolve is None, with a reason in `unresolved`.
+- A module or board with no mass or price of its own rolls them up from
+  `contains`, as an estimate.
+
+**Levels of integration (D6, D8).**
+
+- `ProductKind.MODULE` (new).
+- `ComputeProduct.contains: list[ProductRef]` (with optional slot and role).
+- A chip-level product still needs at least one die; a module, board or
+  system needs dies or `contains`.
+- `check_contains_references` reports unknown ids and cycles, and
+  `validate_data_integrity` runs it.
+- New optional sections carried over from `HardwareEntry`: `memory`,
+  `environmental`, `interfaces`, `software` and `product_url`; packaging
+  form-factor fields (`form_factor`, `mounting`, VITA / SOSA, conduction
+  cooling, conformal coat); and `market.suitable_for` /
+  `target_applications`.
+- `FormFactor.SMARC` (new).
+
+**Peak aggregation (D4).** `aggregate_peak(product, products)` and the
+`performance_by_aggregation` property report peak ops/s as **sum, min and
+max** over compute blocks.
+
+- Aggregation is per precision, over the blocks that support it; a zero peak
+  means unsupported.
+- Contained products are expanded by count.
+- IO blocks are skipped.
+- A single-block product without a block peak uses its `performance`
+  headline.
+
+GPU, CPU, NPU, CGRA, DPU and TPU blocks gain an optional
+`theoretical_performance` for this (DSP already had one; KPU is derived from
+tiles).
+
+**Cooling and process nodes.**
+
+- `CoolingSolutionEntry` gains optional SWaP-C² fields:
+  - `dimensions_mm` and `volume_cm3`;
+  - `parasitic_power_w`, the fan / pump load at the input rail;
+  - per-W sizing: `mass_g_per_w`, `volume_cm3_per_w`, `cost_usd_per_w`;
+  - `basis`.
+- `ProcessNodeEntry` gains optional silicon-cost estimator inputs:
+  `wafer_cost_usd`, `wafer_diameter_mm`, `defect_density_per_cm2` and
+  `wafer_cost_source`.
+
+**Serialization.** New optional fields are left out of `model_dump()` while
+unset (`embodied_schemas.serialization.omit_if_default`). Downstream golden
+snapshots (graphs' KPU goldens) therefore see no change.
+
+**Catalog.**
+
+- `seco_som_smarc_qcs6490`: the first `module`. It is the SECO SMARC 2.1.1
+  module around the Qualcomm QCS6490, and it contains `qualcomm_qcs6490`.
+- `smarc_heat_spreader_82x50`: the SMARC standard heat spreader, with
+  geometry from SGeT SMARC 2.1.1.
+- SWaP-C² for the SECO module resolves power and an 82 x 50 x 8.5 mm
+  envelope (34.9 cm³) at each profile.
+- Mass and unit cost stay unresolved: SECO publishes no weight or 1K price
+  for any SMARC module, and the QCS6490 module has no public price.
+
+**Tests.** Catalog-wide tests that assumed every product has a die now
+skip products without dies.
+
 ## [0.15.0] - 2026-09-19
 
 FP16 energy per op for every process node, and BF16 re-derived from the same

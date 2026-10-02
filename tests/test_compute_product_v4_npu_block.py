@@ -158,6 +158,8 @@ def test_anyblock_still_dispatches_other_block_kinds():
     adapter = TypeAdapter(AnyBlock)
     by_kind = {}
     for cp in products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         by_kind.setdefault(kind, []).append(block)
@@ -403,19 +405,19 @@ def test_v4_does_not_break_existing_catalog():
 
     kpu_count = sum(
         1 for cp in products.values()
-        if isinstance(cp.dies[0].blocks[0], KPUBlock)
+        if cp.dies and isinstance(cp.dies[0].blocks[0], KPUBlock)
     )
     gpu_count = sum(
         1 for cp in products.values()
-        if isinstance(cp.dies[0].blocks[0], GPUBlock)
+        if cp.dies and isinstance(cp.dies[0].blocks[0], GPUBlock)
     )
     cpu_count = sum(
         1 for cp in products.values()
-        if isinstance(cp.dies[0].blocks[0], CPUBlock)
+        if cp.dies and isinstance(cp.dies[0].blocks[0], CPUBlock)
     )
     npu_count = sum(
         1 for cp in products.values()
-        if isinstance(cp.dies[0].blocks[0], NPUBlock)
+        if cp.dies and isinstance(cp.dies[0].blocks[0], NPUBlock)
     )
 
     assert kpu_count == 14
