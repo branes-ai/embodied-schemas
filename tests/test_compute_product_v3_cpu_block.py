@@ -518,15 +518,15 @@ def test_v3_does_not_break_existing_catalog():
 
     kpu_count = sum(
         1 for cp in products.values()
-        if isinstance(cp.dies[0].blocks[0], KPUBlock)
+        if cp.dies and isinstance(cp.dies[0].blocks[0], KPUBlock)
     )
     gpu_count = sum(
         1 for cp in products.values()
-        if isinstance(cp.dies[0].blocks[0], GPUBlock)
+        if cp.dies and isinstance(cp.dies[0].blocks[0], GPUBlock)
     )
     cpu_count = sum(
         1 for cp in products.values()
-        if isinstance(cp.dies[0].blocks[0], CPUBlock)
+        if cp.dies and isinstance(cp.dies[0].blocks[0], CPUBlock)
     )
 
     assert kpu_count == 14

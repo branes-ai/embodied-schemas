@@ -1,0 +1,143 @@
+# SECO SOM-SMARC-QCS6490 (ordering base code E81) -- SMARC 2.1.1 module.
+#
+# First `kind: module` ComputeProduct and first product with a `swapc2`
+# section (RFC 0001 D6 / D8 / R1, phase S1). It contains the Qualcomm
+# QCS6490 SoC (`qualcomm_qcs6490`) and adds no silicon of its own to
+# the model, so `dies` is empty.
+#
+# Sources (www.seco.com returns 403 to non-browser clients; SECO documents
+# read from Wayback Machine captures, seen 2026-10-02):
+#   - SECO SOM-SMARC-QCS6490 datasheet,
+#     https://www.seco.com/Datasheet/Modules/SMARC/SOM-SMARC-QCS6490_datasheet.pdf
+#     (Wayback 20240602065629): "Dimensions 82 x 50 mm", "5V DC (+5V
+#     Standby opt)", "0 ÷ +60°C (Commercial Range) -30 ÷ +85°C (Industrial
+#     Range)", "Soldered-down LPDDR5-6400 memory, up to 12GB total".
+#   - SECO developer portal,
+#     https://developer.seco.com/hardware/product/computer-on-modules/smarc-modules/som-smarc-qcs5430-qcs6490-e81/
+#   - SGeT SMARC 2.1.1 Hardware Specification, s.5.5: top-side components
+#     3 mm max, PCB 1.2 mm typ, bottom-side components 1.3 mm max.
+#
+# SWaP-C² gaps (RFC R1.2 -- left unset, never guessed):
+#   - Mass: SECO publishes no weight for any SMARC module.
+#   - Unit price: "pricing is not public" (CNX Software, 2025-01); no
+#     distributor lists it. 1K pricing is not published for any SECO module.
+#   - Module power: no SECO figure (manual "coming soon"). The thermal
+#     profiles below are the contained SoC's, see notes.
+
+id: seco_som_smarc_qcs6490
+name: SECO SOM-SMARC-QCS6490
+vendor: seco
+kind: module
+packaging:
+  kind: board
+  form_factor: smarc
+
+lifecycle: production
+
+dies: []
+contains:
+- id: qualcomm_qcs6490
+  role: compute
+
+performance:                            # headline, as the contained SoC
+  int8_tops: 12.0
+  bf16_tflops: 0.0
+  fp32_tflops: 0.0
+  int4_tops: 24.0
+
+power:
+  tdp_watts: 10.0
+  max_power_watts: 15.0                 # SMARC module ceiling, see notes
+  min_power_watts: 5.0
+  default_thermal_profile: '10W'
+  thermal_profiles:
+  - name: '5W'
+    tdp_watts: 5.0
+    clock_mhz: 1000.0
+    cooling_solution_id: smarc_heat_spreader_82x50
+  - name: '10W'
+    tdp_watts: 10.0
+    clock_mhz: 1500.0
+    cooling_solution_id: smarc_heat_spreader_82x50
+  - name: '15W'
+    tdp_watts: 15.0
+    clock_mhz: 1700.0
+    cooling_solution_id: smarc_heat_spreader_82x50
+
+swapc2:
+  size:
+    dimensions_mm:
+      length_mm: 82.0
+      width_mm: 50.0
+      height_mm: 5.5
+      basis: derived
+      confidence: theoretical
+      source: >-
+        L x W: SECO SOM-SMARC-QCS6490 datasheet ("Dimensions 82 x 50 mm").
+        H: SGeT SMARC 2.1.1 s.5.5 maxima, 1.3 mm bottom components + 1.2 mm
+        PCB (typ) + 3.0 mm top components
+      notes: Height is the standard's upper bound, not a measured SECO figure.
+  power:
+    input_voltage_v: [5.0, 5.0]         # "5V DC (+5V Standby opt)"
+
+memory:
+  memory_gb: 12.0                       # "up to 12GB total"
+  memory_type: LPDDR5
+
+environmental:
+  operating_temp_c: [-30.0, 85.0]       # Industrial; measured at the heat spreader
+
+interfaces:
+  camera_csi: 3                         # 1x 2-lane + 2x 4-lane MIPI CSI
+  usb3: 1
+  usb2: 2                               # 1x USB 2.0 OTG + 1x USB 2.0 (or 4x via hub option)
+  pcie_lanes: 4                         # 2 ports x1 + 1 port x2 (QPS615)
+  pcie_gen: 3
+  ethernet: 1gbps                       # 2x Gigabit Ethernet
+  # Wi-Fi + BT 5.0 is an ordering option ("Opt. Wi-Fi + BT5.0"), not on
+  # the base module; the datasheet names no Wi-Fi standard.
+  can_bus: 1                            # via SPI
+  uart: 4
+  displayport: 1                        # via USB 3.1 Type-C
+
+software:
+  os: [Clea OS]
+
+market:
+  target_market: embodied
+  product_family: SECO SMARC
+  model_tier: entry
+  is_available: true
+  target_applications: [robotics, drones, edge AI, industrial HMI]
+
+confidence: theoretical
+notes: >
+  SMARC 2.1.1 module (82 x 50 mm) built around the Qualcomm QCS6490 (1x A78
+  @2.7 GHz + 3x A78 @2.4 GHz + 4x A55, Adreno 643L, Hexagon NPU).
+
+  Power: SECO publishes no module power figure, so the three thermal
+  profiles mirror the contained SoC's 5 / 10 / 15 W profiles
+  (qualcomm_qcs6490). They exclude module overhead (LPDDR5, eMMC, PMIC,
+  Ethernet PHYs), so they understate the draw at the 5 V input.
+  max_power_watts 15 is the SMARC module ceiling from SGeT SMARC 2.1.1
+  ("designs up to about 15W are possible"). SECO's own system-level
+  figure is "8-12W during active AI processing" (SECO blog, LLM + RAG
+  demo on this module, 2025); that is a workload measurement, not a
+  module rating.
+
+  All profiles bind the SMARC standard heat spreader: SECO rates the
+  operating temperature at the spreader surface, and system cooling
+  attaches there.
+
+  AI performance: SECO states both 12 TOPS (2025 RAG blog, "Hexagon 770 NPU
+  capable of up to 12 TOPS") and 13 TOPS (2024 launch blog, "total
+  performance"). The headline follows the contained SoC entry (12 TOPS
+  INT8). The SoC entry lists LPDDR4X; this module uses LPDDR5-6400, which
+  the QCS6490 also supports.
+
+  Variants: commercial range is 0 to +60 C; QCS5430 (same board, E81) is a
+  separate SoC with no catalog entry yet. Lifecycle: listed with datasheet
+  and BSP on SECO's developer portal; SECO states no lifecycle status.
+datasheet_url: https://www.seco.com/Datasheet/Modules/SMARC/SOM-SMARC-QCS6490_datasheet.pdf
+product_url: https://developer.seco.com/hardware/product/computer-on-modules/smarc-modules/som-smarc-qcs5430-qcs6490-e81/
+last_updated: '2026-10-02'

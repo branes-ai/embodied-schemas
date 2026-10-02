@@ -72,6 +72,8 @@ def test_catalog_contains_both_hailo_skus(all_products):
     Coral PR's own contract test pins the new total."""
     block_kinds = []
     for cp in all_products.values():
+        if not cp.dies:  # modules / boards (v14)
+            continue
         block = cp.dies[0].blocks[0]
         kind = block.kind.value if hasattr(block.kind, "value") else str(block.kind)
         block_kinds.append(kind)

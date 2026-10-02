@@ -58,6 +58,7 @@ class FormFactor(str, Enum):
     RACK = "rack"
     M2 = "m2"
     MXMX = "mxm"  # MXM module
+    SMARC = "smarc"  # SGeT SMARC 2.x, 82x50 mm (short) / 82x80 mm (full)
     # VITA / SOSA open-standard form factors
     VPX_3U = "vpx_3u"  # VITA 46/65, 160×100 mm
     VPX_6U = "vpx_6u"  # VITA 46/65, 233×160 mm

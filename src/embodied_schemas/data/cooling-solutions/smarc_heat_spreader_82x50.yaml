@@ -1,0 +1,55 @@
+# SGeT SMARC 2.1.1 standard heat spreader for the 82 x 50 mm module.
+#
+# First SWaP-C²-aware cooling entry (RFC 0001 R1, phase S1). The geometry
+# is from the standard; the thermal ratings are not, see notes.
+#
+# SGeT SMARC 2.1.1 Hardware Specification, s.5.10:
+#   "The heat spreader plate is sized at 82mm x 42mm x 3mm, and sits 3mm
+#    above the SMARC Module."
+# The 42 mm 'Y' dimension clears the MXM3 connector, so the plate stays
+# inside the module's 82 x 50 mm footprint.
+
+id: smarc_heat_spreader_82x50
+name: "SMARC 2.1.1 standard heat spreader (82 x 50 mm module)"
+cooling_mechanism: passive_heatsink_small
+max_power_density_w_per_mm2: 0.5
+max_total_w: 15.0
+ambient_c_max: 85.0        # ceiling only (= surface_c_max); no sourced air rating, see notes
+surface_c_max: 85.0        # SECO: rated "at any point of SECO standard heatspreader"
+junction_c_max: 100.0
+form_factor_constraints:
+  - "plate 82x42x3mm, 3mm above module"
+  - "requires thermal coupling to enclosure or system heatsink"
+dimensions_mm: [82.0, 42.0, 3.0]
+basis: datasheet
+source: >-
+  SGeT SMARC 2.1.1 Hardware Specification, s.5.10 (plate geometry) and
+  s.1 ("Module power envelope is typically under 6W although designs up to
+  about 15W are possible"); SECO SOM-SMARC datasheets (temperature measured
+  at the SECO standard heat spreader)
+confidence: theoretical
+last_updated: "2026-10-02"
+notes: |
+  Only the geometry (82 x 42 x 3 mm, on the module's top face) is from the
+  standard. weight_g and cost_usd are not set: no source states them for
+  the QCS6490 part. SECO prices heat spreaders for other SMARC modules at
+  USD 10.50 (RC12-DISS-1-PK, SECO e-shop, 2024) and USD 18.00
+  (RB69-DISS-1-I-PK, WDL Systems, seen 2026-10-02); those are other parts
+  and are not used here.
+
+  A spreader is a thermal interface, not a heatsink: it moves heat to the
+  enclosure or a system heatsink, which this entry does not include.
+  Thermal ratings:
+    - max_total_w 15 W: the SMARC module power ceiling ("designs up to
+      about 15W are possible"), not a measured spreader rating.
+    - surface_c_max 85 C (sourced): SECO rates its industrial modules at
+      -30/-40 to +85 C "measured at any point of SECO standard heatspreader",
+      and states that the actual temperature "will widely depend on
+      application, enclosure and/or environment".
+    - ambient_c_max 85 C is NOT an air rating. No source gives one: it
+      depends on the enclosure or heatsink the spreader is coupled to. The
+      field is required, so it holds the physical ceiling -- a passive
+      spreader cannot reject heat into air hotter than its own 85 C surface
+      limit. Real enclosures need ambient well below it.
+    - junction_c_max 100 C and max_power_density 0.5 W/mm^2 are
+      placeholders copied from passive_heatsink_small.

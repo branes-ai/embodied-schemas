@@ -25,9 +25,16 @@ are intentionally different vocabularies.
 
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from embodied_schemas.gpu import Foundry
+from embodied_schemas.serialization import omit_if_default
 
 
 class DataConfidence(str, Enum):
@@ -264,6 +271,20 @@ class ProcessNodeEntry(BaseModel):
     m1_pitch_nm: int | None = Field(None, description="M1 metal pitch in nm")
 
     # Cooling compatibility (advisory)
+    # SWaP-C² silicon-cost estimator inputs (RFC 0001 R1, S1). Optional.
+    # Variable cost only (D9): no mask-set or design amortization.
+    wafer_cost_usd: float | None = Field(
+        None, gt=0, description="Processed-wafer price in USD (variable cost per wafer)"
+    )
+    wafer_diameter_mm: float | None = Field(
+        None, gt=0, description="Wafer diameter in mm; None = 300 mm"
+    )
+    defect_density_per_cm2: float | None = Field(
+        None, ge=0, description="D0 for the yield model, defects per cm^2"
+    )
+    wafer_cost_source: str | None = Field(
+        None, description="Citation for wafer_cost_usd and defect_density_per_cm2"
+    )
     cooling_compatible: list[str] = Field(
         default_factory=list,
         description="CoolingSolution ids commonly paired with this node (advisory)",
@@ -280,6 +301,15 @@ class ProcessNodeEntry(BaseModel):
     notes: str = Field("", description="Additional notes")
 
     model_config = {"extra": "forbid"}
+
+    # v14 additive fields are left out of dumps while unset (``serialization``).
+    @model_serializer(mode="wrap")
+    def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
+        return omit_if_default(
+            self,
+            handler,
+            ("wafer_cost_usd", "wafer_diameter_mm", "defect_density_per_cm2", "wafer_cost_source"),
+        )
 
     @model_validator(mode="after")
     def _sources_name_entries(self) -> "ProcessNodeEntry":

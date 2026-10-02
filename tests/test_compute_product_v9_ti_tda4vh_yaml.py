@@ -51,7 +51,7 @@ def test_ti_vendor_has_three_skus(all_products):
 def test_catalog_dsp_count_at_least_six(all_products):
     dsp_count = sum(
         1 for cp in all_products.values()
-        if cp.dies[0].blocks[0].kind == "dsp"
+        if cp.dies and cp.dies[0].blocks[0].kind == "dsp"
     )
     assert dsp_count >= 6
 
