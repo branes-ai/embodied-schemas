@@ -42,6 +42,10 @@
 - {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: power, variant: typ, value: 2.5, unit: w, as_of: "2025-06", basis: datasheet,
    source_id: hailo_10h_m2_key_m_datasheet, conditions: {workload: "ResNet-50 224x224 @ 1015 FPS"},
    quote: "Resnet-50 224x224 @ 1015 FPS 2.5W"}
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: power, variant: typ_qwen2, value: 2.2, unit: w,
+   as_of: "2025-06", basis: datasheet, source_id: hailo_10h_m2_key_m_datasheet,
+   conditions: {workload: "QWEN2 1.5B @ 11 TPS"}, quote: "QWEN2 1.5B @ 11 TPS 2.2W",
+   notes: "The lowest operating point the datasheet states."}
 - {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: unit_price, variant: qty_1, value: 229.0, unit: usd, as_of: "2026-10",
    basis: list_price, source_id: upshop_hailo_10h_8g_m2, conditions: {quantity: 1, distributor: UP Shop, heatsink: "without"},
    quote: "Hailo-10H M.2 2280 M key [8G RAM] | W/O Heatsink $229.00"}

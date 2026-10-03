@@ -95,7 +95,10 @@ class TestHeldToSourceDB:
         assert products[H8].power.max_power_watts == db.value(f"{H8}.power.max@{src}")
         h10 = {p.tdp_watts for p in products[H10].power.thermal_profiles}
         src10 = "hailo_10h_m2_key_m_datasheet"
-        assert h10 == {db.value(f"{H10}.power.{v}@{src10}") for v in ("typ", "max")}
+        assert h10 == {db.value(f"{H10}.power.{v}@{src10}") for v in ("typ_qwen2", "typ", "max")}
+        # The minimum is the lowest stated operating point, below the 2.5 W typical.
+        assert products[H10].power.min_power_watts == db.value(f"{H10}.power.typ_qwen2@{src10}")
+        assert products[H8].power.min_power_watts == db.value(f"{H8}.power.typ_mobilenet_ssd@{src}")
 
 
 class TestUnsourcedStaysUnset:

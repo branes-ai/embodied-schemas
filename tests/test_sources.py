@@ -33,8 +33,12 @@ def db() -> SourceDB:
     return load_source_db()
 
 
+def complete_envelope(db: SourceDB, subject: str) -> bool:
+    return all(db.find(q, subject) for q in ("length", "width", "height"))
+
+
 def heatsinks(db: SourceDB) -> list[str]:
-    return [s for s in db.subjects("mass", category="heatsink") if db.find("length", s)]
+    return [s for s in db.subjects("mass", category="heatsink") if complete_envelope(db, s)]
 
 
 def envelope_cm3(db: SourceDB, subject: str) -> float:
@@ -200,6 +204,7 @@ class TestThermalConsistency:
         priced = sorted(
             (envelope_cm3(db, o.subject), o.value)
             for o in db.find("unit_price", variant="qty_1", category="heatsink")
+            if complete_envelope(db, o.subject)
         )
         assert [p for _, p in priced] == sorted(p for _, p in priced)
 

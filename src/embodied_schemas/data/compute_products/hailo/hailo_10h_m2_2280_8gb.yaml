@@ -33,9 +33,13 @@ performance:                            # "NN Capacity 40 | 20 TOPS (INT4 | INT8
 power:
   tdp_watts: 8.25                       # no TDP stated; the datasheet maximum
   max_power_watts: 8.25                 # "It consumes up to 8.25W"
-  min_power_watts: 2.5
+  min_power_watts: 2.2                  # lowest stated operating point (QWEN2 1.5B)
   default_thermal_profile: '8.25W'
   thermal_profiles:                     # module power at the 3.3 V pins; chip clock
+  - name: '2.2W'                        # QWEN2 1.5B @ 11 TPS
+    tdp_watts: 2.2
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_heatsink_small
   - name: '2.5W'                        # ResNet-50 224x224 @ 1015 FPS
     tdp_watts: 2.5
     clock_mhz: 1000.0
