@@ -90,7 +90,7 @@ def test_other_vendors_unaffected_by_coral_addition(all_products):
     stillwater = [s for s, cp in all_products.items() if cp.vendor == "stillwater"]
     nvidia = [s for s, cp in all_products.items() if cp.vendor == "nvidia"]
     intel = [s for s, cp in all_products.items() if cp.vendor == "intel"]
-    hailo = [s for s, cp in all_products.items() if cp.vendor == "hailo"]
+    hailo = [s for s, cp in all_products.items() if cp.vendor == "hailo" and cp.dies]
     assert len(stillwater) == 14
     assert len(nvidia) == 2
     assert len(intel) == 4  # i7-12700k + 3 Xeons: 8490H + 8592+ + 6980P (sprint #68 PR 1-3)

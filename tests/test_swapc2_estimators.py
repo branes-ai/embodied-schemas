@@ -458,3 +458,34 @@ class TestSetNestedFlowStyle:
         monkeypatch.setattr(est, "_set_nested_lines", lambda *a: "id: changed\n")
         with pytest.raises(ValueError, match="changed more than the target"):
             est.set_nested("id: p\n", est.DIE_COST_PATH, DIE)
+
+
+def test_price_fit_skips_heatsinks_without_full_envelope():
+    """A priced heatsink missing a dimension is left out, not an IndexError."""
+    from embodied_schemas.sources import Observation, SourceDB
+
+    db = est.source_db()
+    partial = [
+        Observation(
+            category="heatsink",
+            subject="partial_sink",
+            quantity=q,
+            value=v,
+            unit=u,
+            as_of="2026",
+            basis="datasheet",
+            source_id="lee_1995_select_heat_sink",
+            quote="test",
+            variant=var,
+            conditions=cond,
+        )
+        for q, v, u, var, cond in [
+            ("length", 30.0, "mm", None, {}),
+            ("width", 30.0, "mm", None, {}),
+            ("mass", 20.0, "g", None, {}),
+            ("unit_price", 1000.0, "usd", "qty_1", {"quantity": 1}),
+        ]
+    ]
+    extended = SourceDB(list(db.documents.values()), list(db.observations.values()) + partial)
+    assert "partial_sink" not in est.heatsink_subjects(extended)
+    assert est.sink_price_fit(extended) == est.sink_price_fit(db)  # its $1000 is ignored

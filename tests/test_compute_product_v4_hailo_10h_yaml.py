@@ -62,7 +62,7 @@ def hailo10h_npu_block(hailo10h_compute_die) -> NPUBlock:
 # ---------------------------------------------------------------------------
 
 def test_catalog_now_includes_both_hailo_skus(all_products):
-    hailo_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "hailo")
+    hailo_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "hailo" and cp.dies)
     assert hailo_skus == ["hailo_hailo_10h", "hailo_hailo_8"]
 
 

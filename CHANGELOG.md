@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-03
+
+Hailo M.2 modules, verified against Hailo's datasheets. RFC 0001 phase S3,
+slice b. Two new `module` products. Source observations now carry a
+required `category`.
+
+**Catalog.** Every SWaP-C² value is a source-DB figure
+(`observations/m2_modules.yaml`), and a test holds each YAML to it.
+
+- `hailo_8_m2_2242_m` (HM218B1C2HAE) contains `hailo_hailo_8`:
+  - 42 × 22 × 2.626 mm;
+  - 6 g (reseller listing; Hailo publishes no mass);
+  - profiles 2.4 / 3.3 W (MobileNet-SSD / ResNet-50 typical) and 8.65 W
+    (datasheet TDP);
+  - $179.99 at quantity 1.
+- `hailo_10h_m2_2280_8gb` (HM22HB1C2FAE) contains `hailo_hailo_10h`:
+  - 80 × 22 × 2.8 mm (1.5 + 0.5 mm components on the 0.8 mm M.2 board);
+  - 8 GB LPDDR4;
+  - profiles 2.5 W (typical) and 8.25 W (maximum);
+  - $229 at quantity 1.
+  - Mass is unresolved: no source gives one.
+- **The legacy `HardwareEntry` Hailo data is wrong.** The datasheets
+  contradict `hailo_8_m2`, `hailo_8l_m2` and `hailo_10h_m2` on:
+  - thickness (2.626 mm, not 3.5 mm);
+  - TDP (8.65 / 6.6 W, not 5 / 3 W);
+  - the Hailo-10H size (2280, not 2242).
+
+  Their masses and prices have no source. None of it is used.
+- `hailo_8l_m2` is not converted: there is no Hailo-8L chip product yet.
+
+**Source DB.**
+
+- Six documents: the Hailo-8 and 10H datasheets, the Waveshare and UP Shop
+  listings, and Hackaday's M.2 article for the 0.8 mm board.
+- 17 observations.
+- `Observation.category` (new, required): heatsink, fan, m2_module,
+  process_node, method, material or standard. One subject has one category.
+- `find(..., category=)` and `subjects(..., category=)` filter on it. The
+  estimator and the validation tests use it instead of inferring a
+  subject's kind from which quantities it has.
+
+**Tests.** Per-vendor product counts now count chip-level SKUs
+(`cp.dies`). Modules contain chips rather than add to them.
+
+**Known limit.** The S1 envelope rule puts cooling on the product's
+footprint. A sized passive sink for the Hailo-8 at 8.65 W (68 g, about
+69 cm³) becomes a 78 mm stack on a 42 × 22 mm card. The mass is plausible;
+the shape is not.
+
 ## [0.18.0] - 2026-10-03
 
 Die cost for the products whose silicon can be costed. RFC 0001 phase S3,

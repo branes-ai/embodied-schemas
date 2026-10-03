@@ -172,3 +172,40 @@
   url: https://www.findchips.com/search/
   accessed: "2026-10-02"
   notes: Prices from listed distributors (Avnet, RS, TME) on the access date.
+
+# --- Hailo M.2 modules (S3b) ------------------------------------------------
+- id: hailo_8_m2_key_m_datasheet
+  title: "Hailo-8 M.2 Key M ET Module Data Sheet Rev 2.5"
+  publisher: Hailo
+  kind: datasheet
+  published: "2025-11"
+  url: https://hailo.ai/hailo-files/hailo-8-m-2-key-m-et-datasheet-en/
+  accessed: "2026-10-02"
+- id: waveshare_hailo_8
+  title: Hailo-8 M.2 2242 Key M AI accelerator module
+  publisher: Waveshare
+  kind: product_page
+  url: https://www.waveshare.com/hailo-8.htm
+  accessed: "2026-10-02"
+- id: hailo_10h_m2_key_m_datasheet
+  title: "Hailo-10H M.2 Key M ET Module Data Sheet Rev. 1.0"
+  publisher: Hailo
+  kind: datasheet
+  published: "2025-06"
+  url: https://hailo.ai/hailo-files/hailo-10h-m-2-key-m-et-datasheet-en/
+  accessed: "2026-10-02"
+- id: upshop_hailo_10h_8g_m2
+  title: Hailo-10H M.2 2280 M key [8G RAM]
+  publisher: UP Shop (AAEON)
+  kind: product_page
+  url: https://up-shop.org/default/hailo10-8g-m2-key.html
+  accessed: "2026-10-02"
+- id: hackaday_2022_m2_for_hackers
+  title: "M.2 For Hackers – Cards"
+  author: Arya Voronova
+  publisher: Hackaday
+  kind: article
+  published: "2022-11-07"
+  url: https://hackaday.com/2022/11/07/m-2-for-hackers-cards/
+  accessed: "2026-10-03"
+  notes: Secondary source for the M.2 card PCB thickness; the PCI-SIG M.2 specification is not public.
