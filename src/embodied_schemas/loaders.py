@@ -647,4 +647,13 @@ def validate_data_integrity(data_dir: Path | None = None) -> list[str]:
         products = {}  # per-file errors are reported above
     errors.extend(check_contains_references(products))
 
+    # The source database behind estimated values (data/sources/).
+    if (data_dir / "sources").is_dir():
+        from embodied_schemas.sources import load_source_db
+
+        try:
+            load_source_db(data_dir)
+        except Exception as e:
+            errors.append(f"{data_dir / 'sources'}: {e}")
+
     return errors

@@ -11,8 +11,12 @@ junction_c_max: 100.0
 form_factor_constraints:
   - "height<=15mm"
   - "no fan"
-weight_g: 30.0
-cost_usd: 2.0
+cost_usd: 5.1608
+volume_cm3_per_w: 8.3333
+mass_g_per_w: 7.9065
+cost_usd_per_w: 0.3976
+basis: "estimated"
+sizing_source: "cooling_sizing_v1 (scripts/swapc2_estimators.py); r_vol=500 [natural_convection.volumetric_thermal_resistance@lee_1995_select_heat_sink (min of 500-800)]; delta_t=60 [entry junction_c_max 100 - ambient_c_max 40; ignores the junction-to-sink drop, so the sink is a lower bound]; solid_fraction=0.3514 [median mass/envelope 0.949 g/cm3 of 13 heatsinks (alpha_novatech_n30_25b, alpha_novatech_n50_15b, alpha_novatech_n80_40b, ats_kra_3559_c1_r0, ats_krp_3559_c1_r0, ats_krp_3561_c1_r0, ats_krp_3563_c1_r0, ats_krp_3567_c1_r0, ats_mf4217, ats_sf4217, toradex_smarc_heatsink_passive, wakefield_655_53ab, wakefield_698_100ab) / aluminum_6063_t5.material_density@quickparts_al_6063_t5]; density=2.7 [aluminum_6063_t5.material_density@quickparts_al_6063_t5]; base_cost_usd=5.1608 [intercept of least-squares price = a + b x envelope over alpha_novatech_n30_25b.unit_price.qty_1@luxeonstar_alpha_n30_25b, alpha_novatech_n50_15b.unit_price.qty_1@luxeonstar_alpha_n50_15b, alpha_novatech_n80_40b.unit_price.qty_1@luxeonstar_alpha_n80_40b]; cost_per_cm3=0.047713 [slope of least-squares price = a + b x envelope over alpha_novatech_n30_25b.unit_price.qty_1@luxeonstar_alpha_n30_25b, alpha_novatech_n50_15b.unit_price.qty_1@luxeonstar_alpha_n50_15b, alpha_novatech_n80_40b.unit_price.qty_1@luxeonstar_alpha_n80_40b]"
 source: "Jetson Orin Nano thermal datasheet; Coral USB accelerator notes"
 confidence: theoretical
 last_updated: "2026-05-09"

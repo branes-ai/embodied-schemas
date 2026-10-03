@@ -97,6 +97,10 @@ cooling_compatible:
   - active_fan
   - vapor_chamber
 
+# SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
+wafer_cost_usd: 3984.0
+wafer_diameter_mm: 300.0
+wafer_cost_source: "source DB (data/sources/): wafer_cost_usd = tsmc_n12.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); no sourced D0"
 source: "TSMC 12FFC announcement 2017; Wikichip"
 confidence: theoretical
 last_updated: "2026-05-09"
