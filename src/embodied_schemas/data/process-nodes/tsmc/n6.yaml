@@ -132,7 +132,7 @@ cooling_compatible:
 
 # SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
 defect_density_per_cm2: 0.09
-wafer_cost_source: "source DB (data/sources/): no sourced wafer price; defect_density_per_cm2 = tsmc_n6.defect_density@tomshw_2020_08_24_tsmc_symposium (same as N7)"
+wafer_cost_source: "source DB (data/sources/): no sourced wafer price; defect_density_per_cm2 = tsmc_n6.defect_density@tomshw_2020_08_24_tsmc_symposium (same as N7, derived from tsmc_n7.defect_density@anandtech_2020_08_25_tsmc_d0)"
 source: "TSMC N6 design rule scaling vs N7; widely reported mobile-SoC characteristics"
 confidence: theoretical
 last_updated: "2026-05-18"

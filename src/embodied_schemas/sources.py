@@ -24,7 +24,9 @@ Query API (``SourceDB``): ``get``, ``find``, ``value``, ``series``, and
 
 from __future__ import annotations
 
+import re
 import sqlite3
+from datetime import date
 from enum import Enum
 from pathlib import Path
 
@@ -53,6 +55,7 @@ class FigureBasis(str, Enum):
     MODEL_ESTIMATE = "model_estimate"  # the source's own model output
     MEASURED = "measured"  # measured by the source
     DISCLOSED = "disclosed"  # disclosed by the manufacturer (e.g. at a symposium)
+    DERIVED = "derived"  # taken from other observations (``derived_from``)
 
 
 # Every quantity the database holds, with its one allowed unit.
@@ -72,6 +75,36 @@ QUANTITY_UNITS: dict[str, str] = {
 }
 
 
+# Lower bound each quantity's figures must respect: ("gt", 0) means > 0.
+QUANTITY_BOUNDS: dict[str, tuple[str, float]] = {
+    "wafer_price": ("gt", 0.0),
+    "defect_density": ("ge", 0.0),
+    "volumetric_thermal_resistance": ("gt", 0.0),
+    "thermal_resistance": ("gt", 0.0),
+    "mass": ("gt", 0.0),
+    "length": ("gt", 0.0),
+    "width": ("gt", 0.0),
+    "height": ("gt", 0.0),
+    "unit_price": ("ge", 0.0),
+    "material_density": ("gt", 0.0),
+    "power": ("ge", 0.0),
+    "airflow": ("gt", 0.0),
+}
+
+_DATE_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
+
+
+def check_date(value: str, field: str) -> str:
+    """``value`` must be ISO ``YYYY``, ``YYYY-MM`` or ``YYYY-MM-DD`` and a real
+    date, so lexicographic order is chronological order."""
+    m = _DATE_RE.match(value)
+    if not m:
+        raise ValueError(f"{field} {value!r} is not YYYY, YYYY-MM or YYYY-MM-DD")
+    year, month, day = m.group(1), m.group(2), m.group(3)
+    date(int(year), int(month or 1), int(day or 1))  # raises on e.g. 2022-13
+    return value
+
+
 class SourceDocument(BaseModel):
     """One document figures are quoted from."""
 
@@ -87,6 +120,15 @@ class SourceDocument(BaseModel):
     notes: str = ""
 
     model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _dates(self) -> SourceDocument:
+        check_date(self.accessed, "accessed")
+        if len(self.accessed) != 10:
+            raise ValueError(f"accessed {self.accessed!r} must be a full YYYY-MM-DD date")
+        if self.published is not None:
+            check_date(self.published, "published")
+        return self
 
 
 class Observation(BaseModel):
@@ -112,6 +154,10 @@ class Observation(BaseModel):
     source_id: str
     quote: str = Field(..., min_length=1, description="Exact text or table row quoted")
     conditions: dict[str, str | float] = Field(default_factory=dict)
+    derived_from: list[str] = Field(
+        default_factory=list,
+        description="Keys of the observations a 'derived' figure is taken from",
+    )
     notes: str = ""
 
     model_config = {"extra": "forbid"}
@@ -129,6 +175,13 @@ class Observation(BaseModel):
         hi = self.value_max if self.value_max is not None else self.value
         if not lo <= self.value <= hi:
             raise ValueError(f"{self.key}: value {self.value} outside [{lo}, {hi}]")
+        op, bound = QUANTITY_BOUNDS[self.quantity]
+        if not (lo > bound if op == "gt" else lo >= bound):
+            sign = ">" if op == "gt" else ">="
+            raise ValueError(f"{self.key}: {self.quantity} must be {sign} {bound:g}, got {lo}")
+        check_date(self.as_of, "as_of")
+        if (self.basis == FigureBasis.DERIVED) != bool(self.derived_from):
+            raise ValueError(f"{self.key}: basis 'derived' and derived_from go together")
         return self
 
     @property
@@ -152,6 +205,12 @@ class SourceDB:
             if obs.key in self.observations:
                 raise ValueError(f"duplicate observation {obs.key}")
             self.observations[obs.key] = obs
+        for obs in self.observations.values():
+            for ref in obs.derived_from:
+                if ref not in self.observations:
+                    raise ValueError(f"{obs.key}: derived_from unknown observation {ref!r}")
+                if self.observations[ref].quantity != obs.quantity:
+                    raise ValueError(f"{obs.key}: derived_from {ref!r} is another quantity")
 
     def get(self, key: str) -> Observation:
         """One observation by key. Raises KeyError."""
@@ -246,12 +305,19 @@ def load_source_db(data_dir: Path | None = None) -> SourceDB:
 
     root = (data_dir or get_data_dir()) / "sources"
     raw_docs = yaml.safe_load((root / "documents.yaml").read_text(encoding="utf-8")) or []
+    if not raw_docs:
+        raise ValueError(f"{root / 'documents.yaml'}: no source documents")
     documents = [SourceDocument.model_validate(d) for d in raw_docs]
+    paths = sorted((root / "observations").glob("*.yaml"))
+    if not paths:
+        raise ValueError(f"{root / 'observations'}: no observation files")
     observations = []
-    for path in sorted((root / "observations").glob("*.yaml")):
+    for path in paths:
         for i, raw in enumerate(yaml.safe_load(path.read_text(encoding="utf-8")) or []):
             try:
                 observations.append(Observation.model_validate(raw))
             except Exception as exc:
                 raise ValueError(f"{path.name}[{i}]: {exc}") from exc
+    if not observations:
+        raise ValueError(f"{root / 'observations'}: no observations")
     return SourceDB(documents, observations)

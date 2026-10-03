@@ -206,3 +206,36 @@ def test_sizing_needs_an_air_rating():
     spreader = load_cooling_solutions()["smarc_heat_spreader_82x50"]
     with pytest.raises(ValueError, match="no ambient_c_max"):
         est.delta_t(spreader)
+
+
+# ---------------------------------------------------------------------------
+# Review hardening
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "field,value", [("delta_t", 0.0), ("delta_t", -5.0), ("r_vol", 0.0), ("solid_fraction", 1.5)]
+)
+def test_size_cooling_rejects_bad_inputs(field, value):
+    good = dict(r_vol=P(600.0), delta_t=P(40.0), solid_fraction=P(0.2), density=P(2.7))
+    good[field] = P(value)
+    with pytest.raises(ValueError, match=field):
+        est.size_cooling(est.CoolingSizing(**good))
+
+
+def test_render_keeps_inline_comment_on_owned_field():
+    text = "id: x\nweight_g: 400.0  # mounting hardware included\nsource: s\n"
+    out = est.render(text, {"weight_g": 20.0}, est.COOLING_OWNED)
+    assert "weight_g: 20.0  # mounting hardware included\n" in out
+
+
+def test_write_fails_on_an_invalid_rewrite(tmp_path, monkeypatch):
+    import shutil
+
+    cool = tmp_path / "cooling-solutions"
+    shutil.copytree(est.COOLING_DIR, cool)
+    monkeypatch.setattr(est, "COOLING_DIR", cool)
+    monkeypatch.setattr(est, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(est, "expected_cooling_fields", lambda _id: {"weight_g": -1.0})
+    with pytest.raises(Exception, match="weight_g"):
+        est.run_cooling(write=True)

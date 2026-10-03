@@ -56,6 +56,7 @@
    quote: "TSMC's N5 process currently sits around 0.10 to 0.11 defects per square centimeter, and the company expects to go below 0.10 as high volume manufacturing ramps into next quarter.",
    notes: "value is the lower bound of the quoted range, which TSMC expected to undercut the next quarter."}
 - {subject: tsmc_n6, quantity: defect_density, value: 0.09, unit: per_cm2, as_of: "2020-08",
-   basis: disclosed, source_id: tomshw_2020_08_24_tsmc_symposium, conditions: {maturity: "same as N7", venue: TSMC Technology Symposium 2020},
+   basis: derived, source_id: tomshw_2020_08_24_tsmc_symposium, conditions: {maturity: "same as N7", venue: TSMC Technology Symposium 2020},
+   derived_from: [tsmc_n7.defect_density@anandtech_2020_08_25_tsmc_d0],
    quote: "TSMC says N6 already has the same defect density as N7.",
-   notes: "The source gives no number; the value is N7's 0.09 (anandtech_2020_08_25_tsmc_d0)."}
+   notes: "The source states equality with N7 but gives no number; the value is the derived_from N7 figure."}

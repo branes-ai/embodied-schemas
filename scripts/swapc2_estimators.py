@@ -40,7 +40,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from embodied_schemas.cooling_solution import CoolingSolutionEntry
-from embodied_schemas.loaders import load_cooling_solutions, load_process_nodes
+from embodied_schemas.loaders import (
+    load_and_validate,
+    load_cooling_solutions,
+    load_process_nodes,
+)
 from embodied_schemas.process_node import DataConfidence, ProcessNodeEntry
 from embodied_schemas.sources import SourceDB, load_source_db
 from embodied_schemas.swapc2 import SourcedValue, ValueBasis
@@ -167,7 +171,17 @@ class CoolingSizing:
 
 
 def size_cooling(sizing: CoolingSizing) -> dict[str, float]:
-    """The SWaP-C² fields ``cooling_sizing_v1`` writes for one entry."""
+    """The SWaP-C² fields ``cooling_sizing_v1`` writes for one entry.
+
+    Raises:
+        ValueError: a non-positive R_vol, dT, solid fraction or density, or a
+            solid fraction above 1.
+    """
+    for name in ("r_vol", "delta_t", "solid_fraction", "density"):
+        if getattr(sizing, name).value <= 0:
+            raise ValueError(f"{name} must be positive, got {getattr(sizing, name).value}")
+    if sizing.solid_fraction.value > 1:
+        raise ValueError(f"solid_fraction must be <= 1, got {sizing.solid_fraction.value}")
     volume_per_w = sizing.r_vol.value / sizing.delta_t.value
     fields = {
         "volume_cm3_per_w": volume_per_w,
@@ -347,6 +361,17 @@ def _yaml_scalar(value: object) -> str:
     return repr(float(value)) if isinstance(value, float) else str(value)
 
 
+_SCALAR_RE = re.compile(
+    r"""^[a-z_0-9]+:\s*(?:"(?:[^"\\]|\\.)*"|'[^']*'|[^#\n]*?)(\s+#[^\n]*)?\s*$"""
+)
+
+
+def _inline_comment(line: str) -> str:
+    """The ``  # ...`` comment trailing a one-line ``key: value``, or ''."""
+    m = _SCALAR_RE.match(line.rstrip("\n"))
+    return m.group(1) if m and m.group(1) else ""
+
+
 def render(text: str, fields: dict[str, object], owned: tuple[str, ...]) -> str:
     """``text`` with the ``owned`` top-level fields set to ``fields``: lines
     replaced in place (block-scalar continuations included), missing fields
@@ -362,7 +387,7 @@ def render(text: str, fields: dict[str, object], owned: tuple[str, ...]) -> str:
         if key in owned:
             skipping = True
             if key in fields and key not in seen:
-                out.append(f"{key}: {_yaml_scalar(fields[key])}\n")
+                out.append(f"{key}: {_yaml_scalar(fields[key])}{_inline_comment(line)}\n")
                 seen.add(key)
             continue
         if key == "source":
@@ -431,8 +456,9 @@ def run_cooling(write: bool) -> int:
             path.read_text(encoding="utf-8"), expected_cooling_fields(entry_id), COOLING_OWNED
         )
         status |= _check_or_write(path, new, COOLING_SIZING, write)
-    if write:
-        load_cooling_solutions()  # the rewritten entries must still validate
+    if write:  # each rewritten entry must still validate; raise if not
+        for entry_id in SIZED_ENTRIES:
+            load_and_validate(paths[entry_id], CoolingSolutionEntry)
     return status
 
 
@@ -483,7 +509,8 @@ def expected_node_fields(node_id: str, db: SourceDB | None = None) -> dict[str, 
     if d0_key:
         d0 = db.get(d0_key)
         fields["defect_density_per_cm2"] = d0.value
-        cites.append(f"defect_density_per_cm2 = {d0_key} ({d0.conditions.get('maturity')})")
+        via = f", derived from {', '.join(d0.derived_from)}" if d0.derived_from else ""
+        cites.append(f"defect_density_per_cm2 = {d0_key} ({d0.conditions.get('maturity')}{via})")
     else:
         cites.append("no sourced D0")
     fields["wafer_cost_source"] = "source DB (data/sources/): " + "; ".join(cites)
@@ -498,8 +525,9 @@ def run_nodes(write: bool) -> int:
         path = paths[node_id]
         new = render(path.read_text(encoding="utf-8"), expected_node_fields(node_id), NODE_OWNED)
         status |= _check_or_write(path, new, "the source DB", write)
-    if write:
-        load_process_nodes()
+    if write:  # each rewritten node must still validate; raise if not
+        for node_id in NODE_INPUTS:
+            load_and_validate(paths[node_id], ProcessNodeEntry)
     return status
 
 

@@ -296,3 +296,93 @@ class TestQuery:
             "ORDER BY o.value"
         ).fetchall()
         assert rows[0] == ("tsmc_n65", 1937.0) and rows[-1] == ("tsmc_n5", 16988.0)
+
+
+# ---------------------------------------------------------------------------
+# 6. Review hardening: dates, bounds, derivations, completeness
+# ---------------------------------------------------------------------------
+
+
+def _obs(**kw):
+    base = dict(
+        subject="x",
+        quantity="mass",
+        value=1.0,
+        unit="g",
+        as_of="2020",
+        basis="datasheet",
+        source_id="d",
+        quote="q",
+    )
+    base.update(kw)
+    return Observation(**base)
+
+
+DOC = SourceDocument(
+    id="d", title="t", publisher="p", kind="article", url="u", accessed="2026-10-02"
+)
+
+
+class TestHardening:
+    @pytest.mark.parametrize("bad", ["2022-2", "2022-13", "22", "2022-02-30", "Nov 2022"])
+    def test_bad_as_of_rejected(self, bad):
+        with pytest.raises(ValidationError, match="as_of|YYYY|day|month"):
+            _obs(as_of=bad)
+
+    def test_bad_document_date_rejected(self):
+        with pytest.raises(ValidationError, match="accessed"):
+            SourceDocument(
+                id="d", title="t", publisher="p", kind="article", url="u", accessed="2026-10"
+            )
+
+    def test_iso_dates_sort_chronologically(self):
+        assert sorted(["2022-11", "2022", "2021-02-05", "2022-02"]) == [
+            "2021-02-05",
+            "2022",
+            "2022-02",
+            "2022-11",
+        ]
+
+    @pytest.mark.parametrize(
+        "quantity,unit,value",
+        [("length", "mm", 0.0), ("mass", "g", -1.0), ("unit_price", "usd", -0.01)],
+    )
+    def test_physical_bounds(self, quantity, unit, value):
+        with pytest.raises(ValidationError, match="must be"):
+            _obs(quantity=quantity, unit=unit, value=value)
+
+    def test_free_item_price_allowed(self):
+        assert _obs(quantity="unit_price", unit="usd", value=0.0).value == 0.0
+
+    def test_derived_needs_derived_from(self):
+        with pytest.raises(ValidationError, match="derived"):
+            _obs(basis="derived")
+        with pytest.raises(ValidationError, match="derived"):
+            _obs(derived_from=["y.mass@d"])
+
+    def test_derived_from_must_resolve_to_same_quantity(self):
+        with pytest.raises(ValueError, match="unknown observation"):
+            SourceDB([DOC], [_obs(basis="derived", derived_from=["nope.mass@d"])])
+        other = _obs(subject="y", quantity="length", unit="mm")
+        with pytest.raises(ValueError, match="another quantity"):
+            SourceDB([DOC], [other, _obs(basis="derived", derived_from=[other.key])])
+
+    def test_n6_d0_is_derived_from_n7(self, db):
+        n6 = db.get("tsmc_n6.defect_density@tomshw_2020_08_24_tsmc_symposium")
+        assert n6.basis.value == "derived"
+        assert n6.derived_from == ["tsmc_n7.defect_density@anandtech_2020_08_25_tsmc_d0"]
+        assert n6.value == db.value(n6.derived_from[0])
+
+    def test_empty_documents_rejected(self, tmp_path):
+        (tmp_path / "sources" / "observations").mkdir(parents=True)
+        (tmp_path / "sources" / "documents.yaml").write_text("[]\n")
+        with pytest.raises(ValueError, match="no source documents"):
+            load_source_db(tmp_path)
+
+    def test_missing_observations_rejected(self, tmp_path):
+        (tmp_path / "sources").mkdir()
+        (tmp_path / "sources" / "documents.yaml").write_text(
+            "- {id: d, title: t, publisher: p, kind: article, url: u, accessed: '2026-10-02'}\n"
+        )
+        with pytest.raises(ValueError, match="no observation files"):
+            load_source_db(tmp_path)
