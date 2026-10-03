@@ -15,12 +15,14 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import swapc2_estimators as est  # noqa: E402
 
 from embodied_schemas.loaders import load_cooling_solutions, load_process_nodes  # noqa: E402
+from embodied_schemas.process_node import DataConfidence  # noqa: E402
 from embodied_schemas.swapc2 import ValueBasis  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -239,3 +241,220 @@ def test_write_fails_on_an_invalid_rewrite(tmp_path, monkeypatch):
     monkeypatch.setattr(est, "expected_cooling_fields", lambda _id: {"weight_g": -1.0})
     with pytest.raises(Exception, match="weight_g"):
         est.run_cooling(write=True)
+
+
+# ---------------------------------------------------------------------------
+# products: die cost on the compute-product catalog (S3a)
+# ---------------------------------------------------------------------------
+
+
+def test_products_match_silicon_cost():
+    """Every eligible product's die_cost_usd is exactly what silicon_cost_v1 gives."""
+    assert est.run_products(write=False) == 0
+
+
+def test_die_cost_eligibility():
+    from embodied_schemas.loaders import load_compute_products
+
+    nodes = load_process_nodes()
+    products = load_compute_products()
+    eligible = {p for p, cp in products.items() if est.die_cost_eligible(cp, nodes)}
+    assert "kpu_t64_32x32_lp5x4_7nm_tsmc_hpc" in eligible
+    assert "amd_epyc_9654_sp5" not in eligible  # aggregated chiplets (13 dies as 2)
+    assert "kpu_t64_32x32_lp5x4_16nm_tsmc_ffp" not in eligible  # N16 has no sourced D0
+    assert "seco_som_smarc_qcs6490" not in eligible  # a module has no dies of its own
+    for pid in eligible:
+        cost = products[pid].swapc2.cost.die_cost_usd
+        assert cost.basis == ValueBasis.ESTIMATED and est.SILICON_COST in cost.source
+
+
+def test_die_cost_value_matches_model():
+    from embodied_schemas.loaders import load_compute_products
+
+    p = load_compute_products()["kpu_t512_32x32_lp5x32_7nm_tsmc_hpc"]
+    node = load_process_nodes()[p.dies[0].process_node_id]
+    expected = est.die_cost(p.dies[0].die_size_mm2, node).cost_usd.value
+    assert p.swapc2.cost.die_cost_usd.value == pytest.approx(expected, abs=0.005)
+
+
+def test_die_cost_is_not_a_unit_cost():
+    from embodied_schemas import resolve_swapc2
+    from embodied_schemas.loaders import load_compute_products
+
+    p = load_compute_products()["google_tpu_edge_pro"]
+    r = resolve_swapc2(p, cooling=load_cooling_solutions())
+    assert r.die_cost_usd is not None
+    assert r.unit_cost_1_usd is None  # no stated price; die cost does not stand in
+
+
+def test_render_emits_mapping_block():
+    text = "id: x\nconfidence: theoretical\n"
+    out = est.render(
+        text,
+        {"swapc2": {"cost": {"die_cost_usd": {"value": 1.5}}}},
+        ("swapc2",),
+        anchor="confidence",
+    )
+    assert out == (
+        "id: x\nswapc2:\n  cost:\n    die_cost_usd:\n      value: 1.5\n" "confidence: theoretical\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# PR #106 review: anchor-less insert, targeted nested edit, no PDK overlay
+# ---------------------------------------------------------------------------
+
+
+def test_render_appends_when_anchor_absent():
+    out = est.render("id: x\nname: y", {"basis": "estimated"}, est.COOLING_OWNED)
+    assert out == 'id: x\nname: y\nbasis: "estimated"\n'
+
+
+DIE = {"value": 2.5, "basis": "estimated"}
+
+EXISTING = """id: p
+swapc2:
+  # the module's own envelope
+  size:
+    dimensions_mm: {length_mm: 1.0}   # keep me
+
+  cost:
+    unit_price_1_usd: {value: 9.0}  # list price
+    die_cost_usd:
+      value: 1.0
+      basis: estimated
+
+  power:
+    input_voltage_v: [5.0, 5.0]
+confidence: theoretical
+"""
+
+
+class TestSetNested:
+    def test_replaces_only_the_leaf(self):
+        out = est.set_nested(EXISTING, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert "      value: 2.5\n" in out and "value: 1.0" not in out
+        for kept in (
+            "  # the module's own envelope\n",
+            "{length_mm: 1.0}   # keep me\n",
+            "{value: 9.0}  # list price\n",
+            "  power:\n",
+            "input_voltage_v: [5.0, 5.0]\n",
+        ):
+            assert kept in out
+        # The blank lines inside swapc2 survive and nothing stale is left behind.
+        assert out.count("\n\n") == 2
+        assert yaml.safe_load(out)["swapc2"]["cost"] == {
+            "unit_price_1_usd": {"value": 9.0},
+            "die_cost_usd": DIE,
+        }
+
+    def test_idempotent(self):
+        once = est.set_nested(EXISTING, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert est.set_nested(once, est.DIE_COST_PATH, DIE, anchor="confidence") == once
+
+    def test_adds_missing_leaf_inside_existing_parent(self):
+        text = "swapc2:\n  cost:\n    unit_price_1_usd: {value: 9.0}  # keep\nconfidence: x\n"
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert "{value: 9.0}  # keep\n    die_cost_usd:\n" in out
+        assert yaml.safe_load(out)["swapc2"]["cost"]["die_cost_usd"] == DIE
+
+    def test_adds_missing_branch_inside_existing_swapc2(self):
+        text = "swapc2:\n  power:\n    input_voltage_v: [5.0, 5.0]\nconfidence: x\n"
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        data = yaml.safe_load(out)["swapc2"]
+        assert data["power"] == {"input_voltage_v": [5.0, 5.0]}
+        assert data["cost"]["die_cost_usd"] == DIE
+
+    def test_creates_block_before_anchor(self):
+        out = est.set_nested("id: p\nconfidence: x\n", est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert out.startswith("id: p\nswapc2:\n  cost:\n    die_cost_usd:\n")
+        assert out.endswith("confidence: x\n")
+
+    def test_appends_without_anchor(self):
+        """A product without `confidence:` (it has a default) still gets its cost."""
+        out = est.set_nested("id: p\nname: q", est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert yaml.safe_load(out) == {
+            "id": "p",
+            "name": "q",
+            "swapc2": {"cost": {"die_cost_usd": DIE}},
+        }
+
+
+def test_products_writer_ignores_private_overlay(tmp_path, monkeypatch):
+    """A confidential PDK overlay must not feed public die costs: the value
+    the writer writes is the public-node calculation, not the overlay's."""
+    import shutil
+
+    from embodied_schemas.loaders import load_compute_products
+
+    pid = "kpu_t64_32x32_lp5x4_7nm_tsmc_hpc"
+    public = load_process_nodes(include_overlay=False)["tsmc_n7"]
+    overlay = public.model_copy(
+        update={
+            "confidence": DataConfidence.CALIBRATED,
+            "wafer_cost_usd": 1.0,
+            "wafer_cost_source": "CONFIDENTIAL PDK",
+        }
+    )
+    pdk = tmp_path / "pdk"
+    pdk.mkdir()
+    (pdk / "n7.yaml").write_text(yaml.safe_dump(overlay.model_dump(mode="json")))
+    monkeypatch.setenv("PROCESS_NODE_DATA_DIR", str(pdk))
+    assert load_process_nodes()["tsmc_n7"].wafer_cost_usd == 1.0  # the overlay is live
+
+    # Write into a copy of the catalog whose target product has no die cost yet.
+    products_dir = tmp_path / "compute_products"
+    shutil.copytree(est.PRODUCTS_DIR, products_dir)
+    monkeypatch.setattr(est, "PRODUCTS_DIR", products_dir)
+    monkeypatch.setattr(est, "REPO_ROOT", tmp_path)
+    target = est._paths_by_id(products_dir)[pid]
+    data = yaml.safe_load(target.read_text())
+    del data["swapc2"]
+    target.write_text(yaml.safe_dump(data, sort_keys=False))
+    assert est.run_products(write=True) == 0
+
+    written = yaml.safe_load(target.read_text())["swapc2"]["cost"]["die_cost_usd"]
+    die = load_compute_products()[pid].dies[0]
+    expected = est.die_cost(die.die_size_mm2, public).cost_usd.value
+    assert written["value"] == pytest.approx(round(expected, 2))
+    assert written["value"] != pytest.approx(
+        round(est.die_cost(die.die_size_mm2, overlay).cost_usd.value, 2)
+    )
+    assert "CONFIDENTIAL" not in target.read_text()
+
+
+class TestSetNestedFlowStyle:
+    def test_flow_parent_refused(self):
+        text = "swapc2:\n  cost: {unit_price_1_usd: {value: 9.0}}\nconfidence: x\n"
+        with pytest.raises(ValueError, match="swapc2.cost is not a block mapping"):
+            est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+
+    def test_multiline_flow_parent_refused(self):
+        text = "swapc2:\n  cost:\n    {unit_price_1_usd: {value: 9.0},\n     x: 1}\nconfidence: x\n"
+        with pytest.raises(ValueError, match="swapc2.cost is not a block mapping"):
+            est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+
+    def test_flow_leaf_is_replaced(self):
+        """A flow-style leaf under block parents is fine: the whole entry is replaced."""
+        text = "swapc2:\n  cost:\n    die_cost_usd: {value: 1.0}  # old\nconfidence: x\n"
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert yaml.safe_load(out)["swapc2"]["cost"]["die_cost_usd"] == DIE
+
+    @pytest.mark.parametrize(
+        "text",
+        ["swapc2:\nconfidence: x\n", "swapc2:\n  cost:\nconfidence: x\n"],
+        ids=["empty_swapc2", "empty_cost"],
+    )
+    def test_empty_parent_is_a_mapping(self, text):
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert yaml.safe_load(out)["swapc2"]["cost"]["die_cost_usd"] == DIE
+
+    def test_result_is_verified(self, monkeypatch):
+        """If the line edit ever goes wrong, the re-parse catches it before a write."""
+        monkeypatch.setattr(est, "_set_nested_lines", lambda *a: "swapc2: [unbalanced\n")
+        with pytest.raises(ValueError, match="invalid YAML"):
+            est.set_nested("id: p\n", est.DIE_COST_PATH, DIE)
+        monkeypatch.setattr(est, "_set_nested_lines", lambda *a: "id: changed\n")
+        with pytest.raises(ValueError, match="changed more than the target"):
+            est.set_nested("id: p\n", est.DIE_COST_PATH, DIE)

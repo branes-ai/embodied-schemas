@@ -26,6 +26,7 @@ Run:
     python scripts/swapc2_estimators.py cooling --check   # fail if YAMLs differ
     python scripts/swapc2_estimators.py cooling --write   # rewrite the fields
     python scripts/swapc2_estimators.py nodes --check     # process-node inputs vs source DB
+    python scripts/swapc2_estimators.py products --check  # die cost on eligible products
     python scripts/swapc2_estimators.py silicon <die_mm2> <process_node_id>
 """
 
@@ -39,9 +40,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
+from embodied_schemas.compute_product import ComputeProduct
 from embodied_schemas.cooling_solution import CoolingSolutionEntry
 from embodied_schemas.loaders import (
     load_and_validate,
+    load_compute_products,
     load_cooling_solutions,
     load_process_nodes,
 )
@@ -53,6 +58,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = REPO_ROOT / "src" / "embodied_schemas" / "data"
 COOLING_DIR = DATA_DIR / "cooling-solutions"
 PROCESS_NODE_DIR = DATA_DIR / "process-nodes"
+PRODUCTS_DIR = DATA_DIR / "compute_products"
 
 COOLING_SIZING = "cooling_sizing_v1"
 SILICON_COST = "silicon_cost_v1"
@@ -372,11 +378,22 @@ def _inline_comment(line: str) -> str:
     return m.group(1) if m and m.group(1) else ""
 
 
-def render(text: str, fields: dict[str, object], owned: tuple[str, ...]) -> str:
+def _emit(key: str, value: object, line: str = "") -> str:
+    """One owned field as YAML: a scalar keeps the old line's inline comment,
+    a mapping becomes a block."""
+    if isinstance(value, dict):
+        return yaml.safe_dump({key: value}, sort_keys=False, width=100, allow_unicode=True)
+    return f"{key}: {_yaml_scalar(value)}{_inline_comment(line)}\n"
+
+
+def render(
+    text: str, fields: dict[str, object], owned: tuple[str, ...], anchor: str = "source"
+) -> str:
     """``text`` with the ``owned`` top-level fields set to ``fields``: lines
     replaced in place (block-scalar continuations included), missing fields
-    inserted before ``source:``, and owned fields absent from ``fields``
-    removed. Comments and every other field are kept."""
+    inserted before the ``anchor:`` line (or appended when there is none),
+    and owned fields absent from ``fields`` removed. Comments and every other
+    field are kept."""
     out, seen, skipping = [], set(), False
     for line in text.splitlines(keepends=True):
         if skipping and line[:1] in (" ", "\t") and line.strip():
@@ -387,13 +404,17 @@ def render(text: str, fields: dict[str, object], owned: tuple[str, ...]) -> str:
         if key in owned:
             skipping = True
             if key in fields and key not in seen:
-                out.append(f"{key}: {_yaml_scalar(fields[key])}{_inline_comment(line)}\n")
+                out.append(_emit(key, fields[key], line))
                 seen.add(key)
             continue
-        if key == "source":
-            out.extend(f"{k}: {_yaml_scalar(v)}\n" for k, v in fields.items() if k not in seen)
+        if key == anchor:
+            out.extend(_emit(k, v) for k, v in fields.items() if k not in seen)
             seen.update(fields)
         out.append(line)
+    if any(k not in seen for k in fields):  # no anchor line: append at the end
+        if out and not out[-1].endswith("\n"):
+            out[-1] += "\n"
+        out.extend(_emit(k, v) for k, v in fields.items() if k not in seen)
     return "".join(out)
 
 
@@ -531,12 +552,192 @@ def run_nodes(write: bool) -> int:
     return status
 
 
+# ---------------------------------------------------------------------------
+# products: silicon_cost_v1 applied to the compute-product catalog
+# ---------------------------------------------------------------------------
+
+
+def die_cost_eligible(product: ComputeProduct, nodes: dict[str, ProcessNodeEntry]) -> bool:
+    """A product gets a die cost when every die is modeled one-to-one (no
+    aggregated chiplets: ``num_dies == len(dies)``) and sits on a node with
+    both a sourced wafer price and a sourced D0."""
+    return (
+        bool(product.dies)
+        and product.packaging.num_dies == len(product.dies)
+        and all(
+            nodes[d.process_node_id].wafer_cost_usd is not None
+            and nodes[d.process_node_id].defect_density_per_cm2 is not None
+            for d in product.dies
+        )
+    )
+
+
+def product_die_cost(product: ComputeProduct, nodes: dict[str, ProcessNodeEntry]) -> SourcedValue:
+    """Sum of ``silicon_cost_v1`` over the product's dies."""
+    parts = [die_cost(d.die_size_mm2, nodes[d.process_node_id]) for d in product.dies]
+    if len(parts) == 1:
+        cost = parts[0].cost_usd
+    else:
+        cost = SourcedValue(
+            value=sum(p.cost_usd.value for p in parts),
+            basis=ValueBasis.ESTIMATED,
+            confidence=max((p.cost_usd.confidence for p in parts), key=_ORDER.index),
+            source=" + ".join(p.cost_usd.source for p in parts),
+        )
+    return cost.model_copy(update={"value": round(cost.value, 2)})
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip(" "))
+
+
+def _block_end(lines: list[str], start: int, indent: int) -> int:
+    """End (exclusive) of the block whose key is ``lines[start]`` at ``indent``:
+    up to the last line before the next non-blank line indented ``<= indent``.
+    Blank lines inside the block stay in it; trailing ones stay outside."""
+    end = start + 1
+    for i in range(start + 1, len(lines)):
+        if not lines[i].strip():
+            continue
+        if _indent(lines[i]) <= indent:
+            break
+        end = i + 1
+    return end
+
+
+def _find_key(lines: list[str], lo: int, hi: int, key: str, indent: int) -> int | None:
+    pattern = re.compile(rf"^ {{{indent}}}{re.escape(key)}:(\s|$)")
+    for i in range(lo, hi):
+        if pattern.match(lines[i]):
+            return i
+    return None
+
+
+def _dump_block(mapping: dict, indent: int) -> list[str]:
+    text = yaml.safe_dump(mapping, sort_keys=False, width=100, allow_unicode=True)
+    return [" " * indent + line for line in text.splitlines(keepends=True)]
+
+
+_KEY_LINE = re.compile(r"^( *)([A-Za-z_0-9]+):(.*)$")
+
+
+def _inline_value(line: str) -> str:
+    """What follows ``key:`` on a key line, comments stripped ('' for a block)."""
+    m = _KEY_LINE.match(line.rstrip("\n"))
+    rest = m.group(3) if m else ""
+    return re.sub(r"\s+#.*$", "", rest).strip()
+
+
+def set_nested(text: str, path: list[str], value: object, anchor: str | None = None) -> str:
+    """``text`` with the mapping entry at ``path`` set to ``value``; every
+    other line (siblings, comments, blank lines) is kept.
+
+    Only the leaf's own block is replaced. A missing level is created at the
+    end of its parent block, or for a missing top-level key, before the
+    ``anchor:`` line (appended when there is none).
+
+    Block-style parents only: a parent written as a flow mapping
+    (``cost: {...}``, or ``{`` on its own line) raises ValueError rather than
+    risk block YAML inside a flow mapping. The result is re-parsed and must
+    hold ``value`` at ``path`` with the rest of the document unchanged, or
+    ValueError is raised, so a write can never emit malformed YAML.
+    """
+    new = _set_nested_lines(text, path, value, anchor)
+    before = yaml.safe_load(text) or {}
+    try:
+        after = yaml.safe_load(new)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"editing {'.'.join(path)} produced invalid YAML: {exc}") from exc
+    expected = before
+    node = expected
+    for key in path[:-1]:
+        if node.get(key) is None:  # absent, or an empty `key:` (parsed as None)
+            node[key] = {}
+        node = node[key]
+    node[path[-1]] = value
+    if after != expected:
+        raise ValueError(f"editing {'.'.join(path)} changed more than the target entry")
+    return new
+
+
+def _not_block(path: list[str], depth: int) -> ValueError:
+    return ValueError(
+        f"{'.'.join(path[: depth + 1])} is not a block mapping; convert it to block style"
+    )
+
+
+def _set_nested_lines(text: str, path: list[str], value: object, anchor: str | None) -> str:
+    lines = text.splitlines(keepends=True)
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    lo, hi, indent = 0, len(lines), 0
+    for depth, key in enumerate(path):
+        i = _find_key(lines, lo, hi, key, indent)
+        if i is None:
+            sub: object = value
+            for k in reversed(path[depth + 1 :]):
+                sub = {k: sub}
+            pos = hi
+            if depth == 0 and anchor is not None:
+                at = _find_key(lines, 0, len(lines), anchor, 0)
+                pos = at if at is not None else len(lines)
+            lines[pos:pos] = _dump_block({key: sub}, indent)
+            return "".join(lines)
+        end = _block_end(lines, i, indent)
+        if depth == len(path) - 1:
+            lines[i:end] = _dump_block({key: value}, indent)
+            return "".join(lines)
+        if _inline_value(lines[i]):
+            raise _not_block(path, depth)
+        body = [ln for ln in lines[i + 1 : end] if ln.strip() and not ln.lstrip().startswith("#")]
+        if body and not _KEY_LINE.match(body[0].rstrip("\n")):
+            raise _not_block(path, depth)
+        lo, hi = i + 1, end
+        indent = _indent(body[0]) if body else indent + 2
+    return "".join(lines)
+
+
+DIE_COST_PATH = ["swapc2", "cost", "die_cost_usd"]
+
+
+def expected_die_cost(product: ComputeProduct, nodes) -> dict:
+    """The ``swapc2.cost.die_cost_usd`` mapping the writer sets."""
+    return product_die_cost(product, nodes).model_dump(mode="json", exclude_defaults=True)
+
+
+def run_products(write: bool) -> int:
+    """Check (or rewrite) ``swapc2.cost.die_cost_usd`` on every eligible product.
+
+    Uses the public process-node catalog only: a private PDK overlay
+    (``PROCESS_NODE_DATA_DIR``) must never feed figures written into public data.
+    """
+    nodes = load_process_nodes(include_overlay=False)
+    products = load_compute_products()
+    paths = _paths_by_id(PRODUCTS_DIR)
+    status = 0
+    eligible = sorted(p for p, cp in products.items() if die_cost_eligible(cp, nodes))
+    for product_id in eligible:
+        path = paths[product_id]
+        new = set_nested(
+            path.read_text(encoding="utf-8"),
+            DIE_COST_PATH,
+            expected_die_cost(products[product_id], nodes),
+            anchor="confidence",
+        )
+        status |= _check_or_write(path, new, SILICON_COST, write)
+    if write:
+        for product_id in eligible:
+            load_and_validate(paths[product_id], ComputeProduct)
+    return status
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name, help_text in (
         ("cooling", "per-W sizing of the cooling catalog"),
         ("nodes", "silicon-cost inputs on the process-node catalog"),
+        ("products", "die cost on the compute-product catalog"),
     ):
         cmd = sub.add_parser(name, help=help_text)
         mode = cmd.add_mutually_exclusive_group(required=True)
@@ -551,6 +752,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_cooling(write=args.write)
     if args.cmd == "nodes":
         return run_nodes(write=args.write)
+    if args.cmd == "products":
+        return run_products(write=args.write)
     node = load_process_nodes()[args.process_node_id]
     cost = die_cost(args.die_mm2, node)
     print(

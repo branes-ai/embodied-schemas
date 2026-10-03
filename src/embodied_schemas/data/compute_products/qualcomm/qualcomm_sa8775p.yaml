@@ -279,6 +279,16 @@ market:
   model_tier: high                       # high-end ADAS (L2+/L3)
   is_available: true
 
+swapc2:
+  cost:
+    die_cost_usd:
+      value: 51.14
+      basis: estimated
+      confidence: theoretical
+      source: 'silicon_cost_v1: wafer_cost_usd / (gross dies x Murphy yield), tsmc_n5 (source DB (data/sources/):
+        wafer_cost_usd = tsmc_n5.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); defect_density_per_cm2
+        = tsmc_n5.defect_density@anandtech_2020_08_25_tsmc_d0 (HVM+1Q))'
+      notes: 389 gross dies, yield 0.854; die only, no package or test
 confidence: theoretical
 notes: >
   Qualcomm SA8775P (Snapdragon Ride) -- mid-range automotive ADAS

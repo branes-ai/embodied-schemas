@@ -188,6 +188,14 @@ class CostSpec(BaseModel):
 
     unit_price_1_usd: SourcedValue | None = None
     unit_price_1k_usd: SourcedValue | None = None
+    die_cost_usd: SourcedValue | None = Field(
+        None,
+        description=(
+            "Variable cost of the product's good die(s) only (silicon_cost_v1): wafer "
+            "price / good dies per wafer. Not a unit price -- it excludes package, "
+            "test and margin -- so resolution never uses it as unit cost"
+        ),
+    )
 
     model_config = {"extra": "forbid"}
 
@@ -195,6 +203,7 @@ class CostSpec(BaseModel):
     def _non_negative(self) -> CostSpec:
         _check_range(self.unit_price_1_usd, "unit_price_1_usd", ge=0)
         _check_range(self.unit_price_1k_usd, "unit_price_1k_usd", ge=0)
+        _check_range(self.die_cost_usd, "die_cost_usd", ge=0)
         return self
 
 
@@ -279,6 +288,9 @@ class ResolvedSWaPC2(BaseModel):
     envelope_cm3: SourcedValue | None = None
     unit_cost_1_usd: SourcedValue | None = None
     unit_cost_1k_usd: SourcedValue | None = None
+    die_cost_usd: SourcedValue | None = Field(
+        None, description="The product's stated die cost, passed through (not a unit cost)"
+    )
     unresolved: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
@@ -494,6 +506,7 @@ def resolve_swapc2(
         envelope_cm3=envelope_cm3,
         unit_cost_1_usd=costs[1],
         unit_cost_1k_usd=costs[1000],
+        die_cost_usd=spec.cost.die_cost_usd if spec and spec.cost else None,
         unresolved=unresolved,
         warnings=warnings,
     )

@@ -241,6 +241,16 @@ market:
   model_tier: datacenter
   is_available: true
 
+swapc2:
+  cost:
+    die_cost_usd:
+      value: 202.78
+      basis: estimated
+      confidence: theoretical
+      source: 'silicon_cost_v1: wafer_cost_usd / (gross dies x Murphy yield), tsmc_n5 (source DB (data/sources/):
+        wafer_cost_usd = tsmc_n5.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); defect_density_per_cm2
+        = tsmc_n5.defect_density@anandtech_2020_08_25_tsmc_d0 (HVM+1Q))'
+      notes: 128 gross dies, yield 0.654; die only, no package or test
 confidence: theoretical
 notes: >
   Ampere AmpereOne A128-30 -- second Ampere SKU in the catalog and
