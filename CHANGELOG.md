@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-03
+
+**BREAKING for consumers: two ComputeProduct ids renamed.** RFC 0001 D6,
+phase S3, slice d.
+
+| Old id (chip) | New id |
+|---|---|
+| `nvidia_jetson_agx_orin_64gb` | `nvidia_orin_soc_64gb` |
+| `nvidia_jetson_agx_thor_128gb` | `nvidia_thor_soc_128gb` |
+
+- These entries are SoCs (`kind: chip`) in their Jetson AGX configurations.
+  The `nvidia_jetson_agx_*` ids now belong to the Jetson *modules*, which
+  the legacy `HardwareEntry` catalog already uses, model
+  `compatible_hardware` lists reference, and a later S3 slice adds as
+  `module` products containing these SoCs.
+- Files renamed to `compute_products/nvidia/orin_soc_64gb.yaml` and
+  `thor_soc_128gb.yaml`. Display names, figures and everything else are
+  unchanged.
+- `launch_msrp_usd` on these chips is still the module price. It moves to
+  the module products when they exist; graphs' module-level mappers read it
+  today.
+- **Downstream:** graphs must update its `_YAML_BASE_ID`s and tests
+  (branes-ai/graphs PR to follow). No alias is kept, because the old ids
+  are reused by the modules.
+
 ## [0.20.0] - 2026-10-03
 
 Cooling solutions take their own footprint, and the legacy Hailo hardware

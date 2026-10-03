@@ -247,7 +247,7 @@ def test_anyblock_still_dispatches_to_gpu_block():
     from pydantic import TypeAdapter
     from embodied_schemas.loaders import load_compute_products
     products = load_compute_products()
-    orin = products.get("nvidia_jetson_agx_orin_64gb")
+    orin = products.get("nvidia_orin_soc_64gb")
     assert orin is not None
     block = orin.dies[0].blocks[0]
     assert isinstance(block, GPUBlock)

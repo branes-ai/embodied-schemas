@@ -29,7 +29,13 @@
 # These will land as additional blocks on this same Die when
 # CPU / DLA / PVA block kinds are defined.
 
-id: nvidia_jetson_agx_thor_128gb
+# Id: nvidia_thor_soc_128gb (renamed 2026-10-03 from nvidia_jetson_agx_thor_128gb,
+# RFC 0001 D6). This entry is the Thor SoC in its Jetson AGX Thor 128GB
+# configuration -- a `chip`. The module id nvidia_jetson_agx_thor_128gb is
+# reserved for the Jetson AGX Thor 128GB *module*, which will contain this
+# SoC; launch_msrp_usd below is the module's price and moves to the module
+# product when it is created.
+id: nvidia_thor_soc_128gb
 name: NVIDIA Jetson AGX Thor 128GB
 vendor: nvidia
 kind: chip
