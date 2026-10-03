@@ -239,3 +239,60 @@ def test_write_fails_on_an_invalid_rewrite(tmp_path, monkeypatch):
     monkeypatch.setattr(est, "expected_cooling_fields", lambda _id: {"weight_g": -1.0})
     with pytest.raises(Exception, match="weight_g"):
         est.run_cooling(write=True)
+
+
+# ---------------------------------------------------------------------------
+# products: die cost on the compute-product catalog (S3a)
+# ---------------------------------------------------------------------------
+
+
+def test_products_match_silicon_cost():
+    """Every eligible product's die_cost_usd is exactly what silicon_cost_v1 gives."""
+    assert est.run_products(write=False) == 0
+
+
+def test_die_cost_eligibility():
+    from embodied_schemas.loaders import load_compute_products
+
+    nodes = load_process_nodes()
+    products = load_compute_products()
+    eligible = {p for p, cp in products.items() if est.die_cost_eligible(cp, nodes)}
+    assert "kpu_t64_32x32_lp5x4_7nm_tsmc_hpc" in eligible
+    assert "amd_epyc_9654_sp5" not in eligible  # aggregated chiplets (13 dies as 2)
+    assert "kpu_t64_32x32_lp5x4_16nm_tsmc_ffp" not in eligible  # N16 has no sourced D0
+    assert "seco_som_smarc_qcs6490" not in eligible  # a module has no dies of its own
+    for pid in eligible:
+        cost = products[pid].swapc2.cost.die_cost_usd
+        assert cost.basis == ValueBasis.ESTIMATED and est.SILICON_COST in cost.source
+
+
+def test_die_cost_value_matches_model():
+    from embodied_schemas.loaders import load_compute_products
+
+    p = load_compute_products()["kpu_t512_32x32_lp5x32_7nm_tsmc_hpc"]
+    node = load_process_nodes()[p.dies[0].process_node_id]
+    expected = est.die_cost(p.dies[0].die_size_mm2, node).cost_usd.value
+    assert p.swapc2.cost.die_cost_usd.value == pytest.approx(expected, abs=0.005)
+
+
+def test_die_cost_is_not_a_unit_cost():
+    from embodied_schemas import resolve_swapc2
+    from embodied_schemas.loaders import load_compute_products
+
+    p = load_compute_products()["google_tpu_edge_pro"]
+    r = resolve_swapc2(p, cooling=load_cooling_solutions())
+    assert r.die_cost_usd is not None
+    assert r.unit_cost_1_usd is None  # no stated price; die cost does not stand in
+
+
+def test_render_emits_mapping_block():
+    text = "id: x\nconfidence: theoretical\n"
+    out = est.render(
+        text,
+        {"swapc2": {"cost": {"die_cost_usd": {"value": 1.5}}}},
+        ("swapc2",),
+        anchor="confidence",
+    )
+    assert out == (
+        "id: x\nswapc2:\n  cost:\n    die_cost_usd:\n      value: 1.5\n" "confidence: theoretical\n"
+    )

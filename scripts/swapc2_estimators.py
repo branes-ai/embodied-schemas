@@ -26,6 +26,7 @@ Run:
     python scripts/swapc2_estimators.py cooling --check   # fail if YAMLs differ
     python scripts/swapc2_estimators.py cooling --write   # rewrite the fields
     python scripts/swapc2_estimators.py nodes --check     # process-node inputs vs source DB
+    python scripts/swapc2_estimators.py products --check  # die cost on eligible products
     python scripts/swapc2_estimators.py silicon <die_mm2> <process_node_id>
 """
 
@@ -39,9 +40,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
+from embodied_schemas.compute_product import ComputeProduct
 from embodied_schemas.cooling_solution import CoolingSolutionEntry
 from embodied_schemas.loaders import (
     load_and_validate,
+    load_compute_products,
     load_cooling_solutions,
     load_process_nodes,
 )
@@ -53,6 +58,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = REPO_ROOT / "src" / "embodied_schemas" / "data"
 COOLING_DIR = DATA_DIR / "cooling-solutions"
 PROCESS_NODE_DIR = DATA_DIR / "process-nodes"
+PRODUCTS_DIR = DATA_DIR / "compute_products"
 
 COOLING_SIZING = "cooling_sizing_v1"
 SILICON_COST = "silicon_cost_v1"
@@ -372,11 +378,21 @@ def _inline_comment(line: str) -> str:
     return m.group(1) if m and m.group(1) else ""
 
 
-def render(text: str, fields: dict[str, object], owned: tuple[str, ...]) -> str:
+def _emit(key: str, value: object, line: str = "") -> str:
+    """One owned field as YAML: a scalar keeps the old line's inline comment,
+    a mapping becomes a block."""
+    if isinstance(value, dict):
+        return yaml.safe_dump({key: value}, sort_keys=False, width=100, allow_unicode=True)
+    return f"{key}: {_yaml_scalar(value)}{_inline_comment(line)}\n"
+
+
+def render(
+    text: str, fields: dict[str, object], owned: tuple[str, ...], anchor: str = "source"
+) -> str:
     """``text`` with the ``owned`` top-level fields set to ``fields``: lines
     replaced in place (block-scalar continuations included), missing fields
-    inserted before ``source:``, and owned fields absent from ``fields``
-    removed. Comments and every other field are kept."""
+    inserted before the ``anchor:`` line, and owned fields absent from
+    ``fields`` removed. Comments and every other field are kept."""
     out, seen, skipping = [], set(), False
     for line in text.splitlines(keepends=True):
         if skipping and line[:1] in (" ", "\t") and line.strip():
@@ -387,11 +403,11 @@ def render(text: str, fields: dict[str, object], owned: tuple[str, ...]) -> str:
         if key in owned:
             skipping = True
             if key in fields and key not in seen:
-                out.append(f"{key}: {_yaml_scalar(fields[key])}{_inline_comment(line)}\n")
+                out.append(_emit(key, fields[key], line))
                 seen.add(key)
             continue
-        if key == "source":
-            out.extend(f"{k}: {_yaml_scalar(v)}\n" for k, v in fields.items() if k not in seen)
+        if key == anchor:
+            out.extend(_emit(k, v) for k, v in fields.items() if k not in seen)
             seen.update(fields)
         out.append(line)
     return "".join(out)
@@ -531,12 +547,75 @@ def run_nodes(write: bool) -> int:
     return status
 
 
+# ---------------------------------------------------------------------------
+# products: silicon_cost_v1 applied to the compute-product catalog
+# ---------------------------------------------------------------------------
+
+
+def die_cost_eligible(product: ComputeProduct, nodes: dict[str, ProcessNodeEntry]) -> bool:
+    """A product gets a die cost when every die is modeled one-to-one (no
+    aggregated chiplets: ``num_dies == len(dies)``) and sits on a node with
+    both a sourced wafer price and a sourced D0."""
+    return (
+        bool(product.dies)
+        and product.packaging.num_dies == len(product.dies)
+        and all(
+            nodes[d.process_node_id].wafer_cost_usd is not None
+            and nodes[d.process_node_id].defect_density_per_cm2 is not None
+            for d in product.dies
+        )
+    )
+
+
+def product_die_cost(product: ComputeProduct, nodes: dict[str, ProcessNodeEntry]) -> SourcedValue:
+    """Sum of ``silicon_cost_v1`` over the product's dies."""
+    parts = [die_cost(d.die_size_mm2, nodes[d.process_node_id]) for d in product.dies]
+    if len(parts) == 1:
+        cost = parts[0].cost_usd
+    else:
+        cost = SourcedValue(
+            value=sum(p.cost_usd.value for p in parts),
+            basis=ValueBasis.ESTIMATED,
+            confidence=max((p.cost_usd.confidence for p in parts), key=_ORDER.index),
+            source=" + ".join(p.cost_usd.source for p in parts),
+        )
+    return cost.model_copy(update={"value": round(cost.value, 2)})
+
+
+def expected_product_swapc2(product: ComputeProduct, nodes) -> dict:
+    """The product's ``swapc2`` section with ``cost.die_cost_usd`` set."""
+    spec = product.swapc2.model_dump(mode="json", exclude_none=True) if product.swapc2 else {}
+    spec.setdefault("cost", {})["die_cost_usd"] = product_die_cost(product, nodes).model_dump(
+        mode="json", exclude_defaults=True
+    )
+    return spec
+
+
+def run_products(write: bool) -> int:
+    """Check (or rewrite) ``swapc2.cost.die_cost_usd`` on every eligible product."""
+    nodes = load_process_nodes()
+    products = load_compute_products()
+    paths = _paths_by_id(PRODUCTS_DIR)
+    status = 0
+    eligible = sorted(p for p, cp in products.items() if die_cost_eligible(cp, nodes))
+    for product_id in eligible:
+        path = paths[product_id]
+        fields = {"swapc2": expected_product_swapc2(products[product_id], nodes)}
+        new = render(path.read_text(encoding="utf-8"), fields, ("swapc2",), anchor="confidence")
+        status |= _check_or_write(path, new, SILICON_COST, write)
+    if write:
+        for product_id in eligible:
+            load_and_validate(paths[product_id], ComputeProduct)
+    return status
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name, help_text in (
         ("cooling", "per-W sizing of the cooling catalog"),
         ("nodes", "silicon-cost inputs on the process-node catalog"),
+        ("products", "die cost on the compute-product catalog"),
     ):
         cmd = sub.add_parser(name, help=help_text)
         mode = cmd.add_mutually_exclusive_group(required=True)
@@ -551,6 +630,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_cooling(write=args.write)
     if args.cmd == "nodes":
         return run_nodes(write=args.write)
+    if args.cmd == "products":
+        return run_products(write=args.write)
     node = load_process_nodes()[args.process_node_id]
     cost = die_cost(args.die_mm2, node)
     print(

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-03
+
+Die cost for the products whose silicon can be costed. RFC 0001 phase S3,
+slice a. Additive schema; 12 products gain a `swapc2.cost.die_cost_usd`.
+
+- **`CostSpec.die_cost_usd`** (new, optional): the variable cost of the
+  product's good die(s) from `silicon_cost_v1`. It is not a unit price,
+  because it excludes package, test and margin. `resolve_swapc2` passes it
+  through as `ResolvedSWaPC2.die_cost_usd` and never uses it as unit cost.
+- **`scripts/swapc2_estimators.py products --write | --check`** (new): writes
+  the die cost on every eligible product, and `--check` (also a test) fails
+  on drift. A product is eligible when each die is modeled one-to-one
+  (`num_dies == len(dies)`, so aggregated chiplets such as EPYC are out) on
+  a node with both a sourced wafer price and a sourced D0. Today that means
+  TSMC N5 and N7.
+- **Catalog: 12 products.** Die-only, against list price where one exists:
+
+  | Product | Die cost |
+  |---|---|
+  | 7 nm KPU SKUs | $1.83 (H64) to $70.54 (T768, 75% yield) |
+  | Google TPU Edge Pro | $25.67 (list $450) |
+  | Google TPU v4 | $173.93 |
+  | Qualcomm QRB5165 | $12.94 |
+  | Qualcomm SA8775P | $51.14 |
+  | AmpereOne A128 / A192 | $202.78 (list $3,888 / $5,555) |
+
+- The estimator's YAML writer can now emit a nested block and insert it
+  before a chosen anchor key.
+- **Downstream:** graphs' KPU golden snapshots for the six 7 nm SKUs now see
+  `.input.swapc2`. That is a declared catalog-data change, and graphs
+  regenerates them (`cli/kpu_golden_snapshot.py --update`) when it adopts
+  0.18.0.
+
 ## [0.17.0] - 2026-10-02
 
 SWaP-C² estimators and their sourced inputs. RFC 0001 phase S2. The cooling

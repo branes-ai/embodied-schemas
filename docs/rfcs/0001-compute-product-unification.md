@@ -1,6 +1,6 @@
 # RFC 0001: Unified ComputeProduct Schema
 
-**Status:** Accepted -- in progress (Phases 1-2 closed; Phase 3 in progress; S1-S2 done; S3-S4, 4, 5 not started)
+**Status:** Accepted -- in progress (Phases 1-2 closed; Phase 3 in progress; S1-S2 done; S3 in progress; S4, 4, 5 not started)
 **Author:** Theo Omtzigt
 **Date:** 2026-05-08
 **Revised:** 2026-10-02 (rev 4)
@@ -55,7 +55,7 @@ platforms, and the current schema cannot answer it.
 | 3. Bulk migration | All legacy files into `data/products/` | **Partial.** 45 products in `data/compute_products/` (folder name differs from plan) across 14 vendors. About a dozen of the 76 legacy files have a counterpart. All other products are new (KPU SKUs, TPUs, DSP IP, Xeon/AmpereOne). No datacenter GPU is migrated. |
 | 4. Update consumers | Compatibility shims, then graphs and Embodied-AI-Architect switch | **KPU only.** `data/kpus/` retired; `load_kpus()` is a shim over `load_compute_products()` (#18). No GPU/CPU/NPU/chip shims. |
 | 5. Sunset | Remove legacy models, major bump | **Not started.** `data/{gpus,cpus,npus,chips}/` hold 24/36/4/12 files, with no deprecation notices or warnings. |
-| S. SWaP-C² (new) | -- | **S1 done** (0.16.0): schema, `resolve_swapc2`, D4 aggregation, first module (SECO SOM-SMARC-QCS6490). **S2 done** (0.17.0): `scripts/swapc2_estimators.py` (`cooling_sizing_v1`, `silicon_cost_v1`), sized cooling catalog, wafer cost / D0 for the TSMC nodes with sources. S3-S4 not started. See [R1](#r1). |
+| S. SWaP-C² (new) | -- | **S1 done** (0.16.0): schema, `resolve_swapc2`, D4 aggregation, first module (SECO SOM-SMARC-QCS6490). **S2 done** (0.17.0): `scripts/swapc2_estimators.py` (`cooling_sizing_v1`, `silicon_cost_v1`), sized cooling catalog, wafer cost / D0 for the TSMC nodes with sources. **S3 in progress**: S3a (0.18.0) die cost on the 12 products with sourced silicon inputs. S4 not started. See [R1](#r1). |
 
 ---
 
