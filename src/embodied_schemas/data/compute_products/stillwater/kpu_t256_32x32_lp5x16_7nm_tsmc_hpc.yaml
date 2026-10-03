@@ -315,6 +315,16 @@ market:
   product_family: Stillwater KPU
   model_tier: high
   is_available: false
+swapc2:
+  cost:
+    die_cost_usd:
+      value: 8.82
+      basis: estimated
+      confidence: theoretical
+      source: 'silicon_cost_v1: wafer_cost_usd / (gross dies x Murphy yield), tsmc_n7 (source DB (data/sources/):
+        wafer_cost_usd = tsmc_n7.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); defect_density_per_cm2
+        = tsmc_n7.defect_density@anandtech_2020_08_25_tsmc_d0 (HVM+3Q))'
+      notes: 1117 gross dies, yield 0.949; die only, no package or test
 confidence: theoretical
 notes: Tile-count sweep at TSMC N7 HPC, lpddr5x x16, 32x32 PE arrays. Identical architecture
   and (clock, Vdd) operating points to the 12nm_gf_fdx sweep -- only the process node varies

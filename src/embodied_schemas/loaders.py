@@ -260,7 +260,9 @@ _DATA_CONFIDENCE_RANK = {
 }
 
 
-def load_process_nodes(data_dir: Path | None = None) -> dict[str, ProcessNodeEntry]:
+def load_process_nodes(
+    data_dir: Path | None = None, include_overlay: bool = True
+) -> dict[str, ProcessNodeEntry]:
     """Load all process-node entries from the catalog.
 
     Process nodes describe silicon fabrication: foundry, node name, transistor
@@ -293,6 +295,10 @@ def load_process_nodes(data_dir: Path | None = None) -> dict[str, ProcessNodeEnt
     result = load_all_from_directory(
         base_dir / "process-nodes", ProcessNodeEntry
     )
+    if not include_overlay:
+        # Public catalog only: anything written into public data (e.g. the
+        # SWaP-C² die-cost writer) must never draw on confidential PDK entries.
+        return result
     return _merge_confidence_overlay(result, "PROCESS_NODE_DATA_DIR", ProcessNodeEntry)
 
 

@@ -230,6 +230,16 @@ market:
   model_tier: research        # matches Plasticine v2 precedent for hypothetical SKUs
   is_available: false         # HYPOTHETICAL -- not a shipping product
 
+swapc2:
+  cost:
+    die_cost_usd:
+      value: 25.67
+      basis: estimated
+      confidence: theoretical
+      source: 'silicon_cost_v1: wafer_cost_usd / (gross dies x Murphy yield), tsmc_n7 (source DB (data/sources/):
+        wafer_cost_usd = tsmc_n7.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); defect_density_per_cm2
+        = tsmc_n7.defect_density@anandtech_2020_08_25_tsmc_d0 (HVM+3Q))'
+      notes: 416 gross dies, yield 0.875; die only, no package or test
 confidence: theoretical
 notes: >
   Google TPU Edge Pro -- HYPOTHETICAL Google edge TPU at 30W with
