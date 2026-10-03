@@ -1,0 +1,102 @@
+# Hailo-8 M.2 2242 Key M AI acceleration module (HM218B1C2HAE).
+#
+# RFC 0001 S3b: a `module` containing the Hailo-8 chip (hailo_hailo_8).
+# Every SWaP-C² value is a source-DB figure (data/sources/observations/
+# m2_modules.yaml); tests/test_compute_product_v14_hailo_m2_yaml.py holds
+# this file to them.
+#
+# The legacy HardwareEntry `hailo_8_m2` disagrees with the datasheet on
+# height (3.5 vs 2.626 mm), TDP (5 vs 8.65 W) and price ($99 vs $179.99
+# listed); its mass (8 g) has no source. None of it is used here.
+
+id: hailo_8_m2_2242_m
+name: Hailo-8 M.2 2242 Key M module
+vendor: hailo
+kind: module
+packaging:
+  kind: board
+  form_factor: m2
+
+lifecycle: production
+
+dies: []
+contains:
+- id: hailo_hailo_8
+  role: compute
+
+performance:                            # headline, as the contained chip
+  int8_tops: 26.0                       # "Peak Performance (INT8) 26 TOPS"
+  bf16_tflops: 0.0
+  fp32_tflops: 0.0
+  int4_tops: 52.0
+
+power:
+  tdp_watts: 8.65                       # "Thermal design power (TDP) 8.65W"
+  max_power_watts: 8.25                 # "Maximum power consumption is 8.25W"
+  min_power_watts: 2.4
+  default_thermal_profile: '8.65W'
+  thermal_profiles:                     # module power at the 3.3 V pins; chip clock
+  - name: '2.4W'                        # MobileNet-SSD 300x300 @ 996 FPS, 25 C
+    tdp_watts: 2.4
+    clock_mhz: 1600.0
+    cooling_solution_id: passive_heatsink_small
+  - name: '3.3W'                        # ResNet-50 224x224 @ 915 FPS, 25 C
+    tdp_watts: 3.3
+    clock_mhz: 1600.0
+    cooling_solution_id: passive_heatsink_small
+  - name: '8.65W'                       # datasheet TDP
+    tdp_watts: 8.65
+    clock_mhz: 1600.0
+    cooling_solution_id: passive_heatsink_small
+
+swapc2:
+  size:
+    dimensions_mm:
+      length_mm: 42.0
+      width_mm: 22.0
+      height_mm: 2.626
+      basis: datasheet
+      confidence: calibrated
+      source: >-
+        hailo_8_m2_2242_m.length@hailo_8_m2_key_m_datasheet,
+        hailo_8_m2_2242_m.width@hailo_8_m2_key_m_datasheet,
+        hailo_8_m2_2242_m.height@hailo_8_m2_key_m_datasheet
+      notes: Height tolerance +/-0.2 mm.
+  weight:
+    mass_g:
+      value: 6.0
+      basis: datasheet
+      confidence: theoretical
+      source: hailo_8_m2_2242_m.mass@waveshare_hailo_8
+      notes: Reseller listing; Hailo publishes no mass.
+  power:
+    input_voltage_v: [3.135, 3.465]     # "Power supply 3.3V ± 5%"
+  cost:
+    unit_price_1_usd:
+      value: 179.99
+      basis: datasheet
+      confidence: calibrated
+      source: hailo_8_m2_2242_m.unit_price.qty_1@waveshare_hailo_8
+
+environmental:
+  operating_temp_c: [-40.0, 85.0]       # "Operating Temperature -40 to 85 C"
+
+interfaces:
+  pcie_lanes: 4                         # "PCIe Gen 3, 4-lanes (x4)"
+  pcie_gen: 3
+
+market:
+  target_market: edge
+  product_family: Hailo-8
+  model_tier: high
+  is_available: true
+
+confidence: theoretical
+notes: >
+  Hailo publishes no heatsink with the module ("Proper heat dissipation must
+  be employed"); all profiles bind passive_heatsink_small, sized per W by
+  cooling_sizing_v1. The 2280 Key M (HM218B1C2FAE) is the same module with
+  breakable extensions; this entry is the 2242 configuration.
+datasheet_url: https://hailo.ai/hailo-files/hailo-8-m-2-key-m-et-datasheet-en/
+product_url: https://hailo.ai/products/ai-accelerators/hailo-8-m2-ai-acceleration-module/
+last_updated: '2026-10-03'

@@ -247,9 +247,8 @@ def r_vol(db: SourceDB, regime: str, pick: str) -> Param:
 
 
 def heatsink_subjects(db: SourceDB) -> list[str]:
-    """Catalog heatsinks: subjects with mass and an envelope and no fan power."""
-    fans = set(db.subjects("power"))
-    return [s for s in db.subjects("mass") if s not in fans and db.find("length", s)]
+    """Catalog heatsinks with a mass and an envelope."""
+    return [s for s in db.subjects("mass", category="heatsink") if db.find("length", s)]
 
 
 def envelope_cm3(db: SourceDB, subject: str) -> float:
@@ -280,8 +279,7 @@ def sink_price_fit(db: SourceDB) -> tuple[Param, Param]:
     price: returns (a in USD, b in USD / cm^3)."""
     points = [
         (envelope_cm3(db, o.subject), o.value, o.key)
-        for o in db.find("unit_price", variant="qty_1")
-        if o.subject in heatsink_subjects(db)
+        for o in db.find("unit_price", variant="qty_1", category="heatsink")
     ]
     n = len(points)
     mx = sum(v for v, _, _ in points) / n
