@@ -9,31 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.21.0] - 2026-10-03
 
-**BREAKING for consumers: two ComputeProduct ids renamed.** RFC 0001 D6,
-phase S3, slice d.
+NVIDIA Jetson entries classified as SKUs of their product families. RFC
+0001 D6, phase S3, slice d.
 
-| Old id (chip) | New id |
-|---|---|
-| `nvidia_jetson_agx_orin_64gb` | `nvidia_orin_soc_64gb` |
-| `nvidia_jetson_agx_thor_128gb` | `nvidia_thor_soc_128gb` |
-
-- These entries are SoCs (`kind: chip`) in their Jetson AGX configurations.
-  The `nvidia_jetson_agx_*` ids now belong to the Jetson *modules*, which
-  the legacy `HardwareEntry` catalog already uses, model
-  `compatible_hardware` lists reference, and a later S3 slice adds as
-  `module` products containing these SoCs.
-- Files renamed to `compute_products/nvidia/orin_soc_64gb.yaml` and
-  `thor_soc_128gb.yaml`. Display names, figures and everything else are
-  unchanged.
-- `launch_msrp_usd` on these chips is still the module price. It moves to
-  the module products when they exist; graphs' module-level mappers read it
-  today.
-- **Downstream:** graphs must update its `_YAML_BASE_ID`s and tests.
-  branes-ai/graphs#347 does this. graphs CI pins embodied-schemas to a fixed
-  commit, so it sees the rename only when #347 bumps that pin; push the
-  `v0.21.0` tag (the publish workflow runs on `v*` tags) only once #347 is
-  ready. No alias is kept, because the old ids are reused
-  by the modules.
+- `market.product_family` is now **NVIDIA Jetson Orin** and **NVIDIA Jetson
+  Thor** (was "Jetson Orin" / "Jetson Thor").
+- Within a family, SKUs share the silicon and are differentiated by
+  floorsweeping (units enabled) and memory configuration. Each entry is a
+  SKU and keeps NVIDIA's SKU name as its id (`nvidia_jetson_agx_orin_64gb`,
+  `nvidia_jetson_agx_thor_128gb`). A header in each YAML names the fields
+  that define the SKU. For the AGX Orin 64GB that is 16 SMs × 128 = 2048
+  CUDA cores, 64 Tensor cores, and 64 GB LPDDR5 at 204.8 GB/s.
+- **Ids are unchanged.** The `nvidia_orin_soc_*` / `nvidia_thor_soc_*`
+  rename proposed during review was withdrawn before release, so consumers
+  need no change.
+- `tests/test_compute_product_v14_jetson_family.py` pins the family, the
+  SKU ids, and the AGX Orin 64GB floorsweep and memory.
 
 ## [0.20.0] - 2026-10-03
 

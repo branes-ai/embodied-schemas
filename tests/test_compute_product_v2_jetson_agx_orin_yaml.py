@@ -1,4 +1,4 @@
-"""Tests for the first GPU SKU YAML: nvidia_orin_soc_64gb.
+"""Tests for the first GPU SKU YAML: nvidia_jetson_agx_orin_64gb.
 
 Validates that the catalog YAML at
 ``data/compute_products/nvidia/jetson_agx_orin_64gb.yaml`` loads as a
@@ -35,9 +35,9 @@ def all_products() -> dict[str, ComputeProduct]:
 
 @pytest.fixture(scope="module")
 def agx_orin(all_products) -> ComputeProduct:
-    cp = all_products.get("nvidia_orin_soc_64gb")
+    cp = all_products.get("nvidia_jetson_agx_orin_64gb")
     if cp is None:
-        pytest.fail("nvidia_orin_soc_64gb missing from catalog")
+        pytest.fail("nvidia_jetson_agx_orin_64gb missing from catalog")
     return cp
 
 
@@ -51,7 +51,7 @@ def test_catalog_now_includes_gpu_sku(all_products):
     nvidia_skus = [
         sku for sku, cp in all_products.items() if cp.vendor == "nvidia"
     ]
-    assert "nvidia_orin_soc_64gb" in nvidia_skus
+    assert "nvidia_jetson_agx_orin_64gb" in nvidia_skus
 
 
 def test_kpu_skus_still_load_after_gpu_addition(all_products):
@@ -71,7 +71,7 @@ def test_kpu_skus_still_load_after_gpu_addition(all_products):
 # ---------------------------------------------------------------------------
 
 def test_agx_orin_identity(agx_orin):
-    assert agx_orin.id == "nvidia_orin_soc_64gb"
+    assert agx_orin.id == "nvidia_jetson_agx_orin_64gb"
     assert agx_orin.vendor == "nvidia"
     assert agx_orin.packaging.kind == PackagingKind.MONOLITHIC
     assert agx_orin.packaging.num_dies == 1

@@ -1,4 +1,4 @@
-"""Tests for the second GPU SKU YAML: nvidia_thor_soc_128gb.
+"""Tests for the second GPU SKU YAML: nvidia_jetson_agx_thor_128gb.
 
 Catalog gain: 12 KPU + 2 GPU = 14 products. Validates the new YAML
 loads as a fully-formed ``ComputeProduct`` + ``GPUBlock`` with values
@@ -32,9 +32,9 @@ def all_products() -> dict[str, ComputeProduct]:
 
 @pytest.fixture(scope="module")
 def thor(all_products) -> ComputeProduct:
-    cp = all_products.get("nvidia_thor_soc_128gb")
+    cp = all_products.get("nvidia_jetson_agx_thor_128gb")
     if cp is None:
-        pytest.fail("nvidia_thor_soc_128gb missing from catalog")
+        pytest.fail("nvidia_jetson_agx_thor_128gb missing from catalog")
     return cp
 
 
@@ -87,8 +87,8 @@ def test_catalog_now_includes_two_gpu_skus(all_products):
     here (and any consumers that hardcoded the count)."""
     nvidia_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "nvidia")
     assert nvidia_skus == [
-        "nvidia_orin_soc_64gb",
-        "nvidia_thor_soc_128gb",
+        "nvidia_jetson_agx_orin_64gb",
+        "nvidia_jetson_agx_thor_128gb",
     ]
 
 
@@ -104,7 +104,7 @@ def test_kpu_skus_unaffected_by_thor_addition(all_products):
 # ---------------------------------------------------------------------------
 
 def test_thor_identity(thor):
-    assert thor.id == "nvidia_thor_soc_128gb"
+    assert thor.id == "nvidia_jetson_agx_thor_128gb"
     assert thor.vendor == "nvidia"
     assert thor.packaging.kind == PackagingKind.MONOLITHIC
     assert thor.packaging.num_dies == 1

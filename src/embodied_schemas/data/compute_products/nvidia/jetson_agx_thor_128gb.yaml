@@ -29,13 +29,14 @@
 # These will land as additional blocks on this same Die when
 # CPU / DLA / PVA block kinds are defined.
 
-# Id: nvidia_thor_soc_128gb (renamed 2026-10-03 from nvidia_jetson_agx_thor_128gb,
-# RFC 0001 D6). This entry is the Thor SoC in its Jetson AGX Thor 128GB
-# configuration -- a `chip`. The module id nvidia_jetson_agx_thor_128gb is
-# reserved for the Jetson AGX Thor 128GB *module*, which will contain this
-# SoC; launch_msrp_usd below is the module's price and moves to the module
-# product when it is created.
-id: nvidia_thor_soc_128gb
+# Product family: NVIDIA Jetson Thor. SKU: Jetson AGX Thor 128GB (T5000).
+# The family's SKUs share the Thor silicon and differ by floorsweeping --
+# the units enabled, recorded as num_sms / cuda_cores_per_sm /
+# tensor_cores_per_sm in dies[0].blocks[0] -- and by memory configuration,
+# here 128 GB LPDDR5X at 273 GB/s (dies[0].blocks[0].memory). This entry is
+# the SKU; the id is NVIDIA's SKU name, and the legacy HardwareEntry of the
+# same id describes the same SKU.
+id: nvidia_jetson_agx_thor_128gb
 name: NVIDIA Jetson AGX Thor 128GB
 vendor: nvidia
 kind: chip
@@ -283,7 +284,7 @@ market:
   launch_date: '2025-12-01'
   launch_msrp_usd: 2999.0
   target_market: edge
-  product_family: Jetson Thor
+  product_family: NVIDIA Jetson Thor
   model_tier: high
   is_available: true
 

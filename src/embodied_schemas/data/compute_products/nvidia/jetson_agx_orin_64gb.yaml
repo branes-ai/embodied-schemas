@@ -28,13 +28,15 @@
 # These will land as additional blocks on this same Die when CPU /
 # DLA / PVA block kinds are defined.
 
-# Id: nvidia_orin_soc_64gb (renamed 2026-10-03 from nvidia_jetson_agx_orin_64gb,
-# RFC 0001 D6). This entry is the Orin SoC in its Jetson AGX Orin 64GB
-# configuration -- a `chip`. The module id nvidia_jetson_agx_orin_64gb is
-# reserved for the Jetson AGX Orin 64GB *module*, which will contain this
-# SoC; launch_msrp_usd below is the module's price and moves to the module
-# product when it is created.
-id: nvidia_orin_soc_64gb
+# Product family: NVIDIA Jetson Orin. SKU: Jetson AGX Orin 64GB.
+# The family's SKUs (AGX Orin 64GB / 32GB, Orin NX 16GB / 8GB, Orin Nano
+# 8GB / 4GB) share the GA10B silicon and differ by floorsweeping -- the
+# units enabled, here num_sms 16 x cuda_cores_per_sm 128 = 2048 CUDA cores,
+# tensor_cores_per_sm 4 = 64 Tensor cores -- and by memory configuration,
+# here 64 GB LPDDR5 at 204.8 GB/s (dies[0].blocks[0].memory). This entry is
+# the SKU; the id is NVIDIA's SKU name, and the legacy HardwareEntry of the
+# same id describes the same SKU.
+id: nvidia_jetson_agx_orin_64gb
 name: NVIDIA Jetson AGX Orin 64GB
 vendor: nvidia
 kind: chip
@@ -294,7 +296,7 @@ market:
   launch_date: '2022-11-01'
   launch_msrp_usd: 1999.0
   target_market: edge
-  product_family: Jetson Orin
+  product_family: NVIDIA Jetson Orin
   model_tier: high
   is_available: true
 
