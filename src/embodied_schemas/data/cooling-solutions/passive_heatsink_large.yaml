@@ -8,6 +8,7 @@ max_power_density_w_per_mm2: 1.0
 max_total_w: 30.0
 ambient_c_max: 50.0
 junction_c_max: 105.0
+max_height_mm: 40.0
 form_factor_constraints:
   - "height<=40mm"
   - "no fan"
