@@ -92,7 +92,7 @@ def test_other_vendors_unaffected_by_plasticine_addition(all_products):
     stillwater = [s for s, cp in all_products.items() if cp.vendor == "stillwater"]
     nvidia = [s for s, cp in all_products.items() if cp.vendor == "nvidia"]
     intel = [s for s, cp in all_products.items() if cp.vendor == "intel"]
-    hailo = [s for s, cp in all_products.items() if cp.vendor == "hailo"]
+    hailo = [s for s, cp in all_products.items() if cp.vendor == "hailo" and cp.dies]
     google = [s for s, cp in all_products.items() if cp.vendor == "google"]
     assert len(stillwater) == 14
     assert len(nvidia) == 2

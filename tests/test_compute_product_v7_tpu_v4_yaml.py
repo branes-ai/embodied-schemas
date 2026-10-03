@@ -96,6 +96,8 @@ def test_other_vendors_unaffected_by_tpu_v4_addition(all_products):
     other vendor directories."""
     counts_by_vendor: dict[str, int] = {}
     for cp in all_products.values():
+        if not cp.dies:  # modules / boards (v14) contain chips; count chip SKUs
+            continue
         counts_by_vendor[cp.vendor] = counts_by_vendor.get(cp.vendor, 0) + 1
     assert counts_by_vendor.get("stillwater") == 14
     assert counts_by_vendor.get("nvidia") == 2

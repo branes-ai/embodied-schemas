@@ -141,6 +141,12 @@ class Observation(BaseModel):
     """
 
     subject: str = Field(..., pattern=r"^[a-z0-9_.]+$")
+    category: str = Field(
+        ...,
+        pattern=r"^[a-z0-9_]+$",
+        description="What kind of thing the subject is: heatsink, fan, m2_module, "
+        "process_node, material, method, standard, ...",
+    )
     quantity: str
     variant: str | None = Field(
         None, pattern=r"^[a-z0-9_]+$", description="e.g. 'typ', 'max', 'qty_1620'"
@@ -205,6 +211,12 @@ class SourceDB:
             if obs.key in self.observations:
                 raise ValueError(f"duplicate observation {obs.key}")
             self.observations[obs.key] = obs
+        categories: dict[str, set[str]] = {}
+        for obs in self.observations.values():
+            categories.setdefault(obs.subject, set()).add(obs.category)
+        mixed = {s: c for s, c in categories.items() if len(c) > 1}
+        if mixed:
+            raise ValueError(f"subjects with more than one category: {mixed}")
         for obs in self.observations.values():
             for ref in obs.derived_from:
                 if ref not in self.observations:
@@ -226,11 +238,14 @@ class SourceDB:
         subject: str | None = None,
         variant: str | None = None,
         source_id: str | None = None,
+        category: str | None = None,
         **conditions: str | float,
     ) -> list[Observation]:
         """Observations matching every given field and condition, by key."""
         out = []
         for obs in self.observations.values():
+            if category is not None and obs.category != category:
+                continue
             if quantity is not None and obs.quantity != quantity:
                 continue
             if subject is not None and obs.subject != subject:
@@ -248,9 +263,9 @@ class SourceDB:
         """A subject's figures for one quantity, oldest first (trends)."""
         return sorted(self.find(quantity, subject), key=lambda o: (o.as_of, o.key))
 
-    def subjects(self, quantity: str) -> list[str]:
+    def subjects(self, quantity: str, category: str | None = None) -> list[str]:
         """Every subject with at least one figure for ``quantity``."""
-        return sorted({o.subject for o in self.find(quantity)})
+        return sorted({o.subject for o in self.find(quantity, category=category)})
 
     def to_sqlite(self) -> sqlite3.Connection:
         """An in-memory SQLite copy, tables ``documents`` and ``observations``
@@ -263,9 +278,10 @@ class SourceDB:
             "author TEXT, kind TEXT, published TEXT, url TEXT, accessed TEXT)"
         )
         con.execute(
-            "CREATE TABLE observations (key TEXT PRIMARY KEY, subject TEXT, quantity TEXT, "
-            "variant TEXT, value REAL, value_min REAL, value_max REAL, unit TEXT, as_of TEXT, "
-            "basis TEXT, source_id TEXT REFERENCES documents(id), quote TEXT, conditions TEXT)"
+            "CREATE TABLE observations ("
+            "key TEXT PRIMARY KEY, subject TEXT, category TEXT, quantity TEXT, variant TEXT, "
+            "value REAL, value_min REAL, value_max REAL, unit TEXT, as_of TEXT, basis TEXT, "
+            "source_id TEXT REFERENCES documents(id), quote TEXT, conditions TEXT)"
         )
         con.executemany(
             "INSERT INTO documents VALUES (?,?,?,?,?,?,?,?)",
@@ -275,11 +291,12 @@ class SourceDB:
             ],
         )
         con.executemany(
-            "INSERT INTO observations VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO observations VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 (
                     o.key,
                     o.subject,
+                    o.category,
                     o.quantity,
                     o.variant,
                     o.value,
