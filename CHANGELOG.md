@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-03
+
+NVIDIA Jetson entries classified as SKUs of their product families. RFC
+0001 D6, phase S3, slice d.
+
+- `market.product_family` is now **NVIDIA Jetson Orin** and **NVIDIA Jetson
+  Thor** (was "Jetson Orin" / "Jetson Thor").
+- Within a family, SKUs share the silicon and are differentiated by
+  floorsweeping (units enabled) and memory configuration. Each entry is a
+  SKU and keeps NVIDIA's SKU name as its id (`nvidia_jetson_agx_orin_64gb`,
+  `nvidia_jetson_agx_thor_128gb`). A header in each YAML names the fields
+  that define the SKU. For the AGX Orin 64GB that is 16 SMs × 128 = 2048
+  CUDA cores, 64 Tensor cores, and 64 GB LPDDR5 at 204.8 GB/s.
+- **Ids are unchanged.** The `nvidia_orin_soc_*` / `nvidia_thor_soc_*`
+  rename proposed during review was withdrawn before release, so consumers
+  need no change.
+- `tests/test_compute_product_v14_jetson_family.py` pins the family, the
+  SKU ids, and the AGX Orin 64GB floorsweep and memory.
+
 ## [0.20.0] - 2026-10-03
 
 Cooling solutions take their own footprint, and the legacy Hailo hardware

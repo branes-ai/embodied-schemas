@@ -46,7 +46,7 @@ platforms, and the current schema cannot answer it.
 
 ---
 
-## Status at a glance (2026-10-01)
+## Status at a glance (2026-10-03)
 
 | Phase | Plan (rev 1) | Actual |
 |-------|--------------|--------|
@@ -55,7 +55,7 @@ platforms, and the current schema cannot answer it.
 | 3. Bulk migration | All legacy files into `data/products/` | **Partial.** 45 products in `data/compute_products/` (folder name differs from plan) across 14 vendors. About a dozen of the 76 legacy files have a counterpart. All other products are new (KPU SKUs, TPUs, DSP IP, Xeon/AmpereOne). No datacenter GPU is migrated. |
 | 4. Update consumers | Compatibility shims, then graphs and Embodied-AI-Architect switch | **KPU only.** `data/kpus/` retired; `load_kpus()` is a shim over `load_compute_products()` (#18). No GPU/CPU/NPU/chip shims. |
 | 5. Sunset | Remove legacy models, major bump | **Not started.** `data/{gpus,cpus,npus,chips}/` hold 24/36/4/12 files, with no deprecation notices or warnings. |
-| S. SWaP-C² (new) | -- | **S1 done** (0.16.0): schema, `resolve_swapc2`, D4 aggregation, first module (SECO SOM-SMARC-QCS6490). **S2 done** (0.17.0): `scripts/swapc2_estimators.py` (`cooling_sizing_v1`, `silicon_cost_v1`), sized cooling catalog, wafer cost / D0 for the TSMC nodes with sources. **S3 in progress**: S3a (0.18.0) die cost on the 12 products with sourced silicon inputs; S3b (0.19.0) Hailo-8 / 10H M.2 modules from verified datasheet figures. S3c (0.20.0) cooling footprint (`max_height_mm`), legacy Hailo hardware corrected. S4 not started. See [R1](#r1). |
+| S. SWaP-C² (new) | -- | **S1 done** (0.16.0): schema, `resolve_swapc2`, D4 aggregation, first module (SECO SOM-SMARC-QCS6490). **S2 done** (0.17.0): `scripts/swapc2_estimators.py` (`cooling_sizing_v1`, `silicon_cost_v1`), sized cooling catalog, wafer cost / D0 for the TSMC nodes with sources. **S3 in progress**: S3a (0.18.0) die cost on the 12 products with sourced silicon inputs; S3b (0.19.0) Hailo-8 / 10H M.2 modules from verified datasheet figures. S3c (0.20.0) cooling footprint (`max_height_mm`), legacy Hailo hardware corrected. S3d (0.21.0) NVIDIA Jetson entries classified as SKUs of the NVIDIA Jetson Orin / Thor families (D6). S4 not started. See [R1](#r1). |
 
 ---
 
@@ -148,9 +148,10 @@ carries `max_compute_weight_kg` and `max_compute_volume_cm3` (e.g.
 `micro_autonomy`: 100 g, 50 cm³). The product side has nothing to check
 against it.
 
-There is also a level-of-integration problem. `jetson_agx_orin_64gb` is
+There is also a level-of-integration problem. `nvidia_jetson_agx_orin_64gb` is
 `kind: chip` and describes the GA10B die, but its `launch_msrp_usd: 1999`
-is the price of the module. A UAV integrator buys the module (plus a
+is the price of the module. (D6 settles it: the entry is the SKU, as sold,
+in the NVIDIA Jetson Orin family.) A UAV integrator buys the module (plus a
 carrier and a heatsink), not the die. SWaP-C² is only meaningful when you
 know which level of integration it describes.
 
@@ -241,7 +242,7 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
 - **D1 (CPU-with-iGPU / heterogeneous SoC): decided, not yet exercised.**
   A heterogeneous SoC is one `Die` with several entries in `Die.blocks`, one
   per compute fabric. The schema supports this today. However, no catalog
-  product uses it yet. `jetson_agx_orin_64gb` carries only its GPU block,
+  product uses it yet. `nvidia_jetson_agx_orin_64gb` carries only its GPU block,
   and the TI TDA4 and Qualcomm SoCs carry only their DSP block. Backfilling
   the remaining blocks (Orin CPU + 2x DLA + PVA, TDA4 A72 + C7x + MMA) is
   part of Phase 3.
@@ -305,9 +306,20 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
 
 - **D6 (new): level of integration.** A `ComputeProduct` describes exactly
   one level of integration. Add `ProductKind.MODULE` (SoM, M.2 card, OAM,
-  SXM board) between `chip` and `board`. The Jetson AGX Orin module becomes
-  a `module` that `contains` the Orin SoC `chip`. Market and SWaP-C² data
-  attach at the level being sold.
+  SXM board) between `chip` and `board`. Market and SWaP-C² data attach at
+  the level being sold.
+
+  **NVIDIA Jetson (rev 0.21.0).** The product classifications are the
+  families *NVIDIA Jetson Orin* and *NVIDIA Jetson Thor*
+  (`market.product_family`). Within a family, SKUs (AGX Orin 64GB / 32GB,
+  Orin NX 16GB / 8GB, Orin Nano, AGX Thor 128GB, ...) share the silicon and
+  are differentiated by **floorsweeping** (the units enabled: SMs, CUDA and
+  Tensor cores, CPU cores) and **memory configuration** (capacity, type,
+  bandwidth). Each catalog entry is a SKU, identified by NVIDIA's SKU name
+  (`nvidia_jetson_agx_orin_64gb`). There is no separate SoC entry, and
+  the legacy `HardwareEntry` of the same id is the same SKU, which it
+  merges into. A briefly proposed `nvidia_orin_soc_64gb` /
+  `nvidia_thor_soc_128gb` rename was withdrawn before release.
 
 - **D7 (new): SWaP-C² is resolved per thermal profile.** Power and cooling
   vary with the operating point, so SWaP-C² is a function of
