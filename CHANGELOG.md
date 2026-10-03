@@ -82,8 +82,14 @@ slice a. Additive schema; 12 products gain a `swapc2.cost.die_cost_usd`.
   | Qualcomm SA8775P | $51.14 |
   | AmpereOne A128 / A192 | $202.78 (list $3,888 / $5,555) |
 
-- The estimator's YAML writer can now emit a nested block and insert it
-  before a chosen anchor key.
+- The die-cost writer edits only `swapc2.cost.die_cost_usd`
+  (`set_nested`). Sibling fields, comments and blank lines in an existing
+  `swapc2` block are kept, and a missing `cost:` or `swapc2:` is created.
+  When a file has no anchor key, both writers append the field.
+- **`load_process_nodes(include_overlay=True)`** (new keyword). The
+  die-cost writer passes `False`, so a confidential PDK overlay
+  (`PROCESS_NODE_DATA_DIR`) never feeds figures written into public catalog
+  data.
 - **Downstream:** graphs' KPU golden snapshots for the six 7 nm SKUs now see
   `.input.swapc2`. That is a declared catalog-data change, and graphs
   regenerates them (`cli/kpu_golden_snapshot.py --update`) when it adopts

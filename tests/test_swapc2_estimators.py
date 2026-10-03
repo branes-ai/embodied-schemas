@@ -15,12 +15,14 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import swapc2_estimators as est  # noqa: E402
 
 from embodied_schemas.loaders import load_cooling_solutions, load_process_nodes  # noqa: E402
+from embodied_schemas.process_node import DataConfidence  # noqa: E402
 from embodied_schemas.swapc2 import ValueBasis  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -296,3 +298,100 @@ def test_render_emits_mapping_block():
     assert out == (
         "id: x\nswapc2:\n  cost:\n    die_cost_usd:\n      value: 1.5\n" "confidence: theoretical\n"
     )
+
+
+# ---------------------------------------------------------------------------
+# PR #106 review: anchor-less insert, targeted nested edit, no PDK overlay
+# ---------------------------------------------------------------------------
+
+
+def test_render_appends_when_anchor_absent():
+    out = est.render("id: x\nname: y", {"basis": "estimated"}, est.COOLING_OWNED)
+    assert out == 'id: x\nname: y\nbasis: "estimated"\n'
+
+
+DIE = {"value": 2.5, "basis": "estimated"}
+
+EXISTING = """id: p
+swapc2:
+  # the module's own envelope
+  size:
+    dimensions_mm: {length_mm: 1.0}   # keep me
+
+  cost:
+    unit_price_1_usd: {value: 9.0}  # list price
+    die_cost_usd:
+      value: 1.0
+      basis: estimated
+
+  power:
+    input_voltage_v: [5.0, 5.0]
+confidence: theoretical
+"""
+
+
+class TestSetNested:
+    def test_replaces_only_the_leaf(self):
+        out = est.set_nested(EXISTING, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert "      value: 2.5\n" in out and "value: 1.0" not in out
+        for kept in (
+            "  # the module's own envelope\n",
+            "{length_mm: 1.0}   # keep me\n",
+            "{value: 9.0}  # list price\n",
+            "  power:\n",
+            "input_voltage_v: [5.0, 5.0]\n",
+        ):
+            assert kept in out
+        # The blank lines inside swapc2 survive and nothing stale is left behind.
+        assert out.count("\n\n") == 2
+        assert yaml.safe_load(out)["swapc2"]["cost"] == {
+            "unit_price_1_usd": {"value": 9.0},
+            "die_cost_usd": DIE,
+        }
+
+    def test_idempotent(self):
+        once = est.set_nested(EXISTING, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert est.set_nested(once, est.DIE_COST_PATH, DIE, anchor="confidence") == once
+
+    def test_adds_missing_leaf_inside_existing_parent(self):
+        text = "swapc2:\n  cost:\n    unit_price_1_usd: {value: 9.0}  # keep\nconfidence: x\n"
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert "{value: 9.0}  # keep\n    die_cost_usd:\n" in out
+        assert yaml.safe_load(out)["swapc2"]["cost"]["die_cost_usd"] == DIE
+
+    def test_adds_missing_branch_inside_existing_swapc2(self):
+        text = "swapc2:\n  power:\n    input_voltage_v: [5.0, 5.0]\nconfidence: x\n"
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        data = yaml.safe_load(out)["swapc2"]
+        assert data["power"] == {"input_voltage_v": [5.0, 5.0]}
+        assert data["cost"]["die_cost_usd"] == DIE
+
+    def test_creates_block_before_anchor(self):
+        out = est.set_nested("id: p\nconfidence: x\n", est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert out.startswith("id: p\nswapc2:\n  cost:\n    die_cost_usd:\n")
+        assert out.endswith("confidence: x\n")
+
+    def test_appends_without_anchor(self):
+        """A product without `confidence:` (it has a default) still gets its cost."""
+        out = est.set_nested("id: p\nname: q", est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert yaml.safe_load(out) == {
+            "id": "p",
+            "name": "q",
+            "swapc2": {"cost": {"die_cost_usd": DIE}},
+        }
+
+
+def test_products_writer_ignores_private_overlay(tmp_path, monkeypatch):
+    """A confidential PDK overlay must not feed public die costs."""
+    public = load_process_nodes(include_overlay=False)["tsmc_n7"]
+    overlay = public.model_copy(
+        update={
+            "confidence": DataConfidence.CALIBRATED,
+            "wafer_cost_usd": 1.0,
+            "wafer_cost_source": "CONFIDENTIAL PDK",
+        }
+    )
+    (tmp_path / "n7.yaml").write_text(yaml.safe_dump(overlay.model_dump(mode="json")))
+    monkeypatch.setenv("PROCESS_NODE_DATA_DIR", str(tmp_path))
+    assert load_process_nodes()["tsmc_n7"].wafer_cost_usd == 1.0  # overlay applies here...
+    assert est.run_products(write=False) == 0  # ...but not to the public writer
