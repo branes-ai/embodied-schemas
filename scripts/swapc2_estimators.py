@@ -391,8 +391,9 @@ def render(
 ) -> str:
     """``text`` with the ``owned`` top-level fields set to ``fields``: lines
     replaced in place (block-scalar continuations included), missing fields
-    inserted before the ``anchor:`` line, and owned fields absent from
-    ``fields`` removed. Comments and every other field are kept."""
+    inserted before the ``anchor:`` line (or appended when there is none),
+    and owned fields absent from ``fields`` removed. Comments and every other
+    field are kept."""
     out, seen, skipping = [], set(), False
     for line in text.splitlines(keepends=True):
         if skipping and line[:1] in (" ", "\t") and line.strip():
@@ -410,6 +411,10 @@ def render(
             out.extend(_emit(k, v) for k, v in fields.items() if k not in seen)
             seen.update(fields)
         out.append(line)
+    if any(k not in seen for k in fields):  # no anchor line: append at the end
+        if out and not out[-1].endswith("\n"):
+            out[-1] += "\n"
+        out.extend(_emit(k, v) for k, v in fields.items() if k not in seen)
     return "".join(out)
 
 
@@ -582,26 +587,100 @@ def product_die_cost(product: ComputeProduct, nodes: dict[str, ProcessNodeEntry]
     return cost.model_copy(update={"value": round(cost.value, 2)})
 
 
-def expected_product_swapc2(product: ComputeProduct, nodes) -> dict:
-    """The product's ``swapc2`` section with ``cost.die_cost_usd`` set."""
-    spec = product.swapc2.model_dump(mode="json", exclude_none=True) if product.swapc2 else {}
-    spec.setdefault("cost", {})["die_cost_usd"] = product_die_cost(product, nodes).model_dump(
-        mode="json", exclude_defaults=True
-    )
-    return spec
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip(" "))
+
+
+def _block_end(lines: list[str], start: int, indent: int) -> int:
+    """End (exclusive) of the block whose key is ``lines[start]`` at ``indent``:
+    up to the last line before the next non-blank line indented ``<= indent``.
+    Blank lines inside the block stay in it; trailing ones stay outside."""
+    end = start + 1
+    for i in range(start + 1, len(lines)):
+        if not lines[i].strip():
+            continue
+        if _indent(lines[i]) <= indent:
+            break
+        end = i + 1
+    return end
+
+
+def _find_key(lines: list[str], lo: int, hi: int, key: str, indent: int) -> int | None:
+    pattern = re.compile(rf"^ {{{indent}}}{re.escape(key)}:(\s|$)")
+    for i in range(lo, hi):
+        if pattern.match(lines[i]):
+            return i
+    return None
+
+
+def _dump_block(mapping: dict, indent: int) -> list[str]:
+    text = yaml.safe_dump(mapping, sort_keys=False, width=100, allow_unicode=True)
+    return [" " * indent + line for line in text.splitlines(keepends=True)]
+
+
+def set_nested(text: str, path: list[str], value: object, anchor: str | None = None) -> str:
+    """``text`` with the mapping entry at ``path`` set to ``value``; every
+    other line (siblings, comments, blank lines) is kept.
+
+    Only the leaf's own block is replaced. A missing level is created at the
+    end of its parent block, or for a missing top-level key, before the
+    ``anchor:`` line (appended when there is none).
+    """
+    lines = text.splitlines(keepends=True)
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] += "\n"
+    lo, hi, indent = 0, len(lines), 0
+    for depth, key in enumerate(path):
+        i = _find_key(lines, lo, hi, key, indent)
+        if i is None:
+            sub: object = value
+            for k in reversed(path[depth + 1 :]):
+                sub = {k: sub}
+            pos = hi
+            if depth == 0 and anchor is not None:
+                at = _find_key(lines, 0, len(lines), anchor, 0)
+                pos = at if at is not None else len(lines)
+            lines[pos:pos] = _dump_block({key: sub}, indent)
+            return "".join(lines)
+        end = _block_end(lines, i, indent)
+        if depth == len(path) - 1:
+            lines[i:end] = _dump_block({key: value}, indent)
+            return "".join(lines)
+        children = [
+            ln for ln in lines[i + 1 : end] if ln.strip() and not ln.lstrip().startswith("#")
+        ]
+        lo, hi = i + 1, end
+        indent = _indent(children[0]) if children else indent + 2
+    return "".join(lines)
+
+
+DIE_COST_PATH = ["swapc2", "cost", "die_cost_usd"]
+
+
+def expected_die_cost(product: ComputeProduct, nodes) -> dict:
+    """The ``swapc2.cost.die_cost_usd`` mapping the writer sets."""
+    return product_die_cost(product, nodes).model_dump(mode="json", exclude_defaults=True)
 
 
 def run_products(write: bool) -> int:
-    """Check (or rewrite) ``swapc2.cost.die_cost_usd`` on every eligible product."""
-    nodes = load_process_nodes()
+    """Check (or rewrite) ``swapc2.cost.die_cost_usd`` on every eligible product.
+
+    Uses the public process-node catalog only: a private PDK overlay
+    (``PROCESS_NODE_DATA_DIR``) must never feed figures written into public data.
+    """
+    nodes = load_process_nodes(include_overlay=False)
     products = load_compute_products()
     paths = _paths_by_id(PRODUCTS_DIR)
     status = 0
     eligible = sorted(p for p, cp in products.items() if die_cost_eligible(cp, nodes))
     for product_id in eligible:
         path = paths[product_id]
-        fields = {"swapc2": expected_product_swapc2(products[product_id], nodes)}
-        new = render(path.read_text(encoding="utf-8"), fields, ("swapc2",), anchor="confidence")
+        new = set_nested(
+            path.read_text(encoding="utf-8"),
+            DIE_COST_PATH,
+            expected_die_cost(products[product_id], nodes),
+            anchor="confidence",
+        )
         status |= _check_or_write(path, new, SILICON_COST, write)
     if write:
         for product_id in eligible:
