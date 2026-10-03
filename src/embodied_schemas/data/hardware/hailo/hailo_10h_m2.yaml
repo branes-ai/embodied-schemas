@@ -55,6 +55,9 @@ power:
     - name: "Typical"
       power_watts: 2.5
       description: "ResNet-50 224x224 @ 1015 FPS (datasheet)"
+    - name: "Light"
+      power_watts: 2.2
+      description: "QWEN2 1.5B @ 11 TPS (datasheet)"
     - name: "Peak"
       power_watts: 8.25
       description: '"It consumes up to 8.25W" (datasheet)'

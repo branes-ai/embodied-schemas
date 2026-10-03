@@ -98,6 +98,7 @@ def test_power_matches_datasheet(hw, db):
     s, d = "hailo_10h_m2_2280_8gb", "hailo_10h_m2_key_m_datasheet"
     assert h10.tdp_watts == db.value(f"{s}.power.max@{d}")  # no TDP stated
     assert h10.typical_power_watts == db.value(f"{s}.power.typ@{d}")
+    assert min(m.power_watts for m in h10.power_modes) == db.value(f"{s}.power.typ_qwen2@{d}")
 
 
 def test_unified_modules_agree_with_legacy(hw):
