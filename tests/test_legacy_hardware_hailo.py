@@ -115,3 +115,37 @@ def test_unified_modules_agree_with_legacy(hw):
         assert legacy.physical.dimensions_mm == [dims.width_mm, dims.length_mm, dims.height_mm]
         assert legacy.cost_usd == module.swapc2.cost.unit_price_1_usd.value
         assert legacy.power.tdp_watts == module.power.tdp_watts
+
+
+# legacy id -> {power-mode name: source-DB power variant}
+MODES = {
+    "hailo_8_m2": {"Typical": "typ_resnet50", "Light": "typ_mobilenet_ssd", "Peak": "max"},
+    "hailo_8l_m2": {"Typical": "typ_resnet50", "Light": "typ_mobilenet_ssd", "Peak": "max"},
+    "hailo_10h_m2": {"Typical": "typ", "Light": "typ_qwen2", "Peak": "max"},
+}
+
+
+@pytest.mark.parametrize("legacy_id", MODES)
+def test_every_power_mode_matches_datasheet(hw, db, legacy_id):
+    """Each named legacy power mode equals its source-DB figure, and the modes
+    are exactly those (no unsourced extras)."""
+    subject, doc, _, _ = LEGACY[legacy_id]
+    modes = {m.name: m.power_watts for m in hw[legacy_id].power.power_modes}
+    assert set(modes) == set(MODES[legacy_id])
+    for name, variant in MODES[legacy_id].items():
+        assert modes[name] == db.value(f"{subject}.power.{variant}@{doc}"), (legacy_id, name)
+
+
+@pytest.mark.parametrize(
+    "legacy_id,module_id",
+    [("hailo_8_m2", "hailo_8_m2_2242_m"), ("hailo_10h_m2", "hailo_10h_m2_2280_8gb")],
+)
+def test_power_modes_agree_with_unified_module(hw, legacy_id, module_id):
+    """Peak is the module's max_power_watts; every other mode is one of its profiles."""
+    from embodied_schemas.loaders import load_compute_products
+
+    module = load_compute_products()[module_id]
+    modes = {m.name: m.power_watts for m in hw[legacy_id].power.power_modes}
+    assert modes.pop("Peak") == module.power.max_power_watts
+    profiles = {p.tdp_watts for p in module.power.thermal_profiles}
+    assert set(modes.values()) <= profiles
