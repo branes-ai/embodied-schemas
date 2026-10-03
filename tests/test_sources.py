@@ -34,8 +34,7 @@ def db() -> SourceDB:
 
 
 def heatsinks(db: SourceDB) -> list[str]:
-    fans = set(db.subjects("power"))
-    return [s for s in db.subjects("mass") if s not in fans and db.find("length", s)]
+    return [s for s in db.subjects("mass", category="heatsink") if db.find("length", s)]
 
 
 def envelope_cm3(db: SourceDB, subject: str) -> float:
@@ -71,6 +70,7 @@ class TestIntegrity:
     def test_wrong_unit_rejected(self):
         with pytest.raises(ValidationError, match="must be in 'usd'"):
             Observation(
+                category="test",
                 subject="x",
                 quantity="wafer_price",
                 value=1,
@@ -84,6 +84,7 @@ class TestIntegrity:
     def test_unknown_quantity_rejected(self):
         with pytest.raises(ValidationError, match="unknown quantity"):
             Observation(
+                category="test",
                 subject="x",
                 quantity="price",
                 value=1,
@@ -97,6 +98,7 @@ class TestIntegrity:
     def test_value_outside_range_rejected(self):
         with pytest.raises(ValidationError, match="outside"):
             Observation(
+                category="test",
                 subject="x",
                 quantity="mass",
                 value=9,
@@ -111,6 +113,7 @@ class TestIntegrity:
 
     def test_unknown_source_rejected(self):
         obs = Observation(
+            category="test",
             subject="x",
             quantity="mass",
             value=1,
@@ -128,6 +131,7 @@ class TestIntegrity:
             id="d", title="t", publisher="p", kind="article", url="u", accessed="2026-10-02"
         )
         obs = Observation(
+            category="test",
             subject="x",
             quantity="mass",
             value=1,
@@ -194,21 +198,22 @@ class TestThermalConsistency:
 
     def test_heatsink_price_rises_with_size(self, db):
         priced = sorted(
-            (envelope_cm3(db, o.subject), o.value) for o in db.find("unit_price", variant="qty_1")
+            (envelope_cm3(db, o.subject), o.value)
+            for o in db.find("unit_price", variant="qty_1", category="heatsink")
         )
         assert [p for _, p in priced] == sorted(p for _, p in priced)
 
 
 class TestFanConsistency:
     def test_typical_power_at_most_max(self, db):
-        for s in db.subjects("power"):
+        for s in db.subjects("power", category="fan"):
             typ = db.find("power", s, variant="typ")[0].value
             mx = db.find("power", s, variant="max")[0].value
             assert 0 < typ <= mx, s
 
     def test_volume_discounts(self, db):
         """For one distributor, a larger quantity break is not more expensive."""
-        for s in db.subjects("power"):
+        for s in db.subjects("power", category="fan"):
             by_dist: dict[str, list[tuple[float, float]]] = {}
             for o in db.find("unit_price", s):
                 by_dist.setdefault(o.conditions["distributor"], []).append(
@@ -305,6 +310,7 @@ class TestQuery:
 
 def _obs(**kw):
     base = dict(
+        category="test",
         subject="x",
         quantity="mass",
         value=1.0,
@@ -366,6 +372,15 @@ class TestHardening:
         other = _obs(subject="y", quantity="length", unit="mm")
         with pytest.raises(ValueError, match="another quantity"):
             SourceDB([DOC], [other, _obs(basis="derived", derived_from=[other.key])])
+
+    def test_one_category_per_subject(self):
+        a = _obs(quantity="mass", unit="g", category="heatsink")
+        b = _obs(quantity="length", unit="mm", category="fan")
+        with pytest.raises(ValueError, match="more than one category"):
+            SourceDB([DOC], [a, b])
+
+    def test_every_observation_is_categorized(self, db):
+        assert all(o.category for o in db.observations.values())
 
     def test_n6_d0_is_derived_from_n7(self, db):
         n6 = db.get("tsmc_n6.defect_density@tomshw_2020_08_24_tsmc_symposium")

@@ -71,7 +71,7 @@ def hailo8_npu_block(hailo8_compute_die) -> NPUBlock:
 def test_catalog_includes_hailo_8(all_products):
     """Hailo-8 must remain present after subsequent hailo/ additions
     (Hailo-10H joined this directory in the follow-up data PR)."""
-    hailo_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "hailo")
+    hailo_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "hailo" and cp.dies)
     assert "hailo_hailo_8" in hailo_skus
 
 

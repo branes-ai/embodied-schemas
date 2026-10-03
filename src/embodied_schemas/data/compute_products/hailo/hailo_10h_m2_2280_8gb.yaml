@@ -1,0 +1,95 @@
+# Hailo-10H M.2 2280 Key M module, 8 GB LPDDR4 (HM22HB1C2FAE).
+#
+# RFC 0001 S3b: a `module` containing the Hailo-10H chip (hailo_hailo_10h).
+# Every SWaP-C² value is a source-DB figure (data/sources/observations/
+# m2_modules.yaml); tests/test_compute_product_v14_hailo_m2_yaml.py holds
+# this file to them.
+#
+# The legacy HardwareEntry `hailo_10h_m2` disagrees with the datasheet on
+# size (22x42x4 vs 22x80 mm, 1.5 + 0.5 mm components), and its TDP (5 W),
+# mass (12 g) and price ($199) have no source. None of it is used here.
+
+id: hailo_10h_m2_2280_8gb
+name: Hailo-10H M.2 2280 Key M module (8 GB)
+vendor: hailo
+kind: module
+packaging:
+  kind: board
+  form_factor: m2
+
+lifecycle: production
+
+dies: []
+contains:
+- id: hailo_hailo_10h
+  role: compute
+
+performance:                            # "NN Capacity 40 | 20 TOPS (INT4 | INT8)"
+  int8_tops: 20.0
+  bf16_tflops: 0.0
+  fp32_tflops: 0.0
+  int4_tops: 40.0
+
+power:
+  tdp_watts: 8.25                       # no TDP stated; the datasheet maximum
+  max_power_watts: 8.25                 # "It consumes up to 8.25W"
+  min_power_watts: 2.5
+  default_thermal_profile: '8.25W'
+  thermal_profiles:                     # module power at the 3.3 V pins; chip clock
+  - name: '2.5W'                        # ResNet-50 224x224 @ 1015 FPS
+    tdp_watts: 2.5
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_heatsink_small
+  - name: '8.25W'                       # datasheet maximum
+    tdp_watts: 8.25
+    clock_mhz: 1000.0
+    cooling_solution_id: passive_heatsink_small
+
+swapc2:
+  size:
+    dimensions_mm:
+      length_mm: 80.0
+      width_mm: 22.0
+      height_mm: 2.8
+      basis: derived
+      confidence: theoretical
+      source: >-
+        hailo_10h_m2_2280_8gb.length / .width@hailo_10h_m2_key_m_datasheet;
+        height = top_components 1.5 + m2_card_pcb.height@hackaday_2022_m2_for_hackers 0.8
+        + bottom_components 0.5
+      notes: The datasheet gives component heights only; the 0.8 mm board is the M.2 norm.
+  power:
+    input_voltage_v: [3.135, 3.465]     # "3.3V ± 5%"
+  cost:
+    unit_price_1_usd:
+      value: 229.0
+      basis: datasheet
+      confidence: calibrated
+      source: hailo_10h_m2_2280_8gb.unit_price.qty_1@upshop_hailo_10h_8g_m2
+      notes: Without heatsink.
+
+memory:
+  memory_gb: 8.0                        # "equipped with 4GB or 8GB LPDDR4 memory"
+  memory_type: LPDDR4
+
+environmental:
+  operating_temp_c: [-40.0, 85.0]       # "Operating Temperature -40 to 85 C"
+
+interfaces:
+  pcie_lanes: 4                         # "PCIe Gen 3, 4-lanes"
+  pcie_gen: 3
+
+market:
+  target_market: edge
+  product_family: Hailo-10
+  model_tier: high
+  is_available: true
+
+confidence: theoretical
+notes: >
+  No module mass is published, so mass stays unresolved. UP Shop sells the
+  module without a heatsink (a passive heatsink is $15 separately); all
+  profiles bind passive_heatsink_small, sized per W by cooling_sizing_v1.
+datasheet_url: https://hailo.ai/hailo-files/hailo-10h-m-2-key-m-et-datasheet-en/
+product_url: https://hailo.ai/products/ai-accelerators/hailo-10h-m-2-generative-ai-acceleration-module/
+last_updated: '2026-10-03'

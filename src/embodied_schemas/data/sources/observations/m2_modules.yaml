@@ -1,0 +1,51 @@
+# M.2 AI accelerator modules (S3b): size, mass, power and price, quoted from
+# vendor datasheets and listings. The catalog's module YAMLs are held to
+# these figures by tests/test_compute_product_v14_hailo_m2_yaml.py.
+
+# --- Hailo-8 M.2 2242 M key (HM218B1C2HAE) -------------------------------
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: length, value: 42, unit: mm, as_of: "2025-11", basis: datasheet,
+   source_id: hailo_8_m2_key_m_datasheet, quote: "Dimensions 22 x 80 mm or 22 x 42",
+   notes: "The 2242 configuration (HM218B1C2HAE per the product brief)."}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: width, value: 22, unit: mm, as_of: "2025-11", basis: datasheet,
+   source_id: hailo_8_m2_key_m_datasheet, quote: "Dimensions 22 x 80 mm or 22 x 42"}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: height, value: 2.626, value_min: 2.426, value_max: 2.826, unit: mm,
+   as_of: "2025-11", basis: datasheet, source_id: hailo_8_m2_key_m_datasheet,
+   quote: "Height 2.626 mm ... Tolerance is ±0.2mm"}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: mass, value: 6.0, unit: g, as_of: "2026-10", basis: reported,
+   source_id: waveshare_hailo_8, quote: "Weight: 0.006 kg",
+   notes: "Reseller listing for the 2242 Key M module; Hailo publishes no mass. May be a listing rather than a measured figure."}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: power, variant: tdp, value: 8.65, unit: w, as_of: "2025-11", basis: datasheet,
+   source_id: hailo_8_m2_key_m_datasheet, quote: "Thermal design power (TDP) 8.65W"}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: power, variant: max, value: 8.25, unit: w, as_of: "2025-11", basis: datasheet,
+   source_id: hailo_8_m2_key_m_datasheet,
+   quote: "Maximum power consumption is 8.25W (or 2.5A total current draw from 3.3V pins) at full utilization"}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: power, variant: typ_resnet50, value: 3.3, unit: w, as_of: "2025-11",
+   basis: datasheet, source_id: hailo_8_m2_key_m_datasheet, conditions: {workload: "ResNet-50 224x224 @ 915 FPS", temp_c: 25},
+   quote: "Resnet-50 224x224 @ 915 FPS 3.3"}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: power, variant: typ_mobilenet_ssd, value: 2.4, unit: w, as_of: "2025-11",
+   basis: datasheet, source_id: hailo_8_m2_key_m_datasheet, conditions: {workload: "MobileNet-SSD 300x300 @ 996 FPS", temp_c: 25},
+   quote: "MobileNet-SSD 300x300 @ 996 FPS 2.4"}
+- {subject: hailo_8_m2_2242_m, category: m2_module, quantity: unit_price, variant: qty_1, value: 179.99, unit: usd, as_of: "2026-10",
+   basis: list_price, source_id: waveshare_hailo_8, conditions: {quantity: 1, distributor: Waveshare}, quote: "$179.99"}
+
+# --- Hailo-10H M.2 2280 M key, 8 GB (HM22HB1C2FAE) ------------------------
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: length, value: 80, unit: mm, as_of: "2025-06", basis: datasheet,
+   source_id: hailo_10h_m2_key_m_datasheet, quote: "Dimensions 22 x 80 mm"}
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: width, value: 22, unit: mm, as_of: "2025-06", basis: datasheet,
+   source_id: hailo_10h_m2_key_m_datasheet, quote: "Dimensions 22 x 80 mm"}
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: height, variant: top_components, value: 1.5, unit: mm, as_of: "2025-06",
+   basis: datasheet, source_id: hailo_10h_m2_key_m_datasheet, quote: "Height: 1.5mm top, 0.5mm bottom"}
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: height, variant: bottom_components, value: 0.5, unit: mm, as_of: "2025-06",
+   basis: datasheet, source_id: hailo_10h_m2_key_m_datasheet, quote: "Height: 1.5mm top, 0.5mm bottom"}
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: power, variant: max, value: 8.25, unit: w, as_of: "2025-06", basis: datasheet,
+   source_id: hailo_10h_m2_key_m_datasheet, quote: "It consumes up to 8.25W and less than 2.5W under a typical workload"}
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: power, variant: typ, value: 2.5, unit: w, as_of: "2025-06", basis: datasheet,
+   source_id: hailo_10h_m2_key_m_datasheet, conditions: {workload: "ResNet-50 224x224 @ 1015 FPS"},
+   quote: "Resnet-50 224x224 @ 1015 FPS 2.5W"}
+- {subject: hailo_10h_m2_2280_8gb, category: m2_module, quantity: unit_price, variant: qty_1, value: 229.0, unit: usd, as_of: "2026-10",
+   basis: list_price, source_id: upshop_hailo_10h_8g_m2, conditions: {quantity: 1, distributor: UP Shop, heatsink: "without"},
+   quote: "Hailo-10H M.2 2280 M key [8G RAM] | W/O Heatsink $229.00"}
+
+# --- M.2 card PCB ------------------------------------------------------------
+- {subject: m2_card_pcb, category: standard, quantity: height, value: 0.8, unit: mm, as_of: "2022-11", basis: reported,
+   source_id: hackaday_2022_m2_for_hackers, quote: "M.2 requires a 0.8 mm PCB."}
