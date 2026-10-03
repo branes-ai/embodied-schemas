@@ -441,6 +441,15 @@ class TestSetNestedFlowStyle:
         out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
         assert yaml.safe_load(out)["swapc2"]["cost"]["die_cost_usd"] == DIE
 
+    @pytest.mark.parametrize(
+        "text",
+        ["swapc2:\nconfidence: x\n", "swapc2:\n  cost:\nconfidence: x\n"],
+        ids=["empty_swapc2", "empty_cost"],
+    )
+    def test_empty_parent_is_a_mapping(self, text):
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert yaml.safe_load(out)["swapc2"]["cost"]["die_cost_usd"] == DIE
+
     def test_result_is_verified(self, monkeypatch):
         """If the line edit ever goes wrong, the re-parse catches it before a write."""
         monkeypatch.setattr(est, "_set_nested_lines", lambda *a: "swapc2: [unbalanced\n")

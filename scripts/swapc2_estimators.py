@@ -651,7 +651,9 @@ def set_nested(text: str, path: list[str], value: object, anchor: str | None = N
     expected = before
     node = expected
     for key in path[:-1]:
-        node = node.setdefault(key, {})
+        if node.get(key) is None:  # absent, or an empty `key:` (parsed as None)
+            node[key] = {}
+        node = node[key]
     node[path[-1]] = value
     if after != expected:
         raise ValueError(f"editing {'.'.join(path)} changed more than the target entry")
