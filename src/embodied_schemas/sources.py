@@ -279,8 +279,8 @@ class SourceDB:
         )
         con.execute(
             "CREATE TABLE observations (key TEXT PRIMARY KEY, subject TEXT, category TEXT, "
-            "quantity TEXT, variant TEXT, value REAL, value_min REAL, value_max REAL, unit TEXT, as_of TEXT, "
-            "basis TEXT, source_id TEXT REFERENCES documents(id), quote TEXT, conditions TEXT)"
+            "quantity TEXT, variant TEXT, value REAL, value_min REAL, value_max REAL, "
+            "unit TEXT, as_of TEXT, basis TEXT, source_id TEXT REFERENCES documents(id), quote TEXT, conditions TEXT)"
         )
         con.executemany(
             "INSERT INTO documents VALUES (?,?,?,?,?,?,?,?)",
