@@ -473,10 +473,17 @@ class TestCoolingSizing:
             fixed_cooling(ambient_c_max=90.0, surface_c_max=85.0)
         assert fixed_cooling(ambient_c_max=50.0, surface_c_max=85.0).surface_c_max == 85.0
 
+    def test_needs_some_rating(self):
+        with pytest.raises(ValidationError, match="needs ambient_c_max, surface_c_max"):
+            fixed_cooling(ambient_c_max=None)
+
+    def test_surface_only_rating(self):
+        assert fixed_cooling(ambient_c_max=None, surface_c_max=85.0).ambient_c_max is None
+
     def test_smarc_spreader_is_surface_rated(self, cooling):
         spreader = cooling["smarc_heat_spreader_82x50"]
         assert spreader.surface_c_max == 85.0
-        assert spreader.ambient_c_max <= spreader.surface_c_max
+        assert spreader.ambient_c_max is None  # no sourced air rating
         assert cooling["active_fan"].surface_c_max is None
 
     def test_is_active(self, cooling):

@@ -122,6 +122,10 @@ cooling_compatible:
   - passive_heatsink_large
   - active_fan
 
+# SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
+wafer_cost_usd: 2274.0
+wafer_diameter_mm: 300.0
+wafer_cost_source: "source DB (data/sources/): wafer_cost_usd = tsmc_n40.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); no sourced D0"
 source: >-
   Derived from tsmc_n28hpm / tsmc_n16 / tsmc_n65 by C x V^2 and area
   scaling; energy cross-checked against M. Horowitz, "Computing's Energy

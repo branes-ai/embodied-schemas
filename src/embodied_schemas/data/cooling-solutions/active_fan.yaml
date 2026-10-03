@@ -11,8 +11,15 @@ junction_c_max: 105.0
 form_factor_constraints:
   - "height<=60mm"
   - "requires_unobstructed_airflow"
-weight_g: 400.0
-cost_usd: 25.0
+weight_g: 80.0
+cost_usd: 15.2423
+volume_cm3_per_w: 1.9167
+mass_g_per_w: 1.8185
+cost_usd_per_w: 0.0914
+volume_cm3: 91.44
+parasitic_power_w: 4.56
+basis: "estimated"
+sizing_source: "cooling_sizing_v1 (scripts/swapc2_estimators.py); r_vol=115 [forced_air_2_5_m_s.volumetric_thermal_resistance@lee_1995_select_heat_sink (mid of 80-150)]; delta_t=60 [entry junction_c_max 105 - ambient_c_max 45; ignores the junction-to-sink drop, so the sink is a lower bound]; solid_fraction=0.3514 [median mass/envelope 0.949 g/cm3 of 13 heatsinks (alpha_novatech_n30_25b, alpha_novatech_n50_15b, alpha_novatech_n80_40b, ats_kra_3559_c1_r0, ats_krp_3559_c1_r0, ats_krp_3561_c1_r0, ats_krp_3563_c1_r0, ats_krp_3567_c1_r0, ats_mf4217, ats_sf4217, toradex_smarc_heatsink_passive, wakefield_655_53ab, wakefield_698_100ab) / aluminum_6063_t5.material_density@quickparts_al_6063_t5]; density=2.7 [aluminum_6063_t5.material_density@quickparts_al_6063_t5]; base_mass_g=80 [delta_afb0612eh_a.mass@delta_afb0612eh_a]; base_volume_cm3=91.44 [delta_afb0612eh_a envelope (delta_afb0612eh_a.length@delta_afb0612eh_a, delta_afb0612eh_a.width@delta_afb0612eh_a, delta_afb0612eh_a.height@delta_afb0612eh_a)]; base_cost_usd=15.2423 [delta_afb0612eh_a.unit_price.qty_1620_avnet@findchips_fan_prices + sink price-fit intercept]; parasitic_power_w=4.56 [delta_afb0612eh_a.power.typ@delta_afb0612eh_a]; cost_per_cm3=0.047713 [slope of least-squares price = a + b x envelope over alpha_novatech_n30_25b.unit_price.qty_1@luxeonstar_alpha_n30_25b, alpha_novatech_n50_15b.unit_price.qty_1@luxeonstar_alpha_n50_15b, alpha_novatech_n80_40b.unit_price.qty_1@luxeonstar_alpha_n80_40b]"
 source: "PCIe inference card thermal references; standard server cooling"
 confidence: theoretical
 last_updated: "2026-05-09"

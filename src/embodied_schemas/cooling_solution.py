@@ -95,9 +95,14 @@ class CoolingSolutionEntry(BaseModel):
         gt=0,
         description="Whole-package thermal envelope -- sum of all blocks must fit",
     )
-    ambient_c_max: float = Field(
-        ...,
-        description="Maximum ambient operating temperature (C) for this rating",
+    ambient_c_max: float | None = Field(
+        None,
+        description=(
+            "Maximum ambient (air) operating temperature (C) for this rating. "
+            "None when no air rating exists -- e.g. a surface-rated COM heat "
+            "spreader, whose air limit depends on the enclosure it is coupled to "
+            "(see surface_c_max)"
+        ),
     )
     surface_c_max: float | None = Field(
         None,
@@ -160,6 +165,11 @@ class CoolingSolutionEntry(BaseModel):
     cost_usd_per_w: float | None = Field(
         None, ge=0, description="Unit cost added per W removed (sizing model)"
     )
+    sizing_source: str | None = Field(
+        None,
+        description="Estimator id + version and parameter sources, for entries whose "
+        "SWaP-C² fields scripts/swapc2_estimators.py writes (cooling_sizing_v1)",
+    )
     basis: ValueBasis = Field(
         ValueBasis.ESTIMATED,
         description="Basis of this entry's size / mass / power / cost figures. "
@@ -185,13 +195,25 @@ class CoolingSolutionEntry(BaseModel):
             "mass_g_per_w",
             "volume_cm3_per_w",
             "cost_usd_per_w",
+            "sizing_source",
             "basis",
         ))
 
     @model_validator(mode="after")
+    def _has_a_rating(self) -> "CoolingSolutionEntry":
+        """A solution is rated in air, at a surface, or both."""
+        if self.ambient_c_max is None and self.surface_c_max is None:
+            raise ValueError(f"{self.id}: needs ambient_c_max, surface_c_max, or both")
+        return self
+
+    @model_validator(mode="after")
     def _ambient_below_surface(self) -> "CoolingSolutionEntry":
         """Heat cannot flow from a surface into hotter air."""
-        if self.surface_c_max is not None and self.ambient_c_max > self.surface_c_max:
+        if (
+            self.surface_c_max is not None
+            and self.ambient_c_max is not None
+            and self.ambient_c_max > self.surface_c_max
+        ):
             raise ValueError(
                 f"ambient_c_max {self.ambient_c_max} exceeds surface_c_max {self.surface_c_max}"
             )

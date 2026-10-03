@@ -1,0 +1,704 @@
+# Heatsink sizing: Lee's volumetric thermal resistance, catalog heatsinks
+# (dimensions, mass, thermal resistance, price) and material density.
+# Inputs to cooling_sizing_v1. Quotes transcribed from the source documents.
+- subject: natural_convection
+  quantity: volumetric_thermal_resistance
+  value: 650.0
+  value_min: 500
+  value_max: 800
+  unit: cm3_c_per_w
+  as_of: 1995-06
+  basis: reported
+  source_id: lee_1995_select_heat_sink
+  conditions:
+    airflow: natural
+  quote: 'Table 2: "Flow condition m/s (lfm) | Volumetric Resistance cm3 °C/W (in3 °C/W): natural convection 500-800
+    (30-50); 1.0 (200) 150-250 (10-15); 2.5 (500) 80-150 (5-10); 5.0 (1000) 50-80 (3-5)"'
+  notes: value = midpoint of the quoted range
+- subject: forced_air_1_0_m_s
+  quantity: volumetric_thermal_resistance
+  value: 200.0
+  value_min: 150
+  value_max: 250
+  unit: cm3_c_per_w
+  as_of: 1995-06
+  basis: reported
+  source_id: lee_1995_select_heat_sink
+  conditions:
+    airflow_m_s: 1.0
+  quote: 'Table 2: "Flow condition m/s (lfm) | Volumetric Resistance cm3 °C/W (in3 °C/W): natural convection 500-800
+    (30-50); 1.0 (200) 150-250 (10-15); 2.5 (500) 80-150 (5-10); 5.0 (1000) 50-80 (3-5)"'
+  notes: value = midpoint of the quoted range
+- subject: forced_air_2_5_m_s
+  quantity: volumetric_thermal_resistance
+  value: 115.0
+  value_min: 80
+  value_max: 150
+  unit: cm3_c_per_w
+  as_of: 1995-06
+  basis: reported
+  source_id: lee_1995_select_heat_sink
+  conditions:
+    airflow_m_s: 2.5
+  quote: 'Table 2: "Flow condition m/s (lfm) | Volumetric Resistance cm3 °C/W (in3 °C/W): natural convection 500-800
+    (30-50); 1.0 (200) 150-250 (10-15); 2.5 (500) 80-150 (5-10); 5.0 (1000) 50-80 (3-5)"'
+  notes: value = midpoint of the quoted range
+- subject: forced_air_5_0_m_s
+  quantity: volumetric_thermal_resistance
+  value: 65.0
+  value_min: 50
+  value_max: 80
+  unit: cm3_c_per_w
+  as_of: 1995-06
+  basis: reported
+  source_id: lee_1995_select_heat_sink
+  conditions:
+    airflow_m_s: 5.0
+  quote: 'Table 2: "Flow condition m/s (lfm) | Volumetric Resistance cm3 °C/W (in3 °C/W): natural convection 500-800
+    (30-50); 1.0 (200) 150-250 (10-15); 2.5 (500) 80-150 (5-10); 5.0 (1000) 50-80 (3-5)"'
+  notes: value = midpoint of the quoted range
+- subject: alpha_novatech_n30_25b
+  quantity: length
+  value: 30
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n30_25b
+  quote: '"Thermal Resistance 9.5 °C/W … Material A6063 black anodized aluminum Dimensions (L x W x H) 30 x 30 x
+    25 mm Weight 25.855 g"'
+- subject: alpha_novatech_n30_25b
+  quantity: width
+  value: 30
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n30_25b
+  quote: '"Thermal Resistance 9.5 °C/W … Material A6063 black anodized aluminum Dimensions (L x W x H) 30 x 30 x
+    25 mm Weight 25.855 g"'
+- subject: alpha_novatech_n30_25b
+  quantity: height
+  value: 25
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n30_25b
+  quote: '"Thermal Resistance 9.5 °C/W … Material A6063 black anodized aluminum Dimensions (L x W x H) 30 x 30 x
+    25 mm Weight 25.855 g"'
+- subject: alpha_novatech_n30_25b
+  quantity: mass
+  value: 25.855
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n30_25b
+  conditions:
+    material: A6063
+  quote: '"Thermal Resistance 9.5 °C/W … Material A6063 black anodized aluminum Dimensions (L x W x H) 30 x 30 x
+    25 mm Weight 25.855 g"'
+- subject: alpha_novatech_n30_25b
+  quantity: thermal_resistance
+  value: 9.5
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n30_25b
+  conditions:
+    airflow: natural
+  quote: '"Thermal Resistance 9.5 °C/W … Material A6063 black anodized aluminum Dimensions (L x W x H) 30 x 30 x
+    25 mm Weight 25.855 g"'
+- subject: alpha_novatech_n30_25b
+  quantity: unit_price
+  variant: qty_1
+  value: 6.3
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: luxeonstar_alpha_n30_25b
+  conditions:
+    quantity: 1
+  quote: '"$ 6.30 /ea"'
+- subject: alpha_novatech_n50_15b
+  quantity: length
+  value: 50
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n50_15b
+  quote: 'product page: Dimensions (L x W x H) 50 x 50 x 15 mm'
+- subject: alpha_novatech_n50_15b
+  quantity: width
+  value: 50
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n50_15b
+  quote: 'product page: Dimensions (L x W x H) 50 x 50 x 15 mm'
+- subject: alpha_novatech_n50_15b
+  quantity: height
+  value: 15
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n50_15b
+  quote: 'product page: Dimensions (L x W x H) 50 x 50 x 15 mm'
+- subject: alpha_novatech_n50_15b
+  quantity: mass
+  value: 71.214
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n50_15b
+  conditions:
+    material: A6063
+  quote: 'product page: Weight 71.214 g'
+- subject: alpha_novatech_n50_15b
+  quantity: thermal_resistance
+  value: 6.3
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n50_15b
+  conditions:
+    airflow: natural
+  quote: 'product page: Thermal Resistance 6.3 °C/W'
+- subject: alpha_novatech_n50_15b
+  quantity: unit_price
+  variant: qty_1
+  value: 6.88
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: luxeonstar_alpha_n50_15b
+  conditions:
+    quantity: 1
+  quote: 'product page: $ 6.88 /ea'
+- subject: alpha_novatech_n80_40b
+  quantity: length
+  value: 80
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n80_40b
+  quote: 'product page: Dimensions (L x W x H) 80 x 80 x 40 mm'
+- subject: alpha_novatech_n80_40b
+  quantity: width
+  value: 80
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n80_40b
+  quote: 'product page: Dimensions (L x W x H) 80 x 80 x 40 mm'
+- subject: alpha_novatech_n80_40b
+  quantity: height
+  value: 40
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n80_40b
+  quote: 'product page: Dimensions (L x W x H) 80 x 80 x 40 mm'
+- subject: alpha_novatech_n80_40b
+  quantity: mass
+  value: 333.844
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n80_40b
+  conditions:
+    material: A6063
+  quote: 'product page: Weight 333.844 g'
+- subject: alpha_novatech_n80_40b
+  quantity: thermal_resistance
+  value: 1.85
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: luxeonstar_alpha_n80_40b
+  conditions:
+    airflow: natural
+  quote: 'product page: Thermal Resistance 1.85 °C/W'
+- subject: alpha_novatech_n80_40b
+  quantity: unit_price
+  variant: qty_1
+  value: 17.38
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: luxeonstar_alpha_n80_40b
+  conditions:
+    quantity: 1
+  quote: 'product page: $ 17.38 /ea'
+- subject: toradex_smarc_heatsink_passive
+  quantity: length
+  value: 82
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: toradex_smarc_heatsink_passive
+  quote: 'datasheet: 82 x 42 x 14.7 mm'
+- subject: toradex_smarc_heatsink_passive
+  quantity: width
+  value: 42
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: toradex_smarc_heatsink_passive
+  quote: 'datasheet: 82 x 42 x 14.7 mm'
+- subject: toradex_smarc_heatsink_passive
+  quantity: height
+  value: 14.7
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: toradex_smarc_heatsink_passive
+  quote: 'datasheet: 82 x 42 x 14.7 mm'
+- subject: toradex_smarc_heatsink_passive
+  quantity: mass
+  value: 49
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: toradex_smarc_heatsink_passive
+  conditions:
+    material: AL6063-T5
+  quote: '"Approx 49 grams"'
+- subject: toradex_smarc_heatsink_passive
+  quantity: thermal_resistance
+  value: 8.5
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: toradex_smarc_heatsink_passive
+  conditions:
+    airflow: natural
+  quote: 'datasheet: 8.5 °C/W ("Estimated")'
+- subject: ats_x51270d_c1_r0
+  quantity: length
+  value: 27
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_x51270d_c1_r0
+  quote: 'datasheet: 27 x 27 x 9.5 mm; "Dimension A and B refer to component size"'
+- subject: ats_x51270d_c1_r0
+  quantity: width
+  value: 27
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_x51270d_c1_r0
+  quote: 'datasheet: 27 x 27 x 9.5 mm; "Dimension A and B refer to component size"'
+- subject: ats_x51270d_c1_r0
+  quantity: height
+  value: 9.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_x51270d_c1_r0
+  quote: 'datasheet: 27 x 27 x 9.5 mm; "Dimension A and B refer to component size"'
+- subject: ats_x51270d_c1_r0
+  quantity: thermal_resistance
+  variant: v1_0
+  value: 8.0
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_x51270d_c1_r0
+  conditions:
+    airflow_m_s: 1.0
+    flow: unducted
+    tag: v1_0
+  quote: '"Unducted Flow 8.0 °C/W … 4.9 °C/W"'
+- subject: ats_x51270d_c1_r0
+  quantity: thermal_resistance
+  variant: v2_5
+  value: 4.9
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_x51270d_c1_r0
+  conditions:
+    airflow_m_s: 2.5
+    flow: unducted
+    tag: v2_5
+  quote: '"Unducted Flow 8.0 °C/W … 4.9 °C/W"'
+- subject: ats_52230b_c1_r0
+  quantity: length
+  value: 23
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_52230b_c1_r0
+  quote: 'datasheet: 23 x 23 x 7.5 mm'
+- subject: ats_52230b_c1_r0
+  quantity: width
+  value: 23
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_52230b_c1_r0
+  quote: 'datasheet: 23 x 23 x 7.5 mm'
+- subject: ats_52230b_c1_r0
+  quantity: height
+  value: 7.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_52230b_c1_r0
+  quote: 'datasheet: 23 x 23 x 7.5 mm'
+- subject: ats_52230b_c1_r0
+  quantity: thermal_resistance
+  variant: v1_0
+  value: 10.9
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_52230b_c1_r0
+  conditions:
+    airflow_m_s: 1.0
+    flow: unducted
+    tag: v1_0
+  quote: '"Unducted Flow 10.9 °C/W … 6.7 °C/W"'
+- subject: ats_52230b_c1_r0
+  quantity: thermal_resistance
+  variant: v2_5
+  value: 6.7
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_52230b_c1_r0
+  conditions:
+    airflow_m_s: 2.5
+    flow: unducted
+    tag: v2_5
+  quote: '"Unducted Flow 10.9 °C/W … 6.7 °C/W"'
+- subject: ats_krp_3559_c1_r0
+  quantity: length
+  value: 54
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3559-C1-R0 54 68 20 69"'
+- subject: ats_krp_3559_c1_r0
+  quantity: width
+  value: 68
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3559-C1-R0 54 68 20 69"'
+- subject: ats_krp_3559_c1_r0
+  quantity: height
+  value: 20
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3559-C1-R0 54 68 20 69"'
+- subject: ats_krp_3559_c1_r0
+  quantity: mass
+  value: 69
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  conditions:
+    material: AL-6063
+  quote: 'table row: "ATS-KRP-3559-C1-R0 54 68 20 69"'
+- subject: ats_krp_3559_c1_r0
+  quantity: thermal_resistance
+  value: 1.2
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  conditions:
+    airflow_lfm: 100.0
+  quote: '"Thermal Resistance of 1.2 oC/W *" (100 LFM); "*Calculated resistance is at 55°C ambient and 15W of total
+    power"'
+- subject: ats_krp_3561_c1_r0
+  quantity: length
+  value: 54
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3561-C1-R0 54 68 9.76 34"'
+- subject: ats_krp_3561_c1_r0
+  quantity: width
+  value: 68
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3561-C1-R0 54 68 9.76 34"'
+- subject: ats_krp_3561_c1_r0
+  quantity: height
+  value: 9.76
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3561-C1-R0 54 68 9.76 34"'
+- subject: ats_krp_3561_c1_r0
+  quantity: mass
+  value: 34
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  conditions:
+    material: AL-6063
+  quote: 'table row: "ATS-KRP-3561-C1-R0 54 68 9.76 34"'
+- subject: ats_krp_3563_c1_r0
+  quantity: length
+  value: 54
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3563-C1-R0 54 68 25 61"'
+- subject: ats_krp_3563_c1_r0
+  quantity: width
+  value: 68
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3563-C1-R0 54 68 25 61"'
+- subject: ats_krp_3563_c1_r0
+  quantity: height
+  value: 25
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3563-C1-R0 54 68 25 61"'
+- subject: ats_krp_3563_c1_r0
+  quantity: mass
+  value: 61
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  conditions:
+    material: AL-6063
+  quote: 'table row: "ATS-KRP-3563-C1-R0 54 68 25 61"'
+- subject: ats_krp_3567_c1_r0
+  quantity: length
+  value: 54
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3567-C1-R0 54 68 10 44"'
+- subject: ats_krp_3567_c1_r0
+  quantity: width
+  value: 68
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3567-C1-R0 54 68 10 44"'
+- subject: ats_krp_3567_c1_r0
+  quantity: height
+  value: 10
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRP-3567-C1-R0 54 68 10 44"'
+- subject: ats_krp_3567_c1_r0
+  quantity: mass
+  value: 44
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  conditions:
+    material: AL-6063
+  quote: 'table row: "ATS-KRP-3567-C1-R0 54 68 10 44"'
+- subject: ats_krp_3567_c1_r0
+  quantity: thermal_resistance
+  value: 1.2
+  unit: c_per_w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  conditions:
+    airflow_lfm: 200.0
+  quote: '"Thermal Resistance of 1.2 oC/W *" (200 LFM)'
+- subject: ats_kra_3559_c1_r0
+  quantity: length
+  value: 54
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRA-3559-C1-R0 54 68 20 63"'
+- subject: ats_kra_3559_c1_r0
+  quantity: width
+  value: 68
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRA-3559-C1-R0 54 68 20 63"'
+- subject: ats_kra_3559_c1_r0
+  quantity: height
+  value: 20
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  quote: 'table row: "ATS-KRA-3559-C1-R0 54 68 20 63"'
+- subject: ats_kra_3559_c1_r0
+  quantity: mass
+  value: 63
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_kria_heatsinks
+  conditions:
+    material: AL-6063
+  quote: 'table row: "ATS-KRA-3559-C1-R0 54 68 20 63"'
+- subject: wakefield_655_53ab
+  quantity: length
+  value: 40.6
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  quote: '"655-53AB 1.600 (40.6) sq 0.525 (13.3) … 0.050 (22.68)"'
+- subject: wakefield_655_53ab
+  quantity: width
+  value: 40.6
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  quote: '"655-53AB 1.600 (40.6) sq 0.525 (13.3) … 0.050 (22.68)"'
+- subject: wakefield_655_53ab
+  quantity: height
+  value: 13.3
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  quote: '"655-53AB 1.600 (40.6) sq 0.525 (13.3) … 0.050 (22.68)"'
+- subject: wakefield_655_53ab
+  quantity: mass
+  value: 22.68
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  conditions:
+    material: aluminum
+  quote: '"655-53AB 1.600 (40.6) sq 0.525 (13.3) … 0.050 (22.68)"'
+- subject: wakefield_698_100ab
+  quantity: length
+  value: 53.3
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  quote: 'table row: 698-100AB 2.100 (53.3) sq 1.000 (25.4) … (65.20)'
+- subject: wakefield_698_100ab
+  quantity: width
+  value: 53.3
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  quote: 'table row: 698-100AB 2.100 (53.3) sq 1.000 (25.4) … (65.20)'
+- subject: wakefield_698_100ab
+  quantity: height
+  value: 25.4
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  quote: 'table row: 698-100AB 2.100 (53.3) sq 1.000 (25.4) … (65.20)'
+- subject: wakefield_698_100ab
+  quantity: mass
+  value: 65.2
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: wakefield_bga_heatsinks
+  conditions:
+    material: aluminum
+  quote: 'table row: 698-100AB … (65.20)'
+- subject: ats_sf4217
+  quantity: length
+  value: 42.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: 42.5 x 42.5 x 17.5 mm straight fin'
+- subject: ats_sf4217
+  quantity: width
+  value: 42.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: 42.5 x 42.5 x 17.5 mm straight fin'
+- subject: ats_sf4217
+  quantity: height
+  value: 17.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: 42.5 x 42.5 x 17.5 mm straight fin'
+- subject: ats_sf4217
+  quantity: mass
+  value: 18
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: SF4217 18 g'
+- subject: ats_mf4217
+  quantity: length
+  value: 42.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: 42.5 x 42.5 x 17.5 mm maxiFLOW'
+- subject: ats_mf4217
+  quantity: width
+  value: 42.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: 42.5 x 42.5 x 17.5 mm maxiFLOW'
+- subject: ats_mf4217
+  quantity: height
+  value: 17.5
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: 42.5 x 42.5 x 17.5 mm maxiFLOW'
+- subject: ats_mf4217
+  quantity: mass
+  value: 28
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: ats_qpedia_2008_air_velocity
+  quote: 'Qpedia Oct 2008: MF4217 28 g'
+- subject: aluminum_6063_t5
+  quantity: material_density
+  value: 2.7
+  unit: g_per_cm3
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: quickparts_al_6063_t5
+  quote: '"Density 2.7 g/cc 0.0975 lb/in³ AA; Typical"'

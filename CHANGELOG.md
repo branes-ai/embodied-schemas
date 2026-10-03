@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-02
+
+SWaP-C² estimators and their sourced inputs. RFC 0001 phase S2. The cooling
+catalog now scales with the heat it removes, and the process nodes carry
+wafer-cost inputs. Additive schema; three cooling entries change values.
+
+**Source database** (`embodied_schemas.sources`, `data/sources/`, new). It
+holds the cited figures behind every estimated value.
+
+- `documents.yaml` holds 22 source documents.
+- `observations/*.yaml` holds 128 quoted figures for wafer price, defect
+  density, heatsinks and fans. Each records its exact quote, the date of the
+  figure, its basis (datasheet, list price, reported, model estimate,
+  disclosed) and conditions such as airflow, quantity break or maturity.
+- Query with `load_source_db()`, using `find`, `get` / `value`, `series`
+  (trends) and `to_sqlite()` for ad hoc SQL.
+- `tests/test_sources.py` validates the figures locally:
+  - references, units per quantity and ranges;
+  - physical bounds (heatsink density below solid aluminum; catalog R x V
+    within Lee's bound; resistance falling with airflow);
+  - orderings (fan typ <= max; volume discounts; CSET price rising with
+    node);
+  - cross-source agreement (wafer prices within 20%);
+  - trend ordering.
+- `validate_data_integrity()` now loads the source DB.
+
+**Estimators** (`scripts/swapc2_estimators.py`, new). Every parameter is
+derived from the source DB, not hard-coded. `nodes --check` holds the
+process-node catalog to the DB the way `cooling --check` holds the cooling
+catalog, and both run as tests. Per RFC R1.2 they live
+in `scripts/`. Each writes `basis: estimated` values from a named, versioned
+model whose parameters are sourced.
+
+- `cooling_sizing_v1`: per-W heatsink volume, mass and cost from the
+  volumetric-thermal-resistance method, `V / P = R_vol / dT`, with
+  mass = V × effective density. A fan adds its own mass, volume, cost and
+  electrical load.
+  - `cooling --write` rewrites the owned fields in place and keeps comments.
+  - `cooling --check` fails if a YAML differs from the model; a test runs it.
+- `silicon_cost_v1`: variable cost of one good die = wafer price / (gross
+  dies per wafer × Murphy yield). It includes no NRE (D9). Applying it to
+  products is S3.
+
+**Cooling catalog.** `passive_heatsink_small`, `passive_heatsink_large` and
+`active_fan` are sized by `cooling_sizing_v1`.
+
+- R_vol comes from Lee, "How to Select a Heat Sink" (Electronics Cooling,
+  1995).
+- Effective density is 0.95 g/cm³, the median of 13 catalog aluminum sinks.
+- Cost is a least-squares fit to Alpha Novatech qty-1 prices.
+- The `active_fan` fan is the Delta AFB0612EH-A (80 g, 4.56 W).
+- dT is each entry's `junction_c_max - ambient_c_max`. That ignores the
+  junction-to-sink drop, so the sinks are a lower bound.
+- The fixed figures they replace understated small-sink mass at UAV power
+  levels:
+
+  | Entry | 0.16.0 | 0.17.0 |
+  |---|---|---|
+  | `passive_heatsink_small` | 30 g at any power | 40 / 79 / 119 g at 5 / 10 / 15 W |
+  | `active_fan` | 400 g | 107-262 g over 15-100 W, plus 4.56 W fan load |
+
+- Not sized, because no source supports it: the vapor chamber (mass), liquid
+  and datacenter cooling, the fanless entry (no sink), and the SMARC spreader
+  (SGeT leaves the material to the vendor).
+- `CoolingSolutionEntry.sizing_source` (new, optional): the estimator id
+  and the source of each parameter.
+
+**`CoolingSolutionEntry.ambient_c_max` is now optional** (consumer-visible).
+
+- A surface-rated entry may have no air rating. `smarc_heat_spreader_82x50`
+  now carries only `surface_c_max: 85`, the limit SECO rates at the spreader
+  plate; its air limit depends on the enclosure.
+- An entry needs `ambient_c_max`, `surface_c_max` or both.
+- `cooling_sizing_v1` refuses an entry without an air rating.
+- Downstream code that formats `ambient_c_max` must handle `None`. graphs'
+  cooling CLIs are fixed in branes-ai/graphs#346.
+
+**Process nodes.** These are sourced inputs to `silicon_cost_v1`.
+
+- `wafer_cost_usd` for TSMC N5, N7, N12, N16, 28HPM, 40 and 65 nm. Source:
+  CSET (Khan & Mann 2020, Table 9), a 2020 USD model estimate for 300 mm
+  wafers that excludes masks.
+- `defect_density_per_cm2` from TSMC symposium disclosures:
+  - N7: 0.09 at HVM+3Q;
+  - N5: 0.10-0.11 at about HVM+1Q (0.10 used);
+  - N6: "same defect density as N7".
+- Left unset, because no reliable source exists: N4P, Samsung 8LPP, every
+  GlobalFoundries node, Intel 7 and Intel 3, and D0 for the mature TSMC
+  nodes. Without D0, `silicon_cost_v1` refuses those nodes rather than
+  assume a yield.
+- The die cost is therefore computable on N5 and N7 only.
+
 ## [0.16.0] - 2026-10-02
 
 SWaP-C² (Size, Weight, Power, Cost, Cooling) for compute products, and
