@@ -132,11 +132,7 @@ cooling_compatible:
 
 # SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
 defect_density_per_cm2: 0.09
-wafer_cost_source: >-
-  No sourced wafer price for N6. D0: Tom's Hardware 2020-08-24 (TSMC Technology Symposium):
-  "TSMC says N6 already has the same defect density as N7", i.e. N7's 0.09 at HVM + 3
-  quarters (AnandTech 2020-08-25, "Better Yield on 5nm than 7nm: TSMC Update on Defect Rates
-  for N5" (TSMC Technology Symposium))
+wafer_cost_source: "source DB (data/sources/): no sourced wafer price; defect_density_per_cm2 = tsmc_n6.defect_density@tomshw_2020_08_24_tsmc_symposium (same as N7)"
 source: "TSMC N6 design rule scaling vs N7; widely reported mobile-SoC characteristics"
 confidence: theoretical
 last_updated: "2026-05-18"

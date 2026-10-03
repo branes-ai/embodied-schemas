@@ -137,18 +137,20 @@ confidence: theoretical
 
 class TestRender:
     def test_replaces_in_place_and_inserts_before_source(self):
-        out = est.render(YAML, {"weight_g": 20.0, "mass_g_per_w": 1.5, "basis": "estimated"})
+        out = est.render(
+            YAML, {"weight_g": 20.0, "mass_g_per_w": 1.5, "basis": "estimated"}, est.COOLING_OWNED
+        )
         assert out.startswith("# A comment that must survive.\nid: x\nweight_g: 20.0\n")
         assert 'mass_g_per_w: 1.5\nbasis: "estimated"\nsource: "ref"   # trailing comment' in out
 
     def test_removes_owned_fields_not_produced(self):
-        out = est.render(YAML, {"weight_g": 20.0})
+        out = est.render(YAML, {"weight_g": 20.0}, est.COOLING_OWNED)
         assert "cost_usd" not in out
 
     def test_idempotent(self):
         fields = {"weight_g": 20.0, "mass_g_per_w": 1.5}
-        once = est.render(YAML, fields)
-        assert est.render(once, fields) == once
+        once = est.render(YAML, fields, est.COOLING_OWNED)
+        assert est.render(once, fields, est.COOLING_OWNED) == once
 
 
 def test_catalog_matches_estimator():
@@ -156,9 +158,27 @@ def test_catalog_matches_estimator():
     assert est.run_cooling(write=False) == 0
 
 
+def test_process_nodes_match_source_db():
+    """Every node's silicon-cost inputs are exactly what the source DB gives."""
+    assert est.run_nodes(write=False) == 0
+
+
+def test_no_hand_entered_wafer_costs():
+    """A node carries silicon-cost inputs only through NODE_INPUTS."""
+    for node in load_process_nodes().values():
+        if node.wafer_cost_usd is not None or node.defect_density_per_cm2 is not None:
+            assert node.id in est.NODE_INPUTS, node.id
+
+
+def test_render_replaces_block_scalars():
+    text = 'id: x\nwafer_cost_source: >-\n  line one\n  line two\nsource: "s"\n'
+    out = est.render(text, {"wafer_cost_source": "new"}, est.NODE_OWNED)
+    assert out == 'id: x\nwafer_cost_source: "new"\nsource: "s"\n'
+
+
 def test_sized_entries_validate_and_are_estimated():
     cooling = load_cooling_solutions()
-    for entry_id in est.COOLING_PARAMS:
+    for entry_id in est.SIZED_ENTRIES:
         entry = cooling[entry_id]
         assert entry.basis == ValueBasis.ESTIMATED
         assert entry.sizing_source.startswith(est.COOLING_SIZING)
@@ -168,13 +188,15 @@ def test_sized_entries_validate_and_are_estimated():
 def test_delta_t_matches_entry_limits():
     """Each sized entry's dT is its own junction_c_max - ambient_c_max."""
     cooling = load_cooling_solutions()
-    for entry_id, sizing in est.COOLING_PARAMS.items():
+    for entry_id in est.SIZED_ENTRIES:
+        sizing = est.cooling_sizing(entry_id)
         entry = cooling[entry_id]
         assert sizing.delta_t.value == entry.junction_c_max - entry.ambient_c_max, entry_id
 
 
 def test_every_param_is_sourced():
-    for entry_id, sizing in est.COOLING_PARAMS.items():
+    for entry_id in est.SIZED_ENTRIES:
+        sizing = est.cooling_sizing(entry_id)
         for name in est.CoolingSizing.__dataclass_fields__:
             param = getattr(sizing, name)
             assert param is None or param.source.strip(), (entry_id, name)

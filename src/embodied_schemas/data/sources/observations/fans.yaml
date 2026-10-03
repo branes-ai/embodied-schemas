@@ -1,0 +1,342 @@
+# Fans: rated power, airflow, mass, size and distributor prices (findchips,
+# accessed 2026-10-02). Inputs to cooling_sizing_v1 (fan of active_fan).
+- subject: delta_afb0612eh_a
+  quantity: length
+  value: 60
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0612eh_a
+  quote: 'datasheet: 60 x 60 x 25.4 mm'
+- subject: delta_afb0612eh_a
+  quantity: width
+  value: 60
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0612eh_a
+  quote: 'datasheet: 60 x 60 x 25.4 mm'
+- subject: delta_afb0612eh_a
+  quantity: height
+  value: 25.4
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0612eh_a
+  quote: 'datasheet: 60 x 60 x 25.4 mm'
+- subject: delta_afb0612eh_a
+  quantity: power
+  variant: typ
+  value: 4.56
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0612eh_a
+  quote: '"4.56 (MAX. 5.76) W"'
+- subject: delta_afb0612eh_a
+  quantity: power
+  variant: max
+  value: 5.76
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0612eh_a
+  quote: '"4.56 (MAX. 5.76) W"'
+- subject: delta_afb0612eh_a
+  quantity: airflow
+  value: 38.35
+  unit: cfm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0612eh_a
+  quote: '"38.35 (MIN. 34.50) CFM"'
+- subject: delta_afb0612eh_a
+  quantity: mass
+  value: 80
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0612eh_a
+  quote: '"80 GRAMS"'
+- subject: delta_afb0612eh_a
+  quantity: unit_price
+  variant: qty_1620_avnet
+  value: 10.0815
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 1620
+    distributor: Avnet
+  quote: 'Avnet: $10.0815 @ 1620'
+- subject: delta_afb0612eh_a
+  quantity: unit_price
+  variant: qty_10800_avnet
+  value: 9.9264
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 10800
+    distributor: Avnet
+  quote: 'Avnet: $9.9264 @ 10800'
+- subject: delta_afb0612eh_a
+  quantity: unit_price
+  variant: qty_1080_rs
+  value: 15.05
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 1080
+    distributor: RS
+  quote: 'RS: $15.05 @ 1080'
+- subject: delta_afb0405ma_a
+  quantity: length
+  value: 40
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0405ma_a
+  quote: 'datasheet: 40 x 40 x 10 mm'
+- subject: delta_afb0405ma_a
+  quantity: width
+  value: 40
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0405ma_a
+  quote: 'datasheet: 40 x 40 x 10 mm'
+- subject: delta_afb0405ma_a
+  quantity: height
+  value: 10
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0405ma_a
+  quote: 'datasheet: 40 x 40 x 10 mm'
+- subject: delta_afb0405ma_a
+  quantity: power
+  variant: typ
+  value: 0.25
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0405ma_a
+  quote: '"0.25 (MAX. 0.50) W"'
+- subject: delta_afb0405ma_a
+  quantity: power
+  variant: max
+  value: 0.5
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0405ma_a
+  quote: '"0.25 (MAX. 0.50) W"'
+- subject: delta_afb0405ma_a
+  quantity: airflow
+  value: 5.675
+  unit: cfm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0405ma_a
+  quote: '"5.675 (MIN. 4.823) CFM"'
+- subject: delta_afb0405ma_a
+  quantity: mass
+  value: 14.0
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0405ma_a
+  quote: '"14.0 GRAMS (REF.)"'
+- subject: delta_afb0405ma_a
+  quantity: unit_price
+  variant: qty_1920_avnet
+  value: 6.2888
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 1920
+    distributor: Avnet
+  quote: 'Avnet: $6.2888 @ 1920'
+- subject: delta_afb0405ma_a
+  quantity: unit_price
+  variant: qty_12800_avnet
+  value: 6.192
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 12800
+    distributor: Avnet
+  quote: 'Avnet: $6.192 @ 12800'
+- subject: delta_afb0412hha_a
+  quantity: length
+  value: 40
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0412hha_a
+  quote: 'datasheet: 40 x 40 x 10 mm'
+- subject: delta_afb0412hha_a
+  quantity: width
+  value: 40
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0412hha_a
+  quote: 'datasheet: 40 x 40 x 10 mm'
+- subject: delta_afb0412hha_a
+  quantity: height
+  value: 10
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0412hha_a
+  quote: 'datasheet: 40 x 40 x 10 mm'
+- subject: delta_afb0412hha_a
+  quantity: power
+  variant: typ
+  value: 0.6
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0412hha_a
+  quote: '"0.60 (MAX. 1.20) W"'
+- subject: delta_afb0412hha_a
+  quantity: power
+  variant: max
+  value: 1.2
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0412hha_a
+  quote: '"0.60 (MAX. 1.20) W"'
+- subject: delta_afb0412hha_a
+  quantity: airflow
+  value: 8.154
+  unit: cfm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0412hha_a
+  quote: '"8.154 (MIN. 6.930) CFM"'
+- subject: delta_afb0412hha_a
+  quantity: mass
+  value: 14.0
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: delta_afb0412hha_a
+  quote: '"14.0 GRAMS (REF.)"'
+- subject: delta_afb0412hha_a
+  quantity: unit_price
+  variant: qty_1920_avnet
+  value: 6.4716
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 1920
+    distributor: Avnet
+  quote: 'Avnet: $6.4716 @ 1920'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: length
+  value: 25
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: sunon_mf25100v1
+  quote: 'datasheet: 25 x 25 x 10 mm'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: width
+  value: 25
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: sunon_mf25100v1
+  quote: 'datasheet: 25 x 25 x 10 mm'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: height
+  value: 10
+  unit: mm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: sunon_mf25100v1
+  quote: 'datasheet: 25 x 25 x 10 mm'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: power
+  variant: typ
+  value: 0.53
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: sunon_mf25100v1
+  quote: '"0.53 WATTS / Max. 0.61 WATTS"'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: power
+  variant: max
+  value: 0.61
+  unit: w
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: sunon_mf25100v1
+  quote: '"0.53 WATTS / Max. 0.61 WATTS"'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: airflow
+  value: 3.5
+  unit: cfm
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: sunon_mf25100v1
+  quote: '"3.5 CFM"'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: mass
+  value: 6.9
+  unit: g
+  as_of: '2026-10-02'
+  basis: datasheet
+  source_id: sunon_mf25100v1
+  quote: '"6.9 g"'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: unit_price
+  variant: qty_1_tme
+  value: 5.38
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 1
+    distributor: TME
+  quote: 'TME: $5.38 @ 1'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: unit_price
+  variant: qty_3500_avnet
+  value: 4.6282
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 3500
+    distributor: Avnet
+  quote: 'Avnet: $4.6282 @ 3500'
+- subject: sunon_mf25100v1_1000u_a99
+  quantity: unit_price
+  variant: qty_10000_avnet
+  value: 4.2375
+  unit: usd
+  as_of: '2026-10-02'
+  basis: list_price
+  source_id: findchips_fan_prices
+  conditions:
+    quantity: 10000
+    distributor: Avnet
+  quote: 'Avnet: $4.2375 @ 10000'

@@ -1,0 +1,174 @@
+# Source documents for the source database (embodied_schemas.sources).
+# One entry per document; observations/<topic>.yaml quote figures from them.
+# Figures were read on the `accessed` date; `access_note` records how when
+# the live site blocked automated access.
+
+# --- Wafer price ------------------------------------------------------------
+- id: cset_2020_ai_chips
+  title: "AI Chips: What They Are and Why They Matter"
+  author: Saif M. Khan, Alexander Mann
+  publisher: Center for Security and Emerging Technology (CSET), Georgetown University
+  kind: report
+  published: "2020-04"
+  url: https://cset.georgetown.edu/wp-content/uploads/AI-Chips%E2%80%94What-They-Are-and-Why-They-Matter-1.pdf
+  accessed: "2026-10-02"
+  notes: >-
+    Table 9 (p.44), "Calculation of foundry sale price per chip in 2020 by
+    node". Model: TSMC capital cost per wafer (SEMI World Fab Forecast),
+    25.29%/yr depreciation, plus other costs and markup scaled to TSMC
+    financials. 300 mm, 2020 USD. Masks and design costs are modeled
+    separately and are not in the wafer price.
+- id: tomshw_2022_tsmc_3nm_wafer
+  title: "TSMC Will Charge $20,000 per 3nm Wafer"
+  publisher: Tom's Hardware
+  kind: article
+  published: "2022-11"
+  url: https://www.tomshardware.com/news/tsmc-will-charge-20000-per-3nm-wafer
+  accessed: "2026-10-02"
+  notes: Relays DigiTimes wafer prices by node; its 'Year' column is the node's introduction year.
+- id: digitimes_2021_08_25_tsmc_quotes
+  title: TSMC to raise wafer quotes (28nm and sub-16nm)
+  publisher: DigiTimes
+  kind: article
+  published: "2021-08-25"
+  url: https://www.digitimes.com/news/a20210825PD209.html
+  accessed: "2026-10-02"
+- id: tomshw_2024_tsmc_4nm_price
+  title: TSMC may increase wafer pricing (Morgan Stanley note)
+  publisher: Tom's Hardware (syndicated by Yahoo Finance)
+  kind: article
+  published: "2024"
+  url: https://finance.yahoo.com/news/tsmc-may-increase-wafer-pricing-104033184.html
+  accessed: "2026-10-02"
+
+# --- Defect density -----------------------------------------------------------
+- id: anandtech_2020_08_25_tsmc_d0
+  title: "Better Yield on 5nm than 7nm: TSMC Update on Defect Rates for N5"
+  publisher: AnandTech
+  kind: article
+  published: "2020-08-25"
+  url: https://www.anandtech.com/show/16028/better-yield-on-5nm-than-7nm-tsmc-update-on-defect-rates-for-n5
+  accessed: "2026-10-02"
+  access_note: live site blocked; read via web.archive.org snapshot 20250725
+  notes: Reports TSMC Technology Symposium 2020 and VLSI Symposium 2019 disclosures.
+- id: tomshw_2020_08_24_tsmc_symposium
+  title: TSMC 5nm, 4nm, 3nm process node update; 3DFabric
+  publisher: Tom's Hardware
+  kind: article
+  published: "2020-08-24"
+  url: https://www.tomshardware.com/news/tsmc-5nm-4nm-3nm-process-node-introduces-3dfabric-technology
+  accessed: "2026-10-02"
+
+# --- Heatsink sizing method -------------------------------------------------
+- id: lee_1995_select_heat_sink
+  title: How to Select a Heat Sink
+  author: Seri Lee
+  publisher: Electronics Cooling
+  kind: article
+  published: "1995-06"
+  url: https://www.electronics-cooling.com/1995/06/how-to-select-a-heat-sink/
+  accessed: "2026-10-02"
+  notes: >-
+    Table 2, volumetric thermal resistance by flow condition. "to be used
+    only as a guide for estimation purposes"; smaller values correspond to
+    ~100-200 cm3 sinks and larger ones to ~1000 cm3.
+
+# --- Heatsink catalog parts -------------------------------------------------
+- id: luxeonstar_alpha_n30_25b
+  title: Alpha Novatech N30-25B heat sink
+  publisher: Luxeon Star LEDs
+  kind: product_page
+  url: https://luxeonstar.com/product/n30-25b/
+  accessed: "2026-10-02"
+  notes: Catalog lists a "1000+ 30%" quantity discount.
+- id: luxeonstar_alpha_n50_15b
+  title: Alpha Novatech N50-15B heat sink
+  publisher: Luxeon Star LEDs
+  kind: product_page
+  url: https://luxeonstar.com/product/n50-15b/
+  accessed: "2026-10-02"
+- id: luxeonstar_alpha_n80_40b
+  title: Alpha Novatech N80-40B heat sink
+  publisher: Luxeon Star LEDs
+  kind: product_page
+  url: https://luxeonstar.com/product/n80-40b/
+  accessed: "2026-10-02"
+- id: toradex_smarc_heatsink_passive
+  title: SMARC Heatsink (passive) datasheet
+  publisher: Toradex
+  kind: datasheet
+  url: https://docs.toradex.com/116966-smarc_heatsink_passive_datasheet.pdf
+  accessed: "2026-10-02"
+- id: ats_kria_heatsinks
+  title: ATS-KRA-3559-C1-R0 datasheet (with ATS-KRP family table)
+  publisher: Advanced Thermal Solutions
+  kind: datasheet
+  url: https://www.qats.com/DataSheet/ATS-KRA-3559-C1-R0
+  accessed: "2026-10-02"
+- id: ats_x51270d_c1_r0
+  title: ATS-X51270D-C1-R0 datasheet
+  publisher: Advanced Thermal Solutions
+  kind: datasheet
+  url: https://www.qats.com/DataSheet/ATS-X51270D-C1-R0
+  accessed: "2026-10-02"
+  notes: '"Dimension A and B refer to component size"; sink footprint taken as the component.'
+- id: ats_52230b_c1_r0
+  title: ATS-52230B-C1-R0 datasheet
+  publisher: Advanced Thermal Solutions
+  kind: datasheet
+  url: https://www.qats.com/DataSheet/ATS-52230B-C1-R0
+  accessed: "2026-10-02"
+- id: ats_qpedia_2008_air_velocity
+  title: How Air Velocity Affects the Thermal Performance of Heat Sinks (Qpedia, Oct 2008)
+  publisher: Advanced Thermal Solutions
+  kind: article
+  published: "2008-10"
+  url: https://www.qats.com/cms/wp-content/uploads/2013/09/Qpedia_Oct08_How-Air-Velocity-Affects-HS-Performance.pdf
+  accessed: "2026-10-02"
+- id: wakefield_bga_heatsinks
+  title: BGA Standard Heat Sinks with tape option
+  publisher: Wakefield-Vette
+  kind: datasheet
+  url: https://wakefieldthermal.com/content/data_sheets/BGA%20Standard%20Heat%20Sinks%20with%20tape%20option.pdf
+  accessed: "2026-10-02"
+
+# --- Materials --------------------------------------------------------------
+- id: quickparts_al_6063_t5
+  title: Aluminium 6063-T5 material datasheet
+  publisher: QuickParts
+  kind: reference
+  url: https://quickparts.com/wp-content/uploads/2024/05/Aluminium-6063-T5.pdf
+  accessed: "2026-10-02"
+
+# --- Fans -------------------------------------------------------------------
+- id: delta_afb0612eh_a
+  title: AFB0612EH-A fan specification
+  publisher: Delta Electronics
+  kind: datasheet
+  url: https://www.delta-fan.com/Download/Spec/AFB0612EH-A.pdf
+  accessed: "2026-10-02"
+- id: delta_afb0405ma_a
+  title: AFB0405MA-A fan specification
+  publisher: Delta Electronics
+  kind: datasheet
+  url: https://www.delta-fan.com/Download/Spec/AFB0405MA-A.pdf
+  accessed: "2026-10-02"
+- id: delta_afb0412hha_a
+  title: AFB0412HHA-A fan specification
+  publisher: Delta Electronics
+  kind: datasheet
+  url: https://www.delta-fan.com/Download/Spec/AFB0412HHA-A.pdf
+  accessed: "2026-10-02"
+- id: sunon_mf25100v1
+  title: MF25100V1-1000U-A99 fan datasheet
+  publisher: Sunon (hosted by Rapid Electronics)
+  kind: datasheet
+  url: https://static.rapidonline.com/pdf/07-2371_v1.pdf
+  accessed: "2026-10-02"
+- id: findchips_fan_prices
+  title: Distributor price aggregation (findchips search per part)
+  publisher: findchips
+  kind: price_listing
+  url: https://www.findchips.com/search/
+  accessed: "2026-10-02"
+  notes: Prices from listed distributors (Avnet, RS, TME) on the access date.

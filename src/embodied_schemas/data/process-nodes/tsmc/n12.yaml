@@ -100,10 +100,7 @@ cooling_compatible:
 # SWaP-C² silicon-cost inputs (RFC 0001 R1, S2). Variable cost only (D9).
 wafer_cost_usd: 3984.0
 wafer_diameter_mm: 300.0
-wafer_cost_source: >-
-  Khan & Mann, "AI Chips: What They Are and Why They Matter", CSET, Apr 2020, Table 9 line 7
-  "Foundry sale price per wafer" (16/12 nm column): model estimate, 2020 USD, 300 mm,
-  processed wafer only (masks / design excluded); no sourced D0
+wafer_cost_source: "source DB (data/sources/): wafer_cost_usd = tsmc_n12.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); no sourced D0"
 source: "TSMC 12FFC announcement 2017; Wikichip"
 confidence: theoretical
 last_updated: "2026-05-09"

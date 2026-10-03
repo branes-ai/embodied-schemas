@@ -1,0 +1,61 @@
+# Wafer price and defect density (embodied_schemas.sources). Inputs to
+# silicon_cost_v1 via the process-node catalog.
+
+# --- CSET 2020 model: foundry sale price per 300 mm wafer, 2020 USD ---------
+# Table 9 line 7: "7 Foundry sale price per wafer $1,650 $1,937 $2,274 $2,891
+# $3,677 $3,984 $5,992 $9,346 $16,988" (90, 65, 40, 28, 20, 16/12, 10, 7, 5 nm).
+- {subject: tsmc_n65, quantity: wafer_price, value: 1937, unit: usd, as_of: "2020",
+   basis: model_estimate, source_id: cset_2020_ai_chips, conditions: {wafer_mm: 300, node_column: "65 nm"},
+   quote: "7 Foundry sale price per wafer ... $1,937 (65 nm column)"}
+- {subject: tsmc_n40, quantity: wafer_price, value: 2274, unit: usd, as_of: "2020",
+   basis: model_estimate, source_id: cset_2020_ai_chips, conditions: {wafer_mm: 300, node_column: "40 nm"},
+   quote: "7 Foundry sale price per wafer ... $2,274 (40 nm column)"}
+- {subject: tsmc_n28hpm, quantity: wafer_price, value: 2891, unit: usd, as_of: "2020",
+   basis: model_estimate, source_id: cset_2020_ai_chips, conditions: {wafer_mm: 300, node_column: "28 nm"},
+   quote: "7 Foundry sale price per wafer ... $2,891 (28 nm column)",
+   notes: "The 28 nm column is not specific to the HPM variant."}
+- {subject: tsmc_n16, quantity: wafer_price, value: 3984, unit: usd, as_of: "2020",
+   basis: model_estimate, source_id: cset_2020_ai_chips, conditions: {wafer_mm: 300, node_column: "16/12 nm"},
+   quote: "7 Foundry sale price per wafer ... $3,984 (16/12 nm column)"}
+- {subject: tsmc_n12, quantity: wafer_price, value: 3984, unit: usd, as_of: "2020",
+   basis: model_estimate, source_id: cset_2020_ai_chips, conditions: {wafer_mm: 300, node_column: "16/12 nm"},
+   quote: "7 Foundry sale price per wafer ... $3,984 (16/12 nm column)"}
+- {subject: tsmc_n7, quantity: wafer_price, value: 9346, unit: usd, as_of: "2020",
+   basis: model_estimate, source_id: cset_2020_ai_chips, conditions: {wafer_mm: 300, node_column: "7 nm"},
+   quote: "7 Foundry sale price per wafer ... $9,346 (7 nm column)"}
+- {subject: tsmc_n5, quantity: wafer_price, value: 16988, unit: usd, as_of: "2020",
+   basis: model_estimate, source_id: cset_2020_ai_chips, conditions: {wafer_mm: 300, node_column: "5 nm"},
+   quote: "7 Foundry sale price per wafer ... $16,988 (5 nm column)"}
+
+# --- Reported prices (corroboration and trend) ------------------------------
+- {subject: tsmc_n5, quantity: wafer_price, value: 16000, unit: usd, as_of: "2022-11",
+   basis: reported, source_id: tomshw_2022_tsmc_3nm_wafer, conditions: {wafer_mm: 300, via: DigiTimes},
+   quote: "an N5 wafer costs around $16,000"}
+- {subject: tsmc_n7, quantity: wafer_price, value: 10000, unit: usd, as_of: "2022-11",
+   basis: reported, source_id: tomshw_2022_tsmc_3nm_wafer, conditions: {wafer_mm: 300, via: DigiTimes},
+   quote: "N7 | $10,000 | 2018"}
+- {subject: tsmc_n40, quantity: wafer_price, value: 2600, unit: usd, as_of: "2022-11",
+   basis: reported, source_id: tomshw_2022_tsmc_3nm_wafer, conditions: {wafer_mm: 300, via: DigiTimes},
+   quote: "40nm | $2,600"}
+- {subject: tsmc_n28hpm, quantity: wafer_price, value: 3000, unit: usd, as_of: "2022-01",
+   basis: reported, source_id: digitimes_2021_08_25_tsmc_quotes, conditions: {wafer_mm: 300, node_family: "28nm"},
+   quote: "TSMC... planning to raise the quotes [for 28nm] to nearly US$3,000 that will come into effect from January 2022",
+   notes: "Quote for the 28 nm family, not specific to HPM."}
+- {subject: tsmc_n4_class, quantity: wafer_price, value: 18000, unit: usd, as_of: "2024",
+   basis: reported, source_id: tomshw_2024_tsmc_4nm_price, conditions: {wafer_mm: 300, node_family: "4nm-class", via: Morgan Stanley},
+   quote: "tolerate approximately 10% price hikes for 4nm-class wafers from around $18,000 per wafer to around $20,000 per wafer",
+   notes: "A node-family figure; not mapped to tsmc_n4p in the catalog."}
+
+# --- Defect density (TSMC disclosures) --------------------------------------
+- {subject: tsmc_n7, quantity: defect_density, value: 0.09, unit: per_cm2, as_of: "2019",
+   basis: disclosed, source_id: anandtech_2020_08_25_tsmc_d0, conditions: {maturity: "HVM+3Q", venue: VLSI Symposium 2019},
+   quote: "0.09 defects per square centimetre on its N7 process node only three quarters after high volume manufacturing started"}
+- {subject: tsmc_n5, quantity: defect_density, value: 0.10, value_min: 0.10, value_max: 0.11, unit: per_cm2,
+   as_of: "2020-08", basis: disclosed, source_id: anandtech_2020_08_25_tsmc_d0,
+   conditions: {maturity: "HVM+1Q", venue: TSMC Technology Symposium 2020},
+   quote: "TSMC's N5 process currently sits around 0.10 to 0.11 defects per square centimeter, and the company expects to go below 0.10 as high volume manufacturing ramps into next quarter.",
+   notes: "value is the lower bound of the quoted range, which TSMC expected to undercut the next quarter."}
+- {subject: tsmc_n6, quantity: defect_density, value: 0.09, unit: per_cm2, as_of: "2020-08",
+   basis: disclosed, source_id: tomshw_2020_08_24_tsmc_symposium, conditions: {maturity: "same as N7", venue: TSMC Technology Symposium 2020},
+   quote: "TSMC says N6 already has the same defect density as N7.",
+   notes: "The source gives no number; the value is N7's 0.09 (anandtech_2020_08_25_tsmc_d0)."}

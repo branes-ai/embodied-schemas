@@ -17,9 +17,15 @@ Estimators:
   times Murphy's yield model, divided into the processed-wafer price.
   Variable cost only (RFC D9): no mask, design or other NRE term.
 
+Every parameter is derived from the source database (``data/sources/``,
+``embodied_schemas.sources``): quoted figures with their documents. The
+``cooling`` and ``nodes`` commands write the derived values into the
+catalog, and ``--check`` fails if the catalog and the source DB disagree.
+
 Run:
     python scripts/swapc2_estimators.py cooling --check   # fail if YAMLs differ
     python scripts/swapc2_estimators.py cooling --write   # rewrite the fields
+    python scripts/swapc2_estimators.py nodes --check     # process-node inputs vs source DB
     python scripts/swapc2_estimators.py silicon <die_mm2> <process_node_id>
 """
 
@@ -28,16 +34,21 @@ from __future__ import annotations
 import argparse
 import math
 import re
+import statistics
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from embodied_schemas.cooling_solution import CoolingSolutionEntry
 from embodied_schemas.loaders import load_cooling_solutions, load_process_nodes
 from embodied_schemas.process_node import DataConfidence, ProcessNodeEntry
+from embodied_schemas.sources import SourceDB, load_source_db
 from embodied_schemas.swapc2 import SourcedValue, ValueBasis
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-COOLING_DIR = REPO_ROOT / "src" / "embodied_schemas" / "data" / "cooling-solutions"
+DATA_DIR = REPO_ROOT / "src" / "embodied_schemas" / "data"
+COOLING_DIR = DATA_DIR / "cooling-solutions"
+PROCESS_NODE_DIR = DATA_DIR / "process-nodes"
 
 COOLING_SIZING = "cooling_sizing_v1"
 SILICON_COST = "silicon_cost_v1"
@@ -189,80 +200,195 @@ def sizing_source(sizing: CoolingSizing) -> str:
     return "; ".join(parts)
 
 
-# Shared, sourced parameters. Sources read 2026-10-02.
-_LEE = 'S. Lee, "How to Select a Heat Sink", Electronics Cooling, June 1995, Table 2'
-_R_VOL_NATURAL_SMALL = Param(
-    500.0,
-    f"{_LEE}: natural convection 500-800 cm3 C/W; the low end is for ~100-200 cm3 sinks. "
-    "Small catalog sinks measure 214-474 (Alpha N30-25B / N50-15B / N80-40B, Toradex SMARC "
-    "sink: R x envelope), so 500 is conservative (larger, heavier) for UAV-scale sinks",
-)
-_R_VOL_NATURAL_LARGE = Param(650.0, f"{_LEE}: natural convection 500-800 cm3 C/W, midpoint")
-_R_VOL_FORCED_2_5 = Param(115.0, f"{_LEE}: 2.5 m/s (500 lfm) 80-150 cm3 C/W, midpoint")
-_SOLID_FRACTION = Param(
-    0.352,
-    "0.95 g/cm3 effective density (median mass / envelope volume of 13 catalog aluminum "
-    "heatsinks: Alpha Novatech N30-25B/N50-15B/N80-40B, ATS KRP/KRA/SF/MF, Wakefield "
-    "655-53AB/698-100AB, Toradex SMARC sink; spread 0.57-1.90) / 2.70",
-)
-_AL_6063 = Param(2.70, "6063-T5 aluminum, 2.7 g/cc (QuickParts material datasheet)")
-_SINK_COST_PER_CM3 = Param(
-    0.0475,
-    "linear fit cost = 5.23 + 0.0475 x V(cm3) through Alpha Novatech N30-25B ($6.30, 22.5 cm3) "
-    "and N80-40B ($17.38, 256 cm3), Luxeon Star qty-1 prices 2026-10-02; predicts N50-15B "
-    "($6.88) as $7.01",
-)
-_SINK_BASE_COST = 5.23
-_SINK_BASE_COST_SRC = "fixed term of the Alpha Novatech qty-1 price fit (see cost_per_cm3)"
+# ---------------------------------------------------------------------------
+# Parameters derived from the source database (data/sources/)
+# ---------------------------------------------------------------------------
+#
+# Every parameter is computed from quoted observations, and its source string
+# names their keys, so a parameter changes only when the recorded figures do.
+
+_DB: SourceDB | None = None
 
 
-def _delta_t(junction_c: float, ambient_c: float) -> Param:
+def source_db() -> SourceDB:
+    """The source database (loaded once)."""
+    global _DB
+    if _DB is None:
+        _DB = load_source_db()
+    return _DB
+
+
+def r_vol(db: SourceDB, regime: str, pick: str) -> Param:
+    """Lee's volumetric thermal resistance for ``regime``: the range's
+    ``min`` (small sinks) or its ``mid``point."""
+    (obs,) = db.find("volumetric_thermal_resistance", regime)
+    value = obs.value_min if pick == "min" else obs.value
+    return Param(value, f"{obs.key} ({pick} of {obs.value_min:g}-{obs.value_max:g})")
+
+
+def heatsink_subjects(db: SourceDB) -> list[str]:
+    """Catalog heatsinks: subjects with mass and an envelope and no fan power."""
+    fans = set(db.subjects("power"))
+    return [s for s in db.subjects("mass") if s not in fans and db.find("length", s)]
+
+
+def envelope_cm3(db: SourceDB, subject: str) -> float:
+    """L x W x H of a subject, in cm^3."""
+    dims = [db.find(q, subject)[0].value for q in ("length", "width", "height")]
+    return dims[0] * dims[1] * dims[2] / 1000.0
+
+
+def effective_density(db: SourceDB) -> tuple[float, list[str]]:
+    """Median mass / envelope volume of the catalog heatsinks, g / cm^3."""
+    subjects = heatsink_subjects(db)
+    dens = [db.find("mass", s)[0].value / envelope_cm3(db, s) for s in subjects]
+    return statistics.median(dens), subjects
+
+
+def solid_fraction(db: SourceDB) -> Param:
+    density, subjects = effective_density(db)
+    al = db.get("aluminum_6063_t5.material_density@quickparts_al_6063_t5")
     return Param(
-        junction_c - ambient_c,
-        f"entry junction_c_max {junction_c:g} - ambient_c_max {ambient_c:g}; ignores the "
-        "junction-to-sink drop, so the sink is a lower bound",
+        round(density / al.value, 4),
+        f"median mass/envelope {density:.3f} g/cm3 of {len(subjects)} heatsinks "
+        f"({', '.join(subjects)}) / {al.key}",
     )
 
 
-# Sized cooling entries.
-COOLING_PARAMS: dict[str, CoolingSizing] = {
-    "passive_heatsink_small": CoolingSizing(
-        r_vol=_R_VOL_NATURAL_SMALL,
-        delta_t=_delta_t(100.0, 40.0),
-        solid_fraction=_SOLID_FRACTION,
-        density=_AL_6063,
-        base_cost_usd=Param(_SINK_BASE_COST, _SINK_BASE_COST_SRC),
-        cost_per_cm3=_SINK_COST_PER_CM3,
-    ),
-    "passive_heatsink_large": CoolingSizing(
-        r_vol=_R_VOL_NATURAL_LARGE,
-        delta_t=_delta_t(105.0, 50.0),
-        solid_fraction=_SOLID_FRACTION,
-        density=_AL_6063,
-        base_cost_usd=Param(_SINK_BASE_COST, _SINK_BASE_COST_SRC),
-        cost_per_cm3=_SINK_COST_PER_CM3,
-    ),
-    "active_fan": CoolingSizing(
-        r_vol=_R_VOL_FORCED_2_5,
-        delta_t=_delta_t(105.0, 45.0),
-        solid_fraction=_SOLID_FRACTION,
-        density=_AL_6063,
-        base_mass_g=Param(80.0, 'Delta AFB0612EH-A 60 mm 12 V fan datasheet: "80 GRAMS"'),
-        base_volume_cm3=Param(91.44, "Delta AFB0612EH-A envelope 60 x 60 x 25.4 mm"),
-        base_cost_usd=Param(
-            _SINK_BASE_COST + 10.08,
-            "Delta AFB0612EH-A $10.08 (Avnet, qty 1620, via findchips 2026-10-02) + "
-            + _SINK_BASE_COST_SRC,
-        ),
-        parasitic_power_w=Param(
-            4.56, 'Delta AFB0612EH-A datasheet: "4.56 (MAX. 5.76) W" rated input'
-        ),
-        cost_per_cm3=_SINK_COST_PER_CM3,
-    ),
+def sink_price_fit(db: SourceDB) -> tuple[Param, Param]:
+    """Least-squares ``price = a + b * V`` over the heatsinks with a qty-1
+    price: returns (a in USD, b in USD / cm^3)."""
+    points = [
+        (envelope_cm3(db, o.subject), o.value, o.key)
+        for o in db.find("unit_price", variant="qty_1")
+        if o.subject in heatsink_subjects(db)
+    ]
+    n = len(points)
+    mx = sum(v for v, _, _ in points) / n
+    my = sum(p for _, p, _ in points) / n
+    b = sum((v - mx) * (p - my) for v, p, _ in points) / sum((v - mx) ** 2 for v, _, _ in points)
+    a = my - b * mx
+    keys = ", ".join(k for _, _, k in points)
+    return (
+        Param(round(a, 4), f"intercept of least-squares price = a + b x envelope over {keys}"),
+        Param(round(b, 6), f"slope of least-squares price = a + b x envelope over {keys}"),
+    )
+
+
+def _fan(db: SourceDB, subject: str, quantity: str, variant: str | None = None) -> Param:
+    (obs,) = db.find(quantity, subject, variant=variant)
+    return Param(obs.value, obs.key)
+
+
+def delta_t(entry: CoolingSolutionEntry) -> Param:
+    return Param(
+        entry.junction_c_max - entry.ambient_c_max,
+        f"entry junction_c_max {entry.junction_c_max:g} - ambient_c_max "
+        f"{entry.ambient_c_max:g}; ignores the junction-to-sink drop, so the sink is a lower bound",
+    )
+
+
+# What each sized entry is: (airflow regime, R_vol pick, fan subject or None).
+# R_vol 'min' for the small sink: Lee's low end is for ~100-200 cm3 sinks, and
+# small catalog sinks measure lower still (R x envelope), so it is conservative.
+SIZED_ENTRIES: dict[str, tuple[str, str, str | None]] = {
+    "passive_heatsink_small": ("natural_convection", "min", None),
+    "passive_heatsink_large": ("natural_convection", "mid", None),
+    "active_fan": ("forced_air_2_5_m_s", "mid", "delta_afb0612eh_a"),
 }
 
+# Fan price used: the lowest-quantity Avnet break on the access date.
+FAN_PRICE_VARIANT = {"delta_afb0612eh_a": "qty_1620_avnet"}
+
+
+def cooling_sizing(entry_id: str, db: SourceDB | None = None) -> CoolingSizing:
+    """The ``cooling_sizing_v1`` inputs for a sized entry, from the source DB."""
+    db = db or source_db()
+    entry = load_cooling_solutions()[entry_id]
+    regime, pick, fan = SIZED_ENTRIES[entry_id]
+    sink_base, sink_slope = sink_price_fit(db)
+    al = db.get("aluminum_6063_t5.material_density@quickparts_al_6063_t5")
+    sizing = dict(
+        r_vol=r_vol(db, regime, pick),
+        delta_t=delta_t(entry),
+        solid_fraction=solid_fraction(db),
+        density=Param(al.value, al.key),
+        base_cost_usd=sink_base,
+        cost_per_cm3=sink_slope,
+    )
+    if fan is not None:
+        price = _fan(db, fan, "unit_price", FAN_PRICE_VARIANT[fan])
+        dims = [_fan(db, fan, q) for q in ("length", "width", "height")]
+        sizing.update(
+            base_mass_g=_fan(db, fan, "mass"),
+            base_volume_cm3=Param(
+                round(dims[0].value * dims[1].value * dims[2].value / 1000.0, 4),
+                f"{fan} envelope ({', '.join(d.source for d in dims)})",
+            ),
+            base_cost_usd=Param(
+                round(sink_base.value + price.value, 4),
+                f"{price.source} + sink price-fit intercept",
+            ),
+            parasitic_power_w=_fan(db, fan, "power", "typ"),
+        )
+    return CoolingSizing(**sizing)
+
+
+# ---------------------------------------------------------------------------
+# YAML writer (comment-preserving, owned top-level fields only)
+# ---------------------------------------------------------------------------
+
+
+def _yaml_scalar(value: object) -> str:
+    if isinstance(value, str):
+        return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    return repr(float(value)) if isinstance(value, float) else str(value)
+
+
+def render(text: str, fields: dict[str, object], owned: tuple[str, ...]) -> str:
+    """``text`` with the ``owned`` top-level fields set to ``fields``: lines
+    replaced in place (block-scalar continuations included), missing fields
+    inserted before ``source:``, and owned fields absent from ``fields``
+    removed. Comments and every other field are kept."""
+    out, seen, skipping = [], set(), False
+    for line in text.splitlines(keepends=True):
+        if skipping and line[:1] in (" ", "\t") and line.strip():
+            continue
+        skipping = False
+        m = re.match(r"^([a-z_0-9]+):", line)
+        key = m.group(1) if m else None
+        if key in owned:
+            skipping = True
+            if key in fields and key not in seen:
+                out.append(f"{key}: {_yaml_scalar(fields[key])}\n")
+                seen.add(key)
+            continue
+        if key == "source":
+            out.extend(f"{k}: {_yaml_scalar(v)}\n" for k, v in fields.items() if k not in seen)
+            seen.update(fields)
+        out.append(line)
+    return "".join(out)
+
+
+def _check_or_write(path: Path, new: str, label: str, write: bool) -> int:
+    text = path.read_text(encoding="utf-8")
+    if new == text:
+        return 0
+    rel = path.relative_to(REPO_ROOT)
+    if write:
+        path.write_text(new, encoding="utf-8")
+        print(f"wrote {rel}")
+        return 0
+    print(f"FAIL: {rel} differs from {label}")
+    return 1
+
+
+# ---------------------------------------------------------------------------
+# cooling: sized cooling-solution entries
+# ---------------------------------------------------------------------------
+
 # Fields cooling_sizing_v1 owns in a cooling YAML (written or removed).
-_OWNED = (
+COOLING_OWNED = (
     "weight_g",
     "volume_cm3",
     "cost_usd",
@@ -275,46 +401,18 @@ _OWNED = (
 )
 
 
-def expected_fields(entry_id: str) -> dict[str, object]:
-    """The owned fields an entry's YAML should hold."""
-    sizing = COOLING_PARAMS[entry_id]
+def expected_cooling_fields(entry_id: str) -> dict[str, object]:
+    """The owned fields a sized entry's YAML should hold."""
+    sizing = cooling_sizing(entry_id)
     fields: dict[str, object] = dict(size_cooling(sizing))
     fields["basis"] = ValueBasis.ESTIMATED.value
     fields["sizing_source"] = sizing_source(sizing)
     return fields
 
 
-def _yaml_scalar(value: object) -> str:
-    if isinstance(value, str):
-        return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
-    return repr(float(value)) if isinstance(value, float) else str(value)
-
-
-def render(text: str, fields: dict[str, object]) -> str:
-    """``text`` with the owned top-level fields set to ``fields``: existing
-    lines are replaced in place, missing ones inserted before ``source:``,
-    and owned fields absent from ``fields`` removed. Comments are kept."""
-    lines = text.splitlines(keepends=True)
-    out, seen = [], set()
-    for line in lines:
-        m = re.match(r"^([a-z_0-9]+):", line)
-        key = m.group(1) if m else None
-        if key in _OWNED:
-            if key in fields and key not in seen:
-                out.append(f"{key}: {_yaml_scalar(fields[key])}\n")
-                seen.add(key)
-            continue
-        if key == "source":
-            out.extend(f"{k}: {_yaml_scalar(v)}\n" for k, v in fields.items() if k not in seen)
-            seen.update(fields)
-        out.append(line)
-    return "".join(out)
-
-
-def cooling_paths() -> dict[str, Path]:
-    """Cooling YAML path by entry id."""
+def _paths_by_id(directory: Path) -> dict[str, Path]:
     paths = {}
-    for path in sorted(COOLING_DIR.glob("*.yaml")):
+    for path in sorted(directory.glob("**/*.yaml")):
         m = re.search(r"^id:\s*(\S+)", path.read_text(encoding="utf-8"), re.M)
         if m:
             paths[m.group(1)] = path
@@ -323,33 +421,97 @@ def cooling_paths() -> dict[str, Path]:
 
 def run_cooling(write: bool) -> int:
     """Check (or rewrite) every sized cooling YAML. Returns a process status."""
-    paths = cooling_paths()
+    paths = _paths_by_id(COOLING_DIR)
     status = 0
-    for entry_id in COOLING_PARAMS:
+    for entry_id in SIZED_ENTRIES:
         path = paths[entry_id]
-        text = path.read_text(encoding="utf-8")
-        new = render(text, expected_fields(entry_id))
-        if new == text:
-            continue
-        if write:
-            path.write_text(new, encoding="utf-8")
-            print(f"wrote {path.relative_to(REPO_ROOT)}")
-        else:
-            print(f"FAIL: {path.relative_to(REPO_ROOT)} differs from {COOLING_SIZING}")
-            status = 1
+        new = render(
+            path.read_text(encoding="utf-8"), expected_cooling_fields(entry_id), COOLING_OWNED
+        )
+        status |= _check_or_write(path, new, COOLING_SIZING, write)
     if write:
-        # The rewritten entries must still validate.
-        load_cooling_solutions()
+        load_cooling_solutions()  # the rewritten entries must still validate
+    return status
+
+
+# ---------------------------------------------------------------------------
+# nodes: silicon_cost_v1 inputs on the process-node catalog
+# ---------------------------------------------------------------------------
+
+# Process node -> (wafer-price observation key, D0 observation key). A node
+# with neither is left without silicon-cost inputs.
+NODE_INPUTS: dict[str, tuple[str | None, str | None]] = {
+    "tsmc_n5": (
+        "tsmc_n5.wafer_price@cset_2020_ai_chips",
+        "tsmc_n5.defect_density@anandtech_2020_08_25_tsmc_d0",
+    ),
+    "tsmc_n6": (None, "tsmc_n6.defect_density@tomshw_2020_08_24_tsmc_symposium"),
+    "tsmc_n7": (
+        "tsmc_n7.wafer_price@cset_2020_ai_chips",
+        "tsmc_n7.defect_density@anandtech_2020_08_25_tsmc_d0",
+    ),
+    "tsmc_n12": ("tsmc_n12.wafer_price@cset_2020_ai_chips", None),
+    "tsmc_n16": ("tsmc_n16.wafer_price@cset_2020_ai_chips", None),
+    "tsmc_n28hpm": ("tsmc_n28hpm.wafer_price@cset_2020_ai_chips", None),
+    "tsmc_n40": ("tsmc_n40.wafer_price@cset_2020_ai_chips", None),
+    "tsmc_n65": ("tsmc_n65.wafer_price@cset_2020_ai_chips", None),
+}
+
+NODE_OWNED = (
+    "wafer_cost_usd",
+    "wafer_diameter_mm",
+    "defect_density_per_cm2",
+    "wafer_cost_source",
+)
+
+
+def expected_node_fields(node_id: str, db: SourceDB | None = None) -> dict[str, object]:
+    """The silicon-cost input fields a node's YAML should hold."""
+    db = db or source_db()
+    price_key, d0_key = NODE_INPUTS[node_id]
+    fields: dict[str, object] = {}
+    cites = []
+    if price_key:
+        price = db.get(price_key)
+        fields["wafer_cost_usd"] = price.value
+        fields["wafer_diameter_mm"] = float(price.conditions.get("wafer_mm", 300.0))
+        cites.append(f"wafer_cost_usd = {price_key} ({price.basis.value}, {price.as_of} USD)")
+    else:
+        cites.append("no sourced wafer price")
+    if d0_key:
+        d0 = db.get(d0_key)
+        fields["defect_density_per_cm2"] = d0.value
+        cites.append(f"defect_density_per_cm2 = {d0_key} ({d0.conditions.get('maturity')})")
+    else:
+        cites.append("no sourced D0")
+    fields["wafer_cost_source"] = "source DB (data/sources/): " + "; ".join(cites)
+    return fields
+
+
+def run_nodes(write: bool) -> int:
+    """Check (or rewrite) the silicon-cost inputs of the mapped nodes."""
+    paths = _paths_by_id(PROCESS_NODE_DIR)
+    status = 0
+    for node_id in NODE_INPUTS:
+        path = paths[node_id]
+        new = render(path.read_text(encoding="utf-8"), expected_node_fields(node_id), NODE_OWNED)
+        status |= _check_or_write(path, new, "the source DB", write)
+    if write:
+        load_process_nodes()
     return status
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
-    cool = sub.add_parser("cooling", help="per-W sizing of the cooling catalog")
-    mode = cool.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--check", action="store_true")
-    mode.add_argument("--write", action="store_true")
+    for name, help_text in (
+        ("cooling", "per-W sizing of the cooling catalog"),
+        ("nodes", "silicon-cost inputs on the process-node catalog"),
+    ):
+        cmd = sub.add_parser(name, help=help_text)
+        mode = cmd.add_mutually_exclusive_group(required=True)
+        mode.add_argument("--check", action="store_true")
+        mode.add_argument("--write", action="store_true")
     sil = sub.add_parser("silicon", help="variable cost of one good die")
     sil.add_argument("die_mm2", type=float)
     sil.add_argument("process_node_id")
@@ -357,6 +519,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "cooling":
         return run_cooling(write=args.write)
+    if args.cmd == "nodes":
+        return run_nodes(write=args.write)
     node = load_process_nodes()[args.process_node_id]
     cost = die_cost(args.die_mm2, node)
     print(

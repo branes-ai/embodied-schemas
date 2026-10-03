@@ -13,7 +13,30 @@ SWaP-C² estimators and their sourced inputs. RFC 0001 phase S2. The cooling
 catalog now scales with the heat it removes, and the process nodes carry
 wafer-cost inputs. Additive schema; three cooling entries change values.
 
-**Estimators** (`scripts/swapc2_estimators.py`, new). Per RFC R1.2 they live
+**Source database** (`embodied_schemas.sources`, `data/sources/`, new). It
+holds the cited figures behind every estimated value.
+
+- `documents.yaml` holds 22 source documents.
+- `observations/*.yaml` holds 128 quoted figures for wafer price, defect
+  density, heatsinks and fans. Each records its exact quote, the date of the
+  figure, its basis (datasheet, list price, reported, model estimate,
+  disclosed) and conditions such as airflow, quantity break or maturity.
+- Query with `load_source_db()`, using `find`, `get` / `value`, `series`
+  (trends) and `to_sqlite()` for ad hoc SQL.
+- `tests/test_sources.py` validates the figures locally:
+  - references, units per quantity and ranges;
+  - physical bounds (heatsink density below solid aluminum; catalog R x V
+    within Lee's bound; resistance falling with airflow);
+  - orderings (fan typ <= max; volume discounts; CSET price rising with
+    node);
+  - cross-source agreement (wafer prices within 20%);
+  - trend ordering.
+- `validate_data_integrity()` now loads the source DB.
+
+**Estimators** (`scripts/swapc2_estimators.py`, new). Every parameter is
+derived from the source DB, not hard-coded. `nodes --check` holds the
+process-node catalog to the DB the way `cooling --check` holds the cooling
+catalog, and both run as tests. Per RFC R1.2 they live
 in `scripts/`. Each writes `basis: estimated` values from a named, versioned
 model whose parameters are sourced.
 
@@ -33,7 +56,7 @@ model whose parameters are sourced.
 - R_vol comes from Lee, "How to Select a Heat Sink" (Electronics Cooling,
   1995).
 - Effective density is 0.95 g/cm³, the median of 13 catalog aluminum sinks.
-- Cost is a fit to Alpha Novatech qty-1 prices.
+- Cost is a least-squares fit to Alpha Novatech qty-1 prices.
 - The `active_fan` fan is the Delta AFB0612EH-A (80 g, 4.56 W).
 - dT is each entry's `junction_c_max - ambient_c_max`. That ignores the
   junction-to-sink drop, so the sinks are a lower bound.

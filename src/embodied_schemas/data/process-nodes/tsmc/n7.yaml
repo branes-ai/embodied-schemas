@@ -134,13 +134,7 @@ cooling_compatible:
 wafer_cost_usd: 9346.0
 wafer_diameter_mm: 300.0
 defect_density_per_cm2: 0.09
-wafer_cost_source: >-
-  Khan & Mann, "AI Chips: What They Are and Why They Matter", CSET, Apr 2020, Table 9 line 7
-  "Foundry sale price per wafer" (7 nm column): model estimate, 2020 USD, 300 mm, processed
-  wafer only (masks / design excluded); D0: AnandTech 2020-08-25, "Better Yield on 5nm than
-  7nm: TSMC Update on Defect Rates for N5" (TSMC Technology Symposium): "0.09 defects per
-  square centimetre on its N7 process node only three quarters after high volume
-  manufacturing started"
+wafer_cost_source: "source DB (data/sources/): wafer_cost_usd = tsmc_n7.wafer_price@cset_2020_ai_chips (model_estimate, 2020 USD); defect_density_per_cm2 = tsmc_n7.defect_density@anandtech_2020_08_25_tsmc_d0 (HVM+3Q)"
 source: "TSMC ISSCC 2018; Wikichip TSMC 7nm; AMD Zen2 die-shot"
 confidence: theoretical
 last_updated: "2026-05-09"

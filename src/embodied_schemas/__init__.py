@@ -237,6 +237,14 @@ from embodied_schemas.overlay import (
     NoCOverlayKind,
     NoCOverlay,
 )
+from embodied_schemas.sources import (
+    DocumentKind,
+    FigureBasis,
+    Observation,
+    SourceDB,
+    SourceDocument,
+    load_source_db,
+)
 from embodied_schemas.swapc2 import (
     CostSpec,
     InputPowerSpec,
@@ -657,6 +665,13 @@ __all__ = [
     "block_peak_ops",
     "check_contains_references",
     "headline_ops",
+    # Source database (RFC 0001 R1.2/R1.3, S2)
+    "DocumentKind",
+    "FigureBasis",
+    "Observation",
+    "SourceDB",
+    "SourceDocument",
+    "load_source_db",
     # SWaP-C² (RFC 0001 R1, S1)
     "CostSpec",
     "InputPowerSpec",
