@@ -618,6 +618,16 @@ def _dump_block(mapping: dict, indent: int) -> list[str]:
     return [" " * indent + line for line in text.splitlines(keepends=True)]
 
 
+_KEY_LINE = re.compile(r"^( *)([A-Za-z_0-9]+):(.*)$")
+
+
+def _inline_value(line: str) -> str:
+    """What follows ``key:`` on a key line, comments stripped ('' for a block)."""
+    m = _KEY_LINE.match(line.rstrip("\n"))
+    rest = m.group(3) if m else ""
+    return re.sub(r"\s+#.*$", "", rest).strip()
+
+
 def set_nested(text: str, path: list[str], value: object, anchor: str | None = None) -> str:
     """``text`` with the mapping entry at ``path`` set to ``value``; every
     other line (siblings, comments, blank lines) is kept.
@@ -625,7 +635,36 @@ def set_nested(text: str, path: list[str], value: object, anchor: str | None = N
     Only the leaf's own block is replaced. A missing level is created at the
     end of its parent block, or for a missing top-level key, before the
     ``anchor:`` line (appended when there is none).
+
+    Block-style parents only: a parent written as a flow mapping
+    (``cost: {...}``, or ``{`` on its own line) raises ValueError rather than
+    risk block YAML inside a flow mapping. The result is re-parsed and must
+    hold ``value`` at ``path`` with the rest of the document unchanged, or
+    ValueError is raised, so a write can never emit malformed YAML.
     """
+    new = _set_nested_lines(text, path, value, anchor)
+    before = yaml.safe_load(text) or {}
+    try:
+        after = yaml.safe_load(new)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"editing {'.'.join(path)} produced invalid YAML: {exc}") from exc
+    expected = before
+    node = expected
+    for key in path[:-1]:
+        node = node.setdefault(key, {})
+    node[path[-1]] = value
+    if after != expected:
+        raise ValueError(f"editing {'.'.join(path)} changed more than the target entry")
+    return new
+
+
+def _not_block(path: list[str], depth: int) -> ValueError:
+    return ValueError(
+        f"{'.'.join(path[: depth + 1])} is not a block mapping; convert it to block style"
+    )
+
+
+def _set_nested_lines(text: str, path: list[str], value: object, anchor: str | None) -> str:
     lines = text.splitlines(keepends=True)
     if lines and not lines[-1].endswith("\n"):
         lines[-1] += "\n"
@@ -646,11 +685,13 @@ def set_nested(text: str, path: list[str], value: object, anchor: str | None = N
         if depth == len(path) - 1:
             lines[i:end] = _dump_block({key: value}, indent)
             return "".join(lines)
-        children = [
-            ln for ln in lines[i + 1 : end] if ln.strip() and not ln.lstrip().startswith("#")
-        ]
+        if _inline_value(lines[i]):
+            raise _not_block(path, depth)
+        body = [ln for ln in lines[i + 1 : end] if ln.strip() and not ln.lstrip().startswith("#")]
+        if body and not _KEY_LINE.match(body[0].rstrip("\n")):
+            raise _not_block(path, depth)
         lo, hi = i + 1, end
-        indent = _indent(children[0]) if children else indent + 2
+        indent = _indent(body[0]) if body else indent + 2
     return "".join(lines)
 
 

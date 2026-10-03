@@ -382,7 +382,13 @@ class TestSetNested:
 
 
 def test_products_writer_ignores_private_overlay(tmp_path, monkeypatch):
-    """A confidential PDK overlay must not feed public die costs."""
+    """A confidential PDK overlay must not feed public die costs: the value
+    the writer writes is the public-node calculation, not the overlay's."""
+    import shutil
+
+    from embodied_schemas.loaders import load_compute_products
+
+    pid = "kpu_t64_32x32_lp5x4_7nm_tsmc_hpc"
     public = load_process_nodes(include_overlay=False)["tsmc_n7"]
     overlay = public.model_copy(
         update={
@@ -391,7 +397,55 @@ def test_products_writer_ignores_private_overlay(tmp_path, monkeypatch):
             "wafer_cost_source": "CONFIDENTIAL PDK",
         }
     )
-    (tmp_path / "n7.yaml").write_text(yaml.safe_dump(overlay.model_dump(mode="json")))
-    monkeypatch.setenv("PROCESS_NODE_DATA_DIR", str(tmp_path))
-    assert load_process_nodes()["tsmc_n7"].wafer_cost_usd == 1.0  # overlay applies here...
-    assert est.run_products(write=False) == 0  # ...but not to the public writer
+    pdk = tmp_path / "pdk"
+    pdk.mkdir()
+    (pdk / "n7.yaml").write_text(yaml.safe_dump(overlay.model_dump(mode="json")))
+    monkeypatch.setenv("PROCESS_NODE_DATA_DIR", str(pdk))
+    assert load_process_nodes()["tsmc_n7"].wafer_cost_usd == 1.0  # the overlay is live
+
+    # Write into a copy of the catalog whose target product has no die cost yet.
+    products_dir = tmp_path / "compute_products"
+    shutil.copytree(est.PRODUCTS_DIR, products_dir)
+    monkeypatch.setattr(est, "PRODUCTS_DIR", products_dir)
+    monkeypatch.setattr(est, "REPO_ROOT", tmp_path)
+    target = est._paths_by_id(products_dir)[pid]
+    data = yaml.safe_load(target.read_text())
+    del data["swapc2"]
+    target.write_text(yaml.safe_dump(data, sort_keys=False))
+    assert est.run_products(write=True) == 0
+
+    written = yaml.safe_load(target.read_text())["swapc2"]["cost"]["die_cost_usd"]
+    die = load_compute_products()[pid].dies[0]
+    expected = est.die_cost(die.die_size_mm2, public).cost_usd.value
+    assert written["value"] == pytest.approx(round(expected, 2))
+    assert written["value"] != pytest.approx(
+        round(est.die_cost(die.die_size_mm2, overlay).cost_usd.value, 2)
+    )
+    assert "CONFIDENTIAL" not in target.read_text()
+
+
+class TestSetNestedFlowStyle:
+    def test_flow_parent_refused(self):
+        text = "swapc2:\n  cost: {unit_price_1_usd: {value: 9.0}}\nconfidence: x\n"
+        with pytest.raises(ValueError, match="swapc2.cost is not a block mapping"):
+            est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+
+    def test_multiline_flow_parent_refused(self):
+        text = "swapc2:\n  cost:\n    {unit_price_1_usd: {value: 9.0},\n     x: 1}\nconfidence: x\n"
+        with pytest.raises(ValueError, match="swapc2.cost is not a block mapping"):
+            est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+
+    def test_flow_leaf_is_replaced(self):
+        """A flow-style leaf under block parents is fine: the whole entry is replaced."""
+        text = "swapc2:\n  cost:\n    die_cost_usd: {value: 1.0}  # old\nconfidence: x\n"
+        out = est.set_nested(text, est.DIE_COST_PATH, DIE, anchor="confidence")
+        assert yaml.safe_load(out)["swapc2"]["cost"]["die_cost_usd"] == DIE
+
+    def test_result_is_verified(self, monkeypatch):
+        """If the line edit ever goes wrong, the re-parse catches it before a write."""
+        monkeypatch.setattr(est, "_set_nested_lines", lambda *a: "swapc2: [unbalanced\n")
+        with pytest.raises(ValueError, match="invalid YAML"):
+            est.set_nested("id: p\n", est.DIE_COST_PATH, DIE)
+        monkeypatch.setattr(est, "_set_nested_lines", lambda *a: "id: changed\n")
+        with pytest.raises(ValueError, match="changed more than the target"):
+            est.set_nested("id: p\n", est.DIE_COST_PATH, DIE)
