@@ -535,3 +535,49 @@ class TestAdditiveDumps:
     def test_json_schema_keeps_fields(self):
         props = ComputeProduct.model_json_schema(mode="serialization")["properties"]
         assert {"swapc2", "contains", "memory"} <= set(props)
+
+
+# ---------------------------------------------------------------------------
+# 7. Cooling footprint (max_height_mm)
+# ---------------------------------------------------------------------------
+
+
+class TestCoolingFootprint:
+    def test_within_height_limit_stays_on_product_footprint(self, chip):
+        p = bind(chip.model_copy(update={"swapc2": full_spec()}), "s")
+        # 41 cm^3 over 82 x 50 mm is 10 mm, under the 15 mm limit.
+        r = resolve_swapc2(p, "10W", {"s": fixed_cooling(id="s", max_height_mm=15.0)})
+        assert (r.envelope.length_mm, r.envelope.width_mm) == (82.0, 50.0)
+        assert r.envelope.height_mm == pytest.approx(16.0) and r.envelope.notes == ""
+
+    def test_over_height_limit_takes_its_own_footprint(self, chip):
+        p = bind(chip.model_copy(update={"swapc2": full_spec()}), "s")
+        r = resolve_swapc2(p, "10W", {"s": fixed_cooling(id="s", max_height_mm=5.0)})
+        # Needs 41000 / 5 = 8200 mm^2 = 2x the 4100 mm^2 product footprint.
+        scale = (8200 / 4100) ** 0.5
+        assert r.envelope.length_mm == pytest.approx(82 * scale)
+        assert r.envelope.width_mm == pytest.approx(50 * scale)
+        assert r.envelope.height_mm == pytest.approx(6 + 5)
+        # Volume is conserved: the cooling occupies the same cm^3, re-shaped.
+        cooling_cm3 = r.envelope.volume_cm3 - 82 * scale * 50 * scale * 6 / 1000
+        assert cooling_cm3 == pytest.approx(41.0)
+        assert "exceeds the product footprint" in r.envelope.notes
+
+    def test_typed_limit_matches_constraint_text(self, cooling):
+        """max_height_mm and the free-form 'height<=Xmm' constraint agree."""
+        import re
+
+        for entry in cooling.values():
+            stated = [c for c in entry.form_factor_constraints if c.startswith("height<=")]
+            if entry.max_height_mm is None:
+                assert not stated, entry.id
+            else:
+                (text,) = stated
+                assert float(re.match(r"height<=([\d.]+)mm", text).group(1)) == (
+                    entry.max_height_mm
+                ), entry.id
+
+    def test_small_module_heatsink_overhangs(self, catalog, cooling):
+        r = resolve_swapc2(catalog["hailo_8_m2_2242_m"], "8.65W", cooling, catalog)
+        assert r.envelope.length_mm > 42.0 and r.envelope.width_mm > 22.0
+        assert r.envelope.height_mm == pytest.approx(2.626 + 15.0)

@@ -53,3 +53,28 @@
 # --- M.2 card PCB ------------------------------------------------------------
 - {subject: m2_card_pcb, category: standard, quantity: height, value: 0.8, unit: mm, as_of: "2022-11", basis: reported,
    source_id: hackaday_2022_m2_for_hackers, quote: "M.2 requires a 0.8 mm PCB."}
+
+# --- Hailo-8L M.2 2280 B+M key (HM21LB1C2LAE) -----------------------------
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: length, value: 80, unit: mm, as_of: "2025-11",
+   basis: datasheet, source_id: hailo_8l_m2_key_bm_datasheet, quote: "22 x 80 mm",
+   notes: "The datasheet adds that it 'may be provided with removable tabs'."}
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: width, value: 22, unit: mm, as_of: "2025-11",
+   basis: datasheet, source_id: hailo_8l_m2_key_bm_datasheet, quote: "22 x 80 mm"}
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: height, value: 2.626, value_min: 2.426, value_max: 2.826,
+   unit: mm, as_of: "2025-11", basis: datasheet, source_id: hailo_8l_m2_key_bm_datasheet,
+   quote: "Height 2.626 mm ... Tolerance is ±0.2mm"}
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: power, variant: tdp, value: 6.6, unit: w, as_of: "2025-11",
+   basis: datasheet, source_id: hailo_8l_m2_key_bm_datasheet, quote: "Thermal design power (TDP) 6.6W"}
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: power, variant: max, value: 6.6, unit: w, as_of: "2025-11",
+   basis: datasheet, source_id: hailo_8l_m2_key_bm_datasheet,
+   quote: "Maximum power consumption is 6.6W (or 2 A total current draw from 3.3V pins)"}
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: power, variant: typ_resnet50, value: 1.9, unit: w,
+   as_of: "2025-11", basis: datasheet, source_id: hailo_8l_m2_key_bm_datasheet,
+   conditions: {workload: "ResNet-50 224x224 @ 433 FPS", temp_c: 25}, quote: "Resnet-50 224x224 @ 433 FPS 1.9"}
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: power, variant: typ_mobilenet_ssd, value: 1.4, unit: w,
+   as_of: "2025-11", basis: datasheet, source_id: hailo_8l_m2_key_bm_datasheet,
+   conditions: {workload: "MobileNet-SSD 300x300 @ 500 FPS", temp_c: 25}, quote: "MobileNet-SSD 300x300 @ 500 FPS 1.4"}
+- {subject: hailo_8l_m2_2280_bm, category: m2_module, quantity: unit_price, variant: qty_1, value: 89.0, unit: usd,
+   as_of: "2026-10", basis: list_price, source_id: upshop_hailo_8_m2,
+   conditions: {quantity: 1, distributor: UP Shop, heatsink: "without"},
+   quote: "Hailo-8L M.2 2280 B+M key W/O Heatsink $89.00"}

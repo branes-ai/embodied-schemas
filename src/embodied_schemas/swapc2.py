@@ -29,6 +29,9 @@ Decisions the code follows:
   input-rail power, so the conversion loss is not applied to it.
 - **Size is an envelope**: the cooling solution mounts on the product's
   top face. The envelope is the larger footprint, with the heights added.
+  A sized cooling solution occupies the product's footprint up to its
+  ``max_height_mm``; beyond that it takes its own, larger footprint at that
+  height (same aspect ratio), as a real heatsink overhangs a small module.
 - **D5 refinement**: mass and cost of a product with ``contains`` default to
   the sum over its contents when the product states no value of its own.
   The result is ``estimated`` and excludes the product's own PCB/enclosure.
@@ -40,6 +43,7 @@ verdict-first fit check against a capability tier live downstream
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -453,6 +457,7 @@ def resolve_swapc2(
     else:
         length, width = dims.length_mm, dims.width_mm
         cooling_height = None
+        envelope_note = ""
         if cs.dimensions_mm is not None:
             length = max(length, cs.dimensions_mm[0])
             width = max(width, cs.dimensions_mm[1])
@@ -461,6 +466,16 @@ def resolve_swapc2(
             vol = cs.volume_cm3_at(watts)
             if vol is not None:
                 cooling_height = vol * 1000.0 / dims.footprint_mm2
+                if cs.max_height_mm is not None and cooling_height > cs.max_height_mm:
+                    # Too tall on the product's footprint: the cooling takes its
+                    # own footprint at its height limit, same aspect ratio.
+                    scale = math.sqrt(vol * 1000.0 / cs.max_height_mm / dims.footprint_mm2)
+                    length, width = length * scale, width * scale
+                    cooling_height = cs.max_height_mm
+                    envelope_note = (
+                        f"cooling exceeds the product footprint: {length:.1f} x {width:.1f} mm "
+                        f"at its {cs.max_height_mm:g} mm height limit"
+                    )
         if cooling_height is None:
             unresolved.append(f"envelope: cooling {cs.id!r} states no size")
         else:
@@ -473,6 +488,7 @@ def resolve_swapc2(
                 basis=basis,
                 confidence=confidence,
                 source="product dimensions + cooling on top face",
+                notes=envelope_note,
             )
             envelope_cm3 = combine(envelope.volume_cm3, [envelope], "envelope L x W x H")
 
