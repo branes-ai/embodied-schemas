@@ -46,7 +46,7 @@ platforms, and the current schema cannot answer it.
 
 ---
 
-## Status at a glance (2026-10-01)
+## Status at a glance (2026-10-03)
 
 | Phase | Plan (rev 1) | Actual |
 |-------|--------------|--------|
@@ -148,9 +148,10 @@ carries `max_compute_weight_kg` and `max_compute_volume_cm3` (e.g.
 `micro_autonomy`: 100 g, 50 cm³). The product side has nothing to check
 against it.
 
-There is also a level-of-integration problem. `jetson_agx_orin_64gb` is
-`kind: chip` and describes the GA10B die, but its `launch_msrp_usd: 1999`
-is the price of the module. A UAV integrator buys the module (plus a
+There is also a level-of-integration problem. `jetson_agx_orin_64gb` was
+`kind: chip` and described the GA10B die, but its `launch_msrp_usd: 1999`
+was the price of the module. (Resolved by D6: the chip is now
+`nvidia_orin_soc_64gb`, 0.21.0, and the module id is freed.) A UAV integrator buys the module (plus a
 carrier and a heatsink), not the die. SWaP-C² is only meaningful when you
 know which level of integration it describes.
 
@@ -241,7 +242,7 @@ vendor-neutral names (`ThermalProfile`, `TheoreticalPerformance`,
 - **D1 (CPU-with-iGPU / heterogeneous SoC): decided, not yet exercised.**
   A heterogeneous SoC is one `Die` with several entries in `Die.blocks`, one
   per compute fabric. The schema supports this today. However, no catalog
-  product uses it yet. `jetson_agx_orin_64gb` carries only its GPU block,
+  product uses it yet. `nvidia_orin_soc_64gb` carries only its GPU block,
   and the TI TDA4 and Qualcomm SoCs carry only their DSP block. Backfilling
   the remaining blocks (Orin CPU + 2x DLA + PVA, TDA4 A72 + C7x + MMA) is
   part of Phase 3.

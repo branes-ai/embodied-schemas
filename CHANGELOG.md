@@ -28,9 +28,11 @@ phase S3, slice d.
 - `launch_msrp_usd` on these chips is still the module price. It moves to
   the module products when they exist; graphs' module-level mappers read it
   today.
-- **Downstream:** graphs must update its `_YAML_BASE_ID`s and tests
-  (branes-ai/graphs PR to follow). No alias is kept, because the old ids
-  are reused by the modules.
+- **Downstream:** graphs must update its `_YAML_BASE_ID`s and tests.
+  branes-ai/graphs#347 does this. graphs CI pins embodied-schemas to a fixed
+  commit, so it sees the rename only when #347 bumps that pin; tag 0.21.0
+  only once #347 is ready. No alias is kept, because the old ids are reused
+  by the modules.
 
 ## [0.20.0] - 2026-10-03
 
