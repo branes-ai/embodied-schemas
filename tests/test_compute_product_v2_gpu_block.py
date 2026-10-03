@@ -352,7 +352,7 @@ def test_compute_product_with_gpu_die_round_trips(gpu_block):
     """Build a Jetson-AGX-Orin-shaped ComputeProduct end-to-end and round
     trip through model_dump / model_validate."""
     product = ComputeProduct(
-        id="nvidia_jetson_agx_orin_64gb",
+        id="nvidia_orin_soc_64gb",
         name="NVIDIA Jetson AGX Orin 64GB",
         vendor="nvidia",
         kind=ProductKind.CHIP,
@@ -408,7 +408,7 @@ def test_compute_product_with_gpu_die_round_trips(gpu_block):
 def test_v2_does_not_break_existing_kpu_catalog():
     """The full 12-SKU KPU ComputeProduct catalog must continue to load
     cleanly after v2 schema additions. Scoped to the KPU subset because
-    later v2 PRs add GPU SKUs (e.g., nvidia_jetson_agx_orin_64gb)."""
+    later v2 PRs add GPU SKUs (e.g., nvidia_orin_soc_64gb)."""
     from embodied_schemas.loaders import load_compute_products
     products = load_compute_products()
     kpu_products = {
