@@ -30,8 +30,9 @@ phase S3, slice d.
   today.
 - **Downstream:** graphs must update its `_YAML_BASE_ID`s and tests.
   branes-ai/graphs#347 does this. graphs CI pins embodied-schemas to a fixed
-  commit, so it sees the rename only when #347 bumps that pin; tag 0.21.0
-  only once #347 is ready. No alias is kept, because the old ids are reused
+  commit, so it sees the rename only when #347 bumps that pin; push the
+  `v0.21.0` tag (the publish workflow runs on `v*` tags) only once #347 is
+  ready. No alias is kept, because the old ids are reused
   by the modules.
 
 ## [0.20.0] - 2026-10-03
