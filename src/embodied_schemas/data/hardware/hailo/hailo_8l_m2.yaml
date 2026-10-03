@@ -35,8 +35,8 @@ capabilities:
     - Hailo Runtime
 
 physical:
-  weight_grams: 6.0
-  dimensions_mm: [22.0, 30.0, 3.5]
+  weight_grams: null                # no source gives a module mass
+  dimensions_mm: [22.0, 80.0, 2.626]  # M.2 2280 B+M; "Height 2.626 mm" (±0.2)
   form_factor: m2
   mounting: direct
 
@@ -45,16 +45,19 @@ environmental:
   storage_temp_c: [-40, 85]
 
 power:
-  input_voltage_v: [3.3, 3.3]
+  input_voltage_v: [3.135, 3.465]   # "3.3V ± 5%"
   power_modes:
     - name: "Typical"
-      power_watts: 1.5
-      description: Typical inference power
+      power_watts: 1.9
+      description: "ResNet-50 224x224 @ 433 FPS, 25 C (datasheet)"
+    - name: "Light"
+      power_watts: 1.4
+      description: "MobileNet-SSD 300x300 @ 500 FPS, 25 C (datasheet)"
     - name: "Peak"
-      power_watts: 3.0
-      description: Peak power consumption
-  tdp_watts: 3.0
-  typical_power_watts: 1.5
+      power_watts: 6.6
+      description: "Maximum power consumption (datasheet)"
+  tdp_watts: 6.6                    # "Thermal design power (TDP) 6.6W"
+  typical_power_watts: 1.9
   battery_compatible: true
 
 interfaces:
@@ -63,7 +66,7 @@ interfaces:
   usb3: 0
   usb2: 0
   usb_c: 0
-  pcie_lanes: 1
+  pcie_lanes: 2                     # "PCIe Gen-3.0, 2-lanes" (Hailo-8L M.2 ET product brief, 3/25)
   pcie_gen: 3
   gpio: 0
   ethernet: null
@@ -101,18 +104,20 @@ target_applications:
   - vision
   - object_detection
 
-cost_usd: 49.0
+cost_usd: 89.0                      # UP Shop, 2280 B+M without heatsink, 2026-10
 availability: widely_available
 lifecycle_status: mature
 
 notes: |
   Entry-level AI accelerator with 13 TOPS performance.
   Lower cost alternative to Hailo-8 for simpler workloads.
-  M.2 Key B+M form factor.
-  PCIe Gen 3.0 x1 interface.
-  8.7 TOPS/W power efficiency.
+  Sold as M.2 2280 Key B+M (breakable to 2242) and 2230 Key A+E, PCIe Gen 3
+  x2; these figures are the 2280 B+M module (HM21LB1C2LAE).
+  Corrected 2026-10-03 against the Key B+M ET datasheet Rev 4.0: previously
+  22x30x3.5 mm, 6 g, 3 W TDP, PCIe x1, $49 and "8.7 TOPS/W", none supported
+  (it gives 6.6 W TDP; 13 TOPS at 1.9 W typical). No source gives a mass.
   Ideal for single-stream inference applications.
-datasheet_url: https://hailo.ai/products/ai-accelerators/hailo-8l-ai-accelerator-for-ai-light-applications/
+datasheet_url: https://hailo.ai/hailo-files/hailo-8l-m-2-key-b-m-et-datasheet-en/
 product_url: https://hailo.ai/products/ai-accelerators/hailo-8l-m-2-ai-acceleration-module-for-ai-light-applications/
 last_updated: "2025-12-31"
 chip_id: hailo_8l_chip

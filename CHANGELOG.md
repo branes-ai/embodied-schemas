@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-03
+
+Cooling solutions take their own footprint, and the legacy Hailo hardware
+figures are corrected. RFC 0001 phase S3, slice c.
+
+**Cooling footprint.** `CoolingSolutionEntry.max_height_mm` (new,
+optional).
+
+- A cooling solution sized by volume fills the product's footprint up to
+  this height. Beyond it, it takes its own, larger footprint at the limit:
+  same aspect ratio, volume conserved. A real heatsink overhangs a small
+  module the same way.
+- The envelope's `notes` say when this happens.
+- Set from the entries' existing `height<=Xmm` constraints: small 15, large
+  40, fan 60 and vapor chamber 80 mm. A test keeps the two in step.
+- Hailo-8 M.2 at 8.65 W: 95.8 × 50.2 × 17.6 mm, instead of a 78 mm stack on
+  a 42 × 22 mm card.
+
+**Legacy Hailo hardware corrected** (`data/hardware/hailo/`). Each file is
+now anchored to one SKU and holds the source-DB figures:
+
+| Entry | Was | Now |
+|---|---|---|
+| `hailo_8_m2` (2242 Key M) | 22×30×3.5 mm, 8 g, 5 W TDP, $99 | 22×42×2.626 mm, 6 g, 8.65 W TDP (3.3 W typical, 8.25 W peak), $179.99 |
+| `hailo_8l_m2` (2280 B+M) | 22×30×3.5 mm, 6 g, 3 W, PCIe x1, $49 | 22×80×2.626 mm, mass unset, 6.6 W TDP (1.9 W typical), PCIe x2, $89 |
+| `hailo_10h_m2` (2280 8 GB) | 22×42×4 mm, 12 g, 5 W, LPDDR4X, $199 | 22×80×2.8 mm, mass unset, 8.25 W max (2.5 W typical), LPDDR4, $229 |
+
+- Source DB: Hailo-8L datasheet and UP Shop listing, plus 8 observations.
+- `tests/test_legacy_hardware_hailo.py` holds the legacy files to the
+  source DB and to the unified module products.
+
 ## [0.19.0] - 2026-10-03
 
 Hailo M.2 modules, verified against Hailo's datasheets. RFC 0001 phase S3,

@@ -151,6 +151,12 @@ class CoolingSolutionEntry(BaseModel):
     volume_cm3: float | None = Field(
         None, ge=0, description="Volume in cm^3; with volume_cm3_per_w, the fixed part"
     )
+    max_height_mm: float | None = Field(
+        None,
+        gt=0,
+        description="Height limit of the solution. Sized by volume, it fills the product's "
+        "footprint up to this height and beyond that takes its own, larger footprint",
+    )
     parasitic_power_w: float | None = Field(
         None,
         ge=0,
@@ -189,6 +195,7 @@ class CoolingSolutionEntry(BaseModel):
     def _omit_unset_additions(self, handler: SerializerFunctionWrapHandler):
         return omit_if_default(self, handler, (
             "surface_c_max",
+            "max_height_mm",
             "dimensions_mm",
             "volume_cm3",
             "parasitic_power_w",

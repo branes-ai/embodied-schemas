@@ -1,5 +1,9 @@
-# Hailo-8 M.2 AI Accelerator Module
-# Source: https://hailo.ai/products/ai-accelerators/hailo-8-ai-accelerator/
+# Hailo-8 M.2 AI Accelerator Module -- figures for the 2242 Key M module
+# (HM218B1C2HAE), corrected 2026-10-03 against the Hailo-8 M.2 Key M ET
+# datasheet Rev 2.5. Every SWaP-C² figure here is a source-DB observation
+# (data/sources/observations/m2_modules.yaml, subject hailo_8_m2_2242_m);
+# tests/test_legacy_hardware_hailo.py holds this file to them. The unified
+# entry is compute_products/hailo/hailo_8_m2_2242_m.yaml.
 
 id: hailo_8_m2
 name: Hailo-8 M.2 AI Accelerator
@@ -35,8 +39,8 @@ capabilities:
     - Hailo Runtime
 
 physical:
-  weight_grams: 8.0
-  dimensions_mm: [22.0, 30.0, 3.5]  # M.2 2230 form factor
+  weight_grams: 6.0                 # Waveshare listing; Hailo publishes no mass
+  dimensions_mm: [22.0, 42.0, 2.626]  # M.2 2242; "Height 2.626 mm" (±0.2)
   form_factor: m2
   mounting: direct
 
@@ -45,16 +49,19 @@ environmental:
   storage_temp_c: [-40, 85]
 
 power:
-  input_voltage_v: [3.3, 3.3]
+  input_voltage_v: [3.135, 3.465]   # "Power supply 3.3V ± 5%"
   power_modes:
     - name: "Typical"
-      power_watts: 2.5
-      description: Typical inference power
+      power_watts: 3.3
+      description: "ResNet-50 224x224 @ 915 FPS, 25 C (datasheet)"
+    - name: "Light"
+      power_watts: 2.4
+      description: "MobileNet-SSD 300x300 @ 996 FPS, 25 C (datasheet)"
     - name: "Peak"
-      power_watts: 5.0
-      description: Peak power consumption
-  tdp_watts: 5.0
-  typical_power_watts: 2.5
+      power_watts: 8.25
+      description: "Maximum power consumption at full utilization (datasheet)"
+  tdp_watts: 8.65                   # "Thermal design power (TDP) 8.65W"
+  typical_power_watts: 3.3
   battery_compatible: true
 
 interfaces:
@@ -104,20 +111,22 @@ target_applications:
   - segmentation
   - pose_estimation
 
-cost_usd: 99.0
+cost_usd: 179.99                    # Waveshare, qty 1, 2026-10
 availability: widely_available
 lifecycle_status: mature
 
 notes: |
   Edge AI accelerator with 26 TOPS performance.
   Dataflow architecture optimized for neural network inference.
-  M.2 Key B+M form factor (2230/2242/2280 compatible).
-  PCIe Gen 3.0 x4 interface.
+  Sold as M.2 2280 / 2242 Key M (PCIe Gen 3 x4), 2280 Key B+M and
+  2230 Key A+E (PCIe x2); these figures are the 2242 Key M module.
   Supports multi-stream and multi-model concurrent execution.
   Scalable to 104 TOPS with 4x accelerators.
   Popular pairing with Raspberry Pi 5 via PCIe HAT.
-  10.4 TOPS/W power efficiency.
-datasheet_url: https://hailo.ai/products/ai-accelerators/hailo-8-ai-accelerator/
+  Corrected 2026-10-03: previously 22x30x3.5 mm, 8 g, 5 W TDP, $99 and
+  "10.4 TOPS/W", none of which the datasheet supports (it gives 8.65 W TDP;
+  26 TOPS at 3.3 W typical).
+datasheet_url: https://hailo.ai/hailo-files/hailo-8-m-2-key-m-et-datasheet-en/
 product_url: https://hailo.ai/products/ai-accelerators/hailo-8-m2-ai-acceleration-module/
 last_updated: "2025-12-31"
 chip_id: hailo_8_chip
