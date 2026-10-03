@@ -95,9 +95,14 @@ class CoolingSolutionEntry(BaseModel):
         gt=0,
         description="Whole-package thermal envelope -- sum of all blocks must fit",
     )
-    ambient_c_max: float = Field(
-        ...,
-        description="Maximum ambient operating temperature (C) for this rating",
+    ambient_c_max: float | None = Field(
+        None,
+        description=(
+            "Maximum ambient (air) operating temperature (C) for this rating. "
+            "None when no air rating exists -- e.g. a surface-rated COM heat "
+            "spreader, whose air limit depends on the enclosure it is coupled to "
+            "(see surface_c_max)"
+        ),
     )
     surface_c_max: float | None = Field(
         None,
@@ -195,9 +200,20 @@ class CoolingSolutionEntry(BaseModel):
         ))
 
     @model_validator(mode="after")
+    def _has_a_rating(self) -> "CoolingSolutionEntry":
+        """A solution is rated in air, at a surface, or both."""
+        if self.ambient_c_max is None and self.surface_c_max is None:
+            raise ValueError(f"{self.id}: needs ambient_c_max, surface_c_max, or both")
+        return self
+
+    @model_validator(mode="after")
     def _ambient_below_surface(self) -> "CoolingSolutionEntry":
         """Heat cannot flow from a surface into hotter air."""
-        if self.surface_c_max is not None and self.ambient_c_max > self.surface_c_max:
+        if (
+            self.surface_c_max is not None
+            and self.ambient_c_max is not None
+            and self.ambient_c_max > self.surface_c_max
+        ):
             raise ValueError(
                 f"ambient_c_max {self.ambient_c_max} exceeds surface_c_max {self.surface_c_max}"
             )

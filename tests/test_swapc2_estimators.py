@@ -200,3 +200,9 @@ def test_every_param_is_sourced():
         for name in est.CoolingSizing.__dataclass_fields__:
             param = getattr(sizing, name)
             assert param is None or param.source.strip(), (entry_id, name)
+
+
+def test_sizing_needs_an_air_rating():
+    spreader = load_cooling_solutions()["smarc_heat_spreader_82x50"]
+    with pytest.raises(ValueError, match="no ambient_c_max"):
+        est.delta_t(spreader)

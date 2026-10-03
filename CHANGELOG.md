@@ -74,6 +74,16 @@ model whose parameters are sourced.
 - `CoolingSolutionEntry.sizing_source` (new, optional): the estimator id
   and the source of each parameter.
 
+**`CoolingSolutionEntry.ambient_c_max` is now optional** (consumer-visible).
+
+- A surface-rated entry may have no air rating. `smarc_heat_spreader_82x50`
+  now carries only `surface_c_max: 85`, the limit SECO rates at the spreader
+  plate; its air limit depends on the enclosure.
+- An entry needs `ambient_c_max`, `surface_c_max` or both.
+- `cooling_sizing_v1` refuses an entry without an air rating.
+- Downstream code that formats `ambient_c_max` must handle `None`. graphs'
+  cooling CLIs are fixed in branes-ai/graphs#346.
+
 **Process nodes.** These are sourced inputs to `silicon_cost_v1`.
 
 - `wafer_cost_usd` for TSMC N5, N7, N12, N16, 28HPM, 40 and 65 nm. Source:

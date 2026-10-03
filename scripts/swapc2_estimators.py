@@ -281,6 +281,8 @@ def _fan(db: SourceDB, subject: str, quantity: str, variant: str | None = None) 
 
 
 def delta_t(entry: CoolingSolutionEntry) -> Param:
+    if entry.ambient_c_max is None:
+        raise ValueError(f"{entry.id}: no ambient_c_max, so no sink-to-ambient dT to size against")
     return Param(
         entry.junction_c_max - entry.ambient_c_max,
         f"entry junction_c_max {entry.junction_c_max:g} - ambient_c_max "
