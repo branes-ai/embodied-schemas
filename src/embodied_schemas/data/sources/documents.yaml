@@ -209,3 +209,18 @@
   url: https://hackaday.com/2022/11/07/m-2-for-hackers-cards/
   accessed: "2026-10-03"
   notes: Secondary source for the M.2 card PCB thickness; the PCI-SIG M.2 specification is not public.
+- id: hailo_8l_m2_key_bm_datasheet
+  title: "Hailo-8L M.2 Key B+M ET Module Data Sheet Rev 4.0"
+  publisher: Hailo
+  kind: datasheet
+  published: "2025-11"
+  url: https://hailo.ai/hailo-files/hailo-8l-m-2-key-b-m-et-datasheet-en/
+  accessed: "2026-10-02"
+  notes: Its mechanical section misprints the part number as HM218B1C2LAE (the Hailo-8's).
+- id: upshop_hailo_8_m2
+  title: Hailo-8 M.2 key modules (with related Hailo-8L listings)
+  publisher: UP Shop (AAEON)
+  kind: product_page
+  url: https://up-shop.org/default/hailo8-m2-key.html
+  accessed: "2026-10-02"
+  notes: The Hailo-8L price is from the page's related-items list.

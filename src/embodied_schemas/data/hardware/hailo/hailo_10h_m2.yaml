@@ -19,8 +19,8 @@ capabilities:
   peak_tops_int8: 20.0
   peak_tflops_fp16: 0.0
   peak_tflops_fp32: 0.0
-  memory_gb: 8.0  # Onboard LPDDR4X
-  memory_type: LPDDR4X
+  memory_gb: 8.0  # "equipped with 4GB or 8GB LPDDR4 memory"; the 8 GB SKU
+  memory_type: LPDDR4
   memory_bandwidth_gbps: 34.1
   compute_units: 0
   tensor_cores: 0
@@ -40,8 +40,8 @@ capabilities:
     - vLLM
 
 physical:
-  weight_grams: 12.0
-  dimensions_mm: [22.0, 42.0, 4.0]  # M.2 2242 form factor
+  weight_grams: null                # no source gives a module mass
+  dimensions_mm: [22.0, 80.0, 2.8]  # M.2 2280; 1.5 mm top + 0.8 mm PCB + 0.5 mm bottom
   form_factor: m2
   mounting: direct
 
@@ -50,15 +50,15 @@ environmental:
   storage_temp_c: [-40, 85]
 
 power:
-  input_voltage_v: [3.3, 3.3]
+  input_voltage_v: [3.135, 3.465]   # "3.3V ± 5%"
   power_modes:
     - name: "Typical"
       power_watts: 2.5
-      description: Typical inference power
+      description: "ResNet-50 224x224 @ 1015 FPS (datasheet)"
     - name: "Peak"
-      power_watts: 5.0
-      description: Peak power under LLM workload
-  tdp_watts: 5.0
+      power_watts: 8.25
+      description: '"It consumes up to 8.25W" (datasheet)'
+  tdp_watts: 8.25                   # no TDP stated; the datasheet maximum
   typical_power_watts: 2.5
   battery_compatible: true
 
@@ -115,7 +115,7 @@ target_applications:
   - vlm
   - generative_ai
 
-cost_usd: 199.0
+cost_usd: 229.0                     # UP Shop, 8 GB without heatsink, 2026-10
 availability: limited
 lifecycle_status: new
 
@@ -129,7 +129,12 @@ notes: |
   YOLOv11m on real-time 4K video.
   Supports LLMs, VLMs, and multi-modal AI.
   AEC-Q100 Grade 2 qualified for automotive.
-datasheet_url: https://hailo.ai/files/hailo-10h-product-brief-en/
+  Figures are the 2280 Key M 8 GB module (HM22HB1C2FAE). Corrected 2026-10-03
+  against the Key M ET datasheet Rev 1.0: previously 22x42x4 mm (2242), 12 g,
+  5 W TDP, LPDDR4X and $199; the datasheet gives 22x80 mm, 1.5 + 0.5 mm
+  components, up to 8.25 W, LPDDR4. No source gives a mass. Claims above
+  this note are from the earlier product brief and are not re-verified.
+datasheet_url: https://hailo.ai/hailo-files/hailo-10h-m-2-key-m-et-datasheet-en/
 product_url: https://hailo.ai/products/ai-accelerators/hailo-10h-ai-accelerator/
 last_updated: "2025-12-31"
 chip_id: hailo_10h_chip
