@@ -24,8 +24,8 @@ capabilities:
   memory_gb: 128.0
   memory_type: LPDDR5X
   memory_bandwidth_gbps: 273.0
-  compute_units: 17408  # Blackwell CUDA cores
-  tensor_cores: 544
+  compute_units: 2560  # Blackwell CUDA cores (T5000; was 17408, corrected 2026-10-04)
+  tensor_cores: 96      # NVIDIA (was 544)
   sparse_acceleration: true
   int4_support: true
   frameworks:

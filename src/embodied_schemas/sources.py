@@ -72,6 +72,10 @@ QUANTITY_UNITS: dict[str, str] = {
     "material_density": "g_per_cm3",
     "power": "w",
     "airflow": "cfm",
+    "cuda_cores": "count",
+    "tensor_cores": "count",
+    "cpu_cores": "count",
+    "memory_capacity": "gb",
 }
 
 
@@ -89,6 +93,10 @@ QUANTITY_BOUNDS: dict[str, tuple[str, float]] = {
     "material_density": ("gt", 0.0),
     "power": ("ge", 0.0),
     "airflow": ("gt", 0.0),
+    "cuda_cores": ("gt", 0.0),
+    "tensor_cores": ("gt", 0.0),
+    "cpu_cores": ("gt", 0.0),
+    "memory_capacity": ("gt", 0.0),
 }
 
 _DATE_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")

@@ -32,8 +32,14 @@
 # Product family: NVIDIA Jetson Thor. SKU: Jetson AGX Thor 128GB (T5000).
 # The family's SKUs share the Thor silicon and differ by floorsweeping --
 # the units enabled, recorded as num_sms / cuda_cores_per_sm /
-# tensor_cores_per_sm in dies[0].blocks[0] -- and by memory configuration,
-# here 128 GB LPDDR5X at 273 GB/s (dies[0].blocks[0].memory). This entry is
+# tensor_cores_per_sm in dies[0].blocks[0] -- and by memory configuration
+# (dies[0].blocks[0].memory). Source DB (observations/jetson_modules.yaml):
+#   T5000: 2560 CUDA cores, 96 Tensor cores, 14-core CPU, 128 GB LPDDR5X
+#   T4000: 1536 CUDA cores, 12-core CPU, 64 GB LPDDR5X (no catalog entry yet)
+# Corrected 2026-10-04: this entry had 64 SMs (8192 CUDA cores, 256 Tensor
+# cores); the T5000 enables 20 SMs x 128 = 2560. NVIDIA states 96 Tensor
+# cores, which 20 SMs cannot hold at an integer per-SM count; the model
+# keeps Blackwell's 4 per SM (80) -- see tests/test_compute_product_v14_jetson_family.py. This entry is
 # the SKU; the id is NVIDIA's SKU name, and the legacy HardwareEntry of the
 # same id describes the same SKU.
 id: nvidia_jetson_agx_thor_128gb
@@ -56,6 +62,10 @@ dies:
   silicon_bin:
     blocks:
     # -------------------------------------------------------------------
+    # PHYSICAL-DIE ESTIMATES (unverified). The per-SM blocks below assumed a
+    # 64-SM die. NVIDIA publishes only enabled units (T5000 20 SMs, T4000
+    # 12 SMs on the same silicon), not the physical SM count, so these
+    # transistor figures are unchanged pending a die source.
     # CUDA cores: 8192 total (64 SMs * 128 cores). Per-SM Blackwell CUDA
     # core block estimated at ~1.4 Mtx per CUDA core (slightly denser
     # than Ampere's ~1.5 due to N4P node shrink + microarchitecture
@@ -151,7 +161,7 @@ dies:
     boost_clock_mhz: 1300.0
   blocks:
   - kind: gpu
-    num_sms: 64
+    num_sms: 20                       # T5000: 2560 CUDA cores / 128 per SM
     cuda_cores_per_sm: 128
     tensor_cores_per_sm: 4
     threads_per_sm: 128
@@ -214,11 +224,12 @@ dies:
       read_energy_pj_per_byte: 12.0
       write_energy_pj_per_byte: 14.4
     noc:
-      # 64 SMs make a crossbar quadratically expensive; Blackwell-Tegra
-      # is modeled as a 2D mesh (8x8) per Blackwell datacenter literature.
+      # Modeled as a 2D mesh with one endpoint per enabled SM. The
+      # bisection bandwidth was sized for a 64-SM (8x8) mesh and is
+      # unverified.
       topology: mesh_2d
       bisection_bandwidth_gbps: 4096.0
-      unit_count: 64   # mesh endpoints (v10 rename: was controller_count)
+      unit_count: 20   # mesh endpoints = enabled SMs (v10 rename: was controller_count)
       flit_size_bytes: 32
       hop_latency_ns: 3.0
       pj_per_flit_per_hop: 6.0
@@ -229,18 +240,20 @@ dies:
   interconnects: []
 
 # Chip-level performance roll-up, derived from the per-fabric arithmetic
-# above at the 60W default profile (1.1 GHz sustained):
-#   FP32: CUDA  = 8192 cores * 2 ops/clk * 1.1e9 = 18.0 TFLOPS
-#   FP16: CUDA + Tensor = 8192*2 + 256*64 = 32768 ops/clk * 1.1e9 = 36.0 TFLOPS
-#   INT8: CUDA + Tensor = 8192*2 + 256*64 = 32768 ops/clk * 1.1e9 = 36.0 TOPS
+# above at the 60W default profile (1.1 GHz sustained), for the T5000's
+# enabled units (20 SMs; 80 modeled Tensor cores):
+#   FP32: CUDA  = 2560 cores * 2 ops/clk * 1.1e9 = 5.63 TFLOPS
+#   FP16: CUDA + Tensor = 2560*2 + 80*64 = 10240 ops/clk * 1.1e9 = 11.26 TFLOPS
+#   INT8: CUDA + Tensor = 2560*2 + 80*64 = 10240 ops/clk * 1.1e9 = 11.26 TOPS
+# (Was 18.0 / 36.0 / 36.0 from the incorrect 64-SM count.)
 # NVIDIA's marketed Thor peaks (1000 / 2000 TOPS INT8) include sparsity
 # and all engines (GPU + 2x DLA + PVA); the numbers below are GPU-only
 # DENSE peaks. BF16 not separately reported because its modeled rate
 # matches FP16 (same tensor-core path, same ops/clock).
 performance:
-  int8_tops: 36.0
-  bf16_tflops: 36.0
-  fp32_tflops: 18.0
+  int8_tops: 11.26
+  bf16_tflops: 11.26
+  fp32_tflops: 5.63
 
 power:
   tdp_watts: 60.0

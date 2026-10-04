@@ -17,13 +17,19 @@ die:
   is_chiplet: false
   num_dies: 1
 
+# Corrected 2026-10-04 to the Jetson T5000 floorsweep (source DB,
+# observations/jetson_modules.yaml): 2560 CUDA cores, 96 Tensor cores.
+# Was 17408 / 544 on a 136-SM configuration. TMUs, ROPs and the pixel /
+# texture rates are required fields with no NVIDIA figure; they keep this
+# entry's own per-SM ratios (4 TMUs, 1 ROP per SM) at 20 SMs and are
+# unsourced.
 compute:
-  shaders: 17408
-  cuda_cores: 17408
-  streaming_multiprocessors: 136
-  tmus: 544
-  rops: 136
-  tensor_cores: 544
+  shaders: 2560
+  cuda_cores: 2560
+  streaming_multiprocessors: 20
+  tmus: 80
+  rops: 20
+  tensor_cores: 96
   tensor_core_gen: 5  # Blackwell tensor cores
   warp_size: 32
   max_warps_per_sm: 64
@@ -45,14 +51,14 @@ memory:
   unified_memory: true
 
 performance:
-  fp32_tflops: 38.3
-  fp16_tflops: 76.6
+  fp32_tflops: 5.63                 # 2560 cores x 2 x 1.1 GHz
+  fp16_tflops: 11.26
   int8_tops: 1040.0
   tensor_tflops_fp16: 520.0
   tensor_tflops_int8: 1040.0
   tensor_tflops_fp4: 2080.0
-  pixel_rate_gpixels: 149.6
-  texture_rate_gtexels: 598.4
+  pixel_rate_gpixels: 22.0          # 20 ROPs x 1.1 GHz (unsourced ratio)
+  texture_rate_gtexels: 88.0        # 80 TMUs x 1.1 GHz (unsourced ratio)
 
 power:
   tdp_watts: 130
