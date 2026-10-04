@@ -145,14 +145,16 @@ def test_thor_block_is_gpu(thor_gpu_block):
 
 
 def test_thor_sm_hierarchy(thor_gpu_block):
-    """64 Blackwell SMs * 128 CUDA cores = 8192 cores;
-    4 Tensor cores/SM * 64 = 256 Tensor cores."""
+    """T5000 floorsweep: 20 Blackwell SMs * 128 CUDA cores = 2560 cores
+    (NVIDIA); 4 Tensor cores/SM * 20 = 80 modeled (NVIDIA states 96, which
+    20 SMs cannot hold at an integer per-SM count). Corrected 2026-10-04
+    from 64 SMs / 8192 cores."""
     block = thor_gpu_block
-    assert block.num_sms == 64
+    assert block.num_sms == 20
     assert block.cuda_cores_per_sm == 128
     assert block.tensor_cores_per_sm == 4
-    assert block.num_sms * block.cuda_cores_per_sm == 8192
-    assert block.num_sms * block.tensor_cores_per_sm == 256
+    assert block.num_sms * block.cuda_cores_per_sm == 2560
+    assert block.num_sms * block.tensor_cores_per_sm == 80
 
 
 def test_thor_compute_fabrics(thor_gpu_block):
@@ -187,11 +189,11 @@ def test_thor_memory_subsystem(thor_gpu_block):
 
 
 def test_thor_noc_is_2d_mesh(thor_gpu_block):
-    """Thor's 64 SMs need a mesh (crossbar quadratic at this width).
+    """Thor is modeled as a mesh, one endpoint per enabled SM (20).
     AGX Orin (16 SMs) uses CROSSBAR; Thor switches to MESH_2D."""
     noc = thor_gpu_block.noc
     assert noc.topology == GPUNoCTopology.MESH_2D
-    assert noc.unit_count == 64   # v10 rename: was controller_count
+    assert noc.unit_count == 20   # v10 rename: was controller_count
     assert noc.bisection_bandwidth_gbps == pytest.approx(4096.0)
 
 
@@ -214,4 +216,4 @@ def test_thor_round_trips_through_serialize(thor):
         for b in d.blocks
         if isinstance(b, GPUBlock)
     )
-    assert rebuilt_block.num_sms == 64
+    assert rebuilt_block.num_sms == 20

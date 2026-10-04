@@ -412,7 +412,7 @@ from embodied_schemas.loaders import (
 # It drifted before that test existed: 0.10.0 and 0.11.0 both shipped
 # reporting "0.9.0", because a release bumps pyproject and nothing pointed
 # back here.
-__version__ = "0.21.0"
+__version__ = "0.21.1"
 
 __all__ = [
     # Hardware

@@ -12,7 +12,7 @@ cpu_cores: 14
 cpu_architecture: Neoverse-V3AE
 
 # GPU
-gpu_cores: 17408  # Blackwell CUDA cores
+gpu_cores: 2560  # Blackwell CUDA cores enabled on the T5000 (T4000: 1536); was 17408, corrected 2026-10-04
 gpu_architecture: Blackwell
 
 # AI accelerators

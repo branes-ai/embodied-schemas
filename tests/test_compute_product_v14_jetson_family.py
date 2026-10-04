@@ -45,3 +45,65 @@ def test_no_family_left_unprefixed(products):
     for p in products.values():
         if p.vendor == "nvidia":
             assert p.market.product_family.startswith("NVIDIA Jetson "), p.id
+
+
+# ---------------------------------------------------------------------------
+# Thor floorsweep held to the source DB (corrected 2026-10-04)
+# ---------------------------------------------------------------------------
+
+
+def test_thor_t5000_cuda_cores_match_nvidia(products):
+    """The SKU's enabled CUDA cores equal NVIDIA's published T5000 count,
+    which both sources agree on."""
+    from embodied_schemas.sources import load_source_db
+
+    db = load_source_db()
+    published = {o.value for o in db.find("cuda_cores", "nvidia_jetson_t5000")}
+    assert published == {2560.0}
+    gpu = products["nvidia_jetson_agx_thor_128gb"].dies[0].blocks[0]
+    assert gpu.num_sms * gpu.cuda_cores_per_sm == 2560
+
+
+def test_thor_tensor_core_gap_is_known(products):
+    """NVIDIA states 96 Tensor cores; the per-SM integer model gives 80. This
+    pins the known gap so it is revisited, not silently accepted."""
+    from embodied_schemas.sources import load_source_db
+
+    db = load_source_db()
+    assert db.value("nvidia_jetson_t5000.tensor_cores@edom_jetson_t5000") == 96
+    gpu = products["nvidia_jetson_agx_thor_128gb"].dies[0].blocks[0]
+    assert gpu.num_sms * gpu.tensor_cores_per_sm == 80
+
+
+def test_thor_peaks_follow_the_floorsweep(products):
+    """GPU-only dense peaks at the 1.1 GHz default profile from the enabled units."""
+    thor = products["nvidia_jetson_agx_thor_128gb"]
+    gpu = thor.dies[0].blocks[0]
+    cuda = gpu.num_sms * gpu.cuda_cores_per_sm
+    tensor = gpu.num_sms * gpu.tensor_cores_per_sm
+    assert thor.performance.fp32_tflops == pytest.approx(cuda * 2 * 1.1e9 / 1e12, abs=0.01)
+    assert thor.performance.int8_tops == pytest.approx(
+        (cuda * 2 + tensor * 64) * 1.1e9 / 1e12, abs=0.01
+    )
+
+
+def test_t4000_recorded(products):
+    """The T4000 (no catalog entry yet) is recorded with its floorsweep and memory."""
+    from embodied_schemas.sources import load_source_db
+
+    db = load_source_db()
+    src = "connecttech_jetson_t4000_t5000"
+    assert db.value(f"nvidia_jetson_t4000.cuda_cores@{src}") == 1536
+    assert db.value(f"nvidia_jetson_t4000.memory_capacity@{src}") == 64
+
+
+def test_legacy_thor_entries_match_nvidia():
+    """The legacy GPU, hardware and chip Thor entries carry the T5000 counts."""
+    from embodied_schemas.loaders import load_chips, load_gpus, load_hardware
+
+    gpu = next(g for g in load_gpus().values() if g.id.startswith("nvidia_thor_gpu"))
+    assert (gpu.compute.cuda_cores, gpu.compute.tensor_cores) == (2560, 96)
+    assert gpu.compute.streaming_multiprocessors * 128 == 2560
+    hw = load_hardware()["nvidia_jetson_agx_thor_128gb"]
+    assert (hw.capabilities.compute_units, hw.capabilities.tensor_cores) == (2560, 96)
+    assert load_chips()["nvidia_thor_soc"].gpu_cores == 2560

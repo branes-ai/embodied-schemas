@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-10-04
+
+**Jetson Thor floorsweep corrected.** The catalog overstated the T5000's
+GPU, by 3.2× in the unified entry and 6.8× in the legacy ones. NVIDIA
+publishes 2560 CUDA cores and 96 Tensor cores for the Jetson T5000 (AGX
+Thor 128GB), and 1536 CUDA cores for the T4000.
+
+- **Source DB.** New `observations/jetson_modules.yaml` holds the T5000 and
+  T4000 CUDA cores, Tensor cores, CPU cores and memory, from Connect Tech
+  and NVIDIA distributor EDOM. NVIDIA's datasheet DS-11945-001 is behind a
+  developer login. New count quantities: `cuda_cores`, `tensor_cores`,
+  `cpu_cores` and `memory_capacity`.
+- **`nvidia_jetson_agx_thor_128gb`:**
+  - `num_sms` 64 → **20** (2560 / 128) and mesh endpoints 64 → 20.
+  - Modeled GPU-only dense peaks at 1.1 GHz: FP32 18.0 → **5.63** TFLOPS;
+    FP16 / INT8 36.0 → **11.26**.
+  - Tensor cores are modeled as 4 per SM, which gives 80. NVIDIA states
+    96, which 20 SMs cannot hold at an integer per-SM count; a test pins
+    this known gap.
+  - The physical-die transistor estimates (silicon_bin) still assume 64
+    SMs, because NVIDIA does not publish the physical SM count. They are
+    annotated as unverified, not changed.
+- **Legacy entries** (`gpus/`, `hardware/`, `chips/`): 17408 CUDA / 544
+  Tensor cores (136 SMs) → **2560 / 96 / 20**. FP32 38.3 → 5.63 TFLOPS.
+  Required TMU / ROP / fill-rate fields keep the entry's own per-SM ratios
+  at 20 SMs and are marked unsourced.
+- **Downstream:** graphs' Thor contract test pins 64 SMs / 8192 cores /
+  256 Tensor cores / 64 mesh endpoints. It needs 20 / 2560 / 80 / 20 when
+  graphs adopts 0.21.1.
+
 ## [0.21.0] - 2026-10-03
 
 NVIDIA Jetson entries classified as SKUs of their product families. RFC

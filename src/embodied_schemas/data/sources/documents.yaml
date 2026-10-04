@@ -224,3 +224,18 @@
   url: https://up-shop.org/default/hailo8-m2-key.html
   accessed: "2026-10-02"
   notes: The Hailo-8L price is from the page's related-items list.
+
+# --- NVIDIA Jetson Thor SKUs ------------------------------------------------
+- id: connecttech_jetson_t4000_t5000
+  title: 'Why Swap Your Carrier Board When You Can Just Swap the Module? (Jetson T4000 / T5000)'
+  publisher: Connect Tech Inc.
+  kind: article
+  url: https://connecttech.com/nvidia-jetson-t4000-just-boosted-gauntlet/
+  accessed: "2026-10-04"
+  notes: Side-by-side T5000 / T4000 module specifications. NVIDIA's own datasheet (DS-11945-001) is behind a developer login.
+- id: edom_jetson_t5000
+  title: NVIDIA Jetson T5000 Module
+  publisher: EDOM Technology (NVIDIA distributor)
+  kind: product_page
+  url: https://www.edomtech.com/en/product-detail/nvidia-jetson-t5000-module/
+  accessed: "2026-10-04"
