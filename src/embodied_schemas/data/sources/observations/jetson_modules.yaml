@@ -1,0 +1,31 @@
+# NVIDIA Jetson Thor SKUs (family NVIDIA Jetson Thor). SKUs share the Thor
+# silicon and differ by floorsweeping (units enabled) and memory
+# configuration. These are the enabled-unit counts NVIDIA publishes.
+
+# --- Jetson T5000 (Jetson AGX Thor 128GB) ------------------------------------
+- {subject: nvidia_jetson_t5000, category: jetson_som, quantity: cuda_cores, value: 2560, unit: count,
+   as_of: "2025-08", basis: datasheet, source_id: edom_jetson_t5000,
+   quote: "NVIDIA Blackwell architecture with 2560 NVIDIA CUDA® cores and 96 Tensor Cores"}
+- {subject: nvidia_jetson_t5000, category: jetson_som, quantity: tensor_cores, value: 96, unit: count,
+   as_of: "2025-08", basis: datasheet, source_id: edom_jetson_t5000,
+   quote: "NVIDIA Blackwell architecture with 2560 NVIDIA CUDA® cores and 96 Tensor Cores"}
+- {subject: nvidia_jetson_t5000, category: jetson_som, quantity: cpu_cores, value: 14, unit: count,
+   as_of: "2025-08", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
+   quote: "14-core Arm® Neoverse®-V3AE 64-bit CPU"}
+- {subject: nvidia_jetson_t5000, category: jetson_som, quantity: memory_capacity, value: 128, unit: gb,
+   as_of: "2025-08", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
+   quote: "128 GB 256-bit LPDDR5X"}
+- {subject: nvidia_jetson_t5000, category: jetson_som, quantity: cuda_cores, value: 2560, unit: count,
+   as_of: "2025-08", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
+   quote: "2560-core NVIDIA Blackwell architecture GPU with fifth-generation Tensor Cores"}
+
+# --- Jetson T4000 ------------------------------------------------------------
+- {subject: nvidia_jetson_t4000, category: jetson_som, quantity: cuda_cores, value: 1536, unit: count,
+   as_of: "2026", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
+   quote: "1536-core NVIDIA Blackwell architecture GPU with fifth-generation Tensor Cores"}
+- {subject: nvidia_jetson_t4000, category: jetson_som, quantity: cpu_cores, value: 12, unit: count,
+   as_of: "2026", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
+   quote: "12-core Arm® Neoverse®-V3AE 64-bit CPU"}
+- {subject: nvidia_jetson_t4000, category: jetson_som, quantity: memory_capacity, value: 64, unit: gb,
+   as_of: "2026", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
+   quote: "64 GB 256-bit LPDDR5X"}
