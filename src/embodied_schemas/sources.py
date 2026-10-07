@@ -76,6 +76,14 @@ QUANTITY_UNITS: dict[str, str] = {
     "tensor_cores": "count",
     "cpu_cores": "count",
     "memory_capacity": "gb",
+    "memory_bandwidth": "gb_per_s",
+    "gpc": "count",
+    "tpc": "count",
+    "sm_per_tpc": "count",
+    "tensor_cores_per_sm": "count",
+    "cuda_cores_per_sm": "count",
+    "frequency": "mhz",
+    "ai_throughput": "tops",
 }
 
 
@@ -97,6 +105,14 @@ QUANTITY_BOUNDS: dict[str, tuple[str, float]] = {
     "tensor_cores": ("gt", 0.0),
     "cpu_cores": ("gt", 0.0),
     "memory_capacity": ("gt", 0.0),
+    "memory_bandwidth": ("gt", 0.0),
+    "gpc": ("gt", 0.0),
+    "tpc": ("gt", 0.0),
+    "sm_per_tpc": ("gt", 0.0),
+    "tensor_cores_per_sm": ("gt", 0.0),
+    "cuda_cores_per_sm": ("gt", 0.0),
+    "frequency": ("gt", 0.0),
+    "ai_throughput": ("gt", 0.0),
 }
 
 _DATE_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
