@@ -526,6 +526,57 @@ class ProductRef(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class EnabledUnits(BaseModel):
+    """How many units of one kind a SKU enables -- its floorsweep (RFC 0001
+    D6). SKUs of one family share the silicon and differ by the units enabled
+    and the memory configuration."""
+
+    unit: str = Field(
+        ...,
+        pattern=r"^[a-z0-9_]+$",
+        description="Unit kind: gpu_sm, cuda_core, tensor_core, cpu_core, dla, pva, ...",
+    )
+    enabled: int = Field(..., gt=0, description="Units enabled on this SKU")
+    physical: int | None = Field(
+        None, gt=0, description="Units on the die; None when the vendor does not publish it"
+    )
+    source: str | None = Field(
+        None, description="Source-DB observation key(s) behind `enabled`"
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _physical_covers_enabled(self) -> EnabledUnits:
+        if self.physical is not None and self.physical < self.enabled:
+            raise ValueError(
+                f"{self.unit}: physical {self.physical} < enabled {self.enabled}"
+            )
+        return self
+
+
+class SKUSpec(BaseModel):
+    """A product SKU within its family (`market.product_family`): the vendor's
+    SKU name and part number, and the floorsweep that sets it apart."""
+
+    name: str = Field(..., description="Vendor SKU name, e.g. 'Jetson AGX Orin 64GB'")
+    part_number: str | None = Field(None, description="Vendor part number")
+    floorsweep: list[EnabledUnits] = Field(default_factory=list)
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def _units_unique(self) -> SKUSpec:
+        units = [u.unit for u in self.floorsweep]
+        if len(units) != len(set(units)):
+            raise ValueError(f"SKU {self.name!r}: floorsweep repeats a unit kind")
+        return self
+
+    def enabled(self, unit: str) -> int | None:
+        """Units of kind ``unit`` enabled on this SKU, or None if not stated."""
+        return next((u.enabled for u in self.floorsweep if u.unit == unit), None)
+
+
 class MemorySummary(BaseModel):
     """Product-level memory as sold (from ``HardwareEntry.capabilities``, D8).
     Per-block memory hierarchies stay on the blocks."""
@@ -619,6 +670,9 @@ class ComputeProduct(BaseModel):
         None, description="Size, weight, input power and unit cost (RFC 0001 R1)"
     )
     memory: MemorySummary | None = Field(None, description="Memory as sold (D8)")
+    sku: SKUSpec | None = Field(
+        None, description="SKU name, part number and floorsweep within the product family (D6)"
+    )
     environmental: EnvironmentalSpec | None = Field(None, description="Environmental specs (D8)")
     interfaces: InterfaceSpec | None = Field(None, description="I/O interfaces (D8)")
     software: SoftwareSpec | None = Field(None, description="Software ecosystem (D8)")
@@ -646,6 +700,7 @@ class ComputeProduct(BaseModel):
             "interfaces",
             "software",
             "product_url",
+            "sku",
         ))
 
     @model_validator(mode="after")
@@ -658,6 +713,29 @@ class ComputeProduct(BaseModel):
             raise ValueError(f"a {self.kind.value} product needs dies or contains")
         if any(ref.id == self.id for ref in self.contains):
             raise ValueError(f"product {self.id!r} contains itself")
+        return self
+
+    @model_validator(mode="after")
+    def _check_floorsweep(self) -> ComputeProduct:
+        """A stated floorsweep must match the GPU blocks it describes: enabled
+        SMs = num_sms, CUDA / Tensor cores = num_sms x the per-SM count."""
+        if self.sku is None:
+            return self
+        gpus = [b for d in self.dies for b in d.blocks if isinstance(b, GPUBlock)]
+        if not gpus:
+            return self
+        sms = sum(g.num_sms for g in gpus)
+        expected = {
+            "gpu_sm": sms,
+            "cuda_core": sum(g.num_sms * g.cuda_cores_per_sm for g in gpus),
+            "tensor_core": sum(g.num_sms * g.tensor_cores_per_sm for g in gpus),
+        }
+        for unit, value in expected.items():
+            stated = self.sku.enabled(unit)
+            if stated is not None and stated != value:
+                raise ValueError(
+                    f"{self.id}: floorsweep {unit} = {stated}, but the GPU blocks give {value}"
+                )
         return self
 
     @property
