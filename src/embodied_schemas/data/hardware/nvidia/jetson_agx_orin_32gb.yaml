@@ -15,14 +15,14 @@ optimized_for:
   - fp16
 
 capabilities:
-  peak_tops_int8: 200.0
-  peak_tflops_fp16: 100.0
-  peak_tflops_fp32: 50.0
-  memory_gb: 32.0
+  peak_tops_int8: 200.0  # sparse INT8, NVIDIA datasheet
+  peak_tflops_fp16: null  # unsourced (legacy figure overstated; FP32 up to ~13x)
+  peak_tflops_fp32: null  # unsourced (legacy figure overstated; FP32 up to ~13x)
+  memory_gb: 32.0  # NVIDIA datasheet
   memory_type: LPDDR5
-  memory_bandwidth_gbps: 204.8
-  compute_units: 1792  # CUDA cores
-  tensor_cores: 56
+  memory_bandwidth_gbps: 204.8  # NVIDIA datasheet
+  compute_units: 1792  # CUDA cores, NVIDIA datasheet
+  tensor_cores: 56  # NVIDIA datasheet
   frameworks:
     - PyTorch
     - TensorFlow
@@ -40,8 +40,8 @@ capabilities:
     - Isaac ROS
 
 physical:
-  weight_grams: 200.0
-  dimensions_mm: [100.0, 87.0, 16.0]
+  weight_grams: 306.0  # NVIDIA datasheet module weight
+  dimensions_mm: [100.0, 87.0, 16.0]  # NVIDIA datasheet module size
   form_factor: som
   mounting: carrier_board
 
@@ -54,20 +54,15 @@ power:
   power_modes:
     - name: "15W"
       power_watts: 15.0
-      gpu_freq_mhz: 306
-      cpu_freq_mhz: 729
-      description: Ultra low power mode
+      description: "NVIDIA power mode; NVIDIA publishes no clock for it"
     - name: "30W"
       power_watts: 30.0
-      gpu_freq_mhz: 612
-      cpu_freq_mhz: 1190
-      description: Low power mode
+      description: "NVIDIA power mode; NVIDIA publishes no clock for it"
     - name: "40W"
       power_watts: 40.0
-      gpu_freq_mhz: 850
-      cpu_freq_mhz: 1500
-      description: High performance mode
-  tdp_watts: 40.0
+      gpu_freq_mhz: 939
+      description: "NVIDIA power mode (GPU clock NVIDIA)"
+  tdp_watts: 40.0  # NVIDIA maximum module power
   typical_power_watts: 30.0
   battery_compatible: false
 
@@ -121,7 +116,7 @@ target_applications:
   - pose_estimation
   - nlp
 
-cost_usd: 1399.0
+cost_usd: 1799.0  # NVIDIA 1KU list price, 2026-07
 availability: widely_available
 lifecycle_status: mature
 
@@ -131,8 +126,9 @@ notes: |
   1792 CUDA cores, 56 Tensor Cores (Ampere architecture).
   2x NVDLA v2.0 deep learning accelerators.
   32GB eMMC 5.1 onboard storage.
+  Corrected 2026-10-08 from the source DB (data/sources/observations/jetson_modules.yaml, subject nvidia_jetson_agx_orin_32gb): module mass, dimensions, memory, CUDA/Tensor cores, sparse INT8, maximum power, power modes and 1KU price per NVIDIA's datasheets and FAQ. Per-mode GPU clocks are kept only where sourced; CPU clocks dropped and unsourced FP16/BF16/FP32 peaks nulled (legacy values were overstated).
 datasheet_url: https://developer.nvidia.com/embedded/jetson-agx-orin
 product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
-last_updated: "2025-12-31"
+last_updated: "2026-10-08"
 chip_id: nvidia_orin_soc
 gpu_id: nvidia_orin_gpu_32gb_lpddr5

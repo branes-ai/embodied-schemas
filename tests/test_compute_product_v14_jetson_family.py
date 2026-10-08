@@ -106,7 +106,8 @@ def test_legacy_thor_entries_match_nvidia():
     assert (gpu.compute.cuda_cores, gpu.compute.tensor_cores) == (2560, 96)
     assert gpu.compute.streaming_multiprocessors * 128 == 2560
     hw = load_hardware()["nvidia_jetson_agx_thor_128gb"]
-    assert (hw.capabilities.compute_units, hw.capabilities.tensor_cores) == (2560, 96)
+    # NVIDIA withdrew the Thor Tensor Core count (DS v1.4); the entry leaves it unset.
+    assert (hw.capabilities.compute_units, hw.capabilities.tensor_cores) == (2560, None)
     assert load_chips()["nvidia_thor_soc"].gpu_cores == 2560
 
 

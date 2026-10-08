@@ -15,14 +15,14 @@ optimized_for:
   - fp16
 
 capabilities:
-  peak_tops_int8: 70.0
-  peak_tflops_fp16: 35.0
-  peak_tflops_fp32: 17.5
-  memory_gb: 8.0
+  peak_tops_int8: 117.0  # sparse INT8 at MAXN_SUPER, NVIDIA datasheet
+  peak_tflops_fp16: null  # unsourced (legacy figure overstated; FP32 up to ~13x)
+  peak_tflops_fp32: null  # unsourced (legacy figure overstated; FP32 up to ~13x)
+  memory_gb: 8.0  # NVIDIA datasheet
   memory_type: LPDDR5
-  memory_bandwidth_gbps: 102.4
-  compute_units: 1024  # CUDA cores
-  tensor_cores: 32
+  memory_bandwidth_gbps: 102.0  # NVIDIA datasheet
+  compute_units: 1024  # CUDA cores, NVIDIA datasheet
+  tensor_cores: 32  # NVIDIA datasheet
   frameworks:
     - PyTorch
     - TensorFlow
@@ -38,8 +38,8 @@ capabilities:
     - Triton
 
 physical:
-  weight_grams: 90.0
-  dimensions_mm: [69.6, 45.0, 8.0]
+  weight_grams: 28.0  # NVIDIA datasheet module weight
+  dimensions_mm: [69.6, 45.0, 8.0]  # L x W per NVIDIA; height unsourced (NVIDIA gives none)
   form_factor: som
   mounting: carrier_board
 
@@ -52,20 +52,18 @@ power:
   power_modes:
     - name: "10W"
       power_watts: 10.0
-      gpu_freq_mhz: 306
-      cpu_freq_mhz: 729
-      description: Low power mode
+      description: "NVIDIA power mode; NVIDIA publishes no clock for it"
     - name: "15W"
       power_watts: 15.0
-      gpu_freq_mhz: 510
-      cpu_freq_mhz: 1020
-      description: Balanced mode
+      description: "NVIDIA power mode; NVIDIA publishes no clock for it"
     - name: "20W"
       power_watts: 20.0
-      gpu_freq_mhz: 625
-      cpu_freq_mhz: 1510
-      description: High performance mode
-  tdp_watts: 20.0
+      description: "NVIDIA power mode; NVIDIA publishes no clock for it"
+    - name: "MAXN_SUPER"
+      power_watts: 40.0
+      gpu_freq_mhz: 1173
+      description: "NVIDIA MAXN_SUPER (JetPack 6.2): max GPU clock at maximum module power"
+  tdp_watts: 40.0  # NVIDIA maximum module power
   typical_power_watts: 15.0
   battery_compatible: true
 
@@ -117,7 +115,7 @@ target_applications:
   - segmentation
   - pose_estimation
 
-cost_usd: 499.0
+cost_usd: 649.0  # NVIDIA 1KU list price, 2026-07
 availability: widely_available
 lifecycle_status: new
 
@@ -126,8 +124,9 @@ notes: |
   6-core Arm Cortex-A78AE CPU (up to 2.0 GHz).
   1024 CUDA cores, 32 Tensor Cores (Ampere architecture).
   Pin-compatible with Jetson Xavier NX.
+  Corrected 2026-10-08 from the source DB (data/sources/observations/jetson_modules.yaml, subject nvidia_jetson_orin_nx_8gb): module mass, dimensions, memory, CUDA/Tensor cores, sparse INT8, maximum power, power modes and 1KU price per NVIDIA's datasheets and FAQ. Per-mode GPU clocks are kept only where sourced; CPU clocks dropped and unsourced FP16/BF16/FP32 peaks nulled (legacy values were overstated).
 datasheet_url: https://developer.nvidia.com/downloads/jetson-orin-nx-series-data-sheet
 product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
-last_updated: "2025-12-31"
+last_updated: "2026-10-08"
 chip_id: nvidia_orin_nx_soc
 gpu_id: nvidia_orin_nx_gpu_8gb_lpddr5
