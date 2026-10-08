@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-07
+
+All 9 NVIDIA Jetson SKUs as `module` products, generated from a family
+template plus the source DB. RFC 0001 phase S3, slice e, part 2.
+
+**Generator** (`scripts/generate_jetson_skus.py --write | --check`). Each
+family (NVIDIA Jetson Orin, NVIDIA Jetson Thor) has one hand-authored
+template in `scripts/jetson_templates/`: its flagship SKU, with the
+silicon, the GPU architecture and the calibrated thermal profiles. Every
+SKU is that template plus its source-DB figures. `--check` runs as a test.
+
+- **All SKUs:**
+  - `kind: module`, packaging `board` / `som`;
+  - `sku` with the NVIDIA name, FAQ part number and floorsweep (SMs, CUDA
+    cores, Tensor cores, CPU cores);
+  - SWaP-C²: dimensions where NVIDIA gives all three, mass, current 1KU
+    price;
+  - a memory summary;
+  - launch 1KU price, with the launch date taken from that record's
+    document.
+- **Siblings:**
+  - SMs from the floorsweep, checked against TPC × SMs per TPC;
+  - memory capacity, bus width and bandwidth;
+  - memory controllers and NoC scaled to the SKU;
+  - boost clock = NVIDIA's max GPU clock;
+  - **one thermal profile:** that clock at the module's maximum power.
+    NVIDIA publishes each mode's watts but not its clock, so lower modes
+    are omitted rather than guessed.
+  - Peaks come from the template's own fabric arithmetic. That arithmetic
+    reproduces both flagships' stored peaks and NVIDIA's published FP32:
+    T5000 8.064, T4000 4.700 TFLOPS.
+- **Flagships** (AGX Orin 64GB, AGX Thor 128GB / T5000) keep their
+  calibrated profiles and peaks. Their market data is now sourced:
+  - AGX Orin 64GB `launch_msrp_usd` 1999 → **1599**. $1,999 was the dev-kit
+    price; NVIDIA's module 1KU launch price is $1,599.
+  - Thor `launch_date` 2025-12-01 → **2025-08-25**.
+- **Thor flagship (T5000) power modes now follow NVIDIA:**
+  - profiles 70 W / 90 W / **120 W (default)** / MAXN, with
+    `max_power_watts` **130** (the Total Module Power). These replace the
+    projected 30 / 60 / 100 W profiles and their efficiency / Vdd figures,
+    which had no Thor silicon behind them.
+  - 120 W (1,386 MHz) and MAXN (1,575 MHz) clocks are NVIDIA's.
+  - NVIDIA publishes no 70 / 90 W clock. Those are **estimated** as
+    f = 1386 × (P/120)^(1/3), from GPU power ~ f³ under DVFS: 1,158 and
+    1,259 MHz. They are recorded as derived in the source DB.
+  - Die boost clock is 1,575 MHz.
+  - Peaks are at the 120 W default: FP32 **7.10** TFLOPS (NVIDIA: 7.096),
+    FP16 / INT8 14.19.
+  - Cooling stays `active_fan`. No catalog class is rated above 100 W, so
+    SWaP-C² resolution warns at 120 W and MAXN, a known gap.
+- **Thor Tensor cores:** the floorsweep omits them, because NVIDIA withdrew
+  the counts. The reseller's "96" record is annotated as quoting the
+  withdrawn spec.
+- **New products:** `nvidia_jetson_agx_orin_32gb`,
+  `nvidia_jetson_agx_orin_industrial`, `nvidia_jetson_orin_nx_16gb`,
+  `nvidia_jetson_orin_nx_8gb`, `nvidia_jetson_orin_nano_8gb`,
+  `nvidia_jetson_orin_nano_4gb` and `nvidia_jetson_t4000`.
+- **Source DB:** `memory_bus_width` and `fp32_throughput` quantities, the
+  Thor module datasheet, and the T4000 bandwidth.
+
+**Downstream (graphs):** `test_soc_compose::test_silicon_die_refuses_several_dies_without_a_kpu_block`
+duplicates AGX Orin's die. The floorsweep validator now rejects that
+synthetic product (32 SMs against the SKU's 16), so the test should drop
+`sku`. The IP templates' version string also needs regenerating. graphs'
+AGX Orin parity tests pass unchanged; the Thor contract test's profile
+names / TDPs change to 70 / 90 / 120 W / MAXN, with 120 W the default.
+
+**Tests:** per-vendor and GPU counts now expect 9 NVIDIA / GPU products.
+`tests/test_jetson_skus.py` adds 26 tests.
+
 ## [0.22.0] - 2026-10-07
 
 NVIDIA Jetson SKU data and the SKU floorsweep schema. RFC 0001 phase S3,

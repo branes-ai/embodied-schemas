@@ -95,7 +95,7 @@ def test_other_vendors_unaffected_by_plasticine_addition(all_products):
     hailo = [s for s, cp in all_products.items() if cp.vendor == "hailo" and cp.dies]
     google = [s for s, cp in all_products.items() if cp.vendor == "google"]
     assert len(stillwater) == 14
-    assert len(nvidia) == 2
+    assert len(nvidia) == 9  # 9 since S3e: the NVIDIA Jetson Orin / Thor SKUs
     assert len(intel) == 4  # i7-12700k + 3 Xeons: 8490H + 8592+ + 6980P (sprint #68 PR 1-3)
     assert len(hailo) == 2
     assert len(google) >= 1

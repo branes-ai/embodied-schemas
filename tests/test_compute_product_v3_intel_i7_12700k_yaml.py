@@ -123,7 +123,8 @@ def test_catalog_has_15_total_products(all_products):
     # the catalog total grew from 15 to 16 then. This assertion
     # tolerates that addition while still pinning the KPU/GPU/CPU counts.
     # graphs#268 E1 added the two kpu_h64_auto1 reference designs.
-    expected_subset = {"kpu": 14, "gpu": 2, "cpu": 9}
+    # S3e added the NVIDIA Jetson Orin / Thor SKUs: 9 GPU products.
+    expected_subset = {"kpu": 14, "gpu": 9, "cpu": 9}
     for kind, count in expected_subset.items():
         assert counts_by_kind.get(kind, 0) == count, (
         f"unexpected catalog composition: {counts_by_kind}"
@@ -136,7 +137,7 @@ def test_kpu_and_gpu_skus_unaffected_by_cpu_addition(all_products):
     stillwater = [s for s, cp in all_products.items() if cp.vendor == "stillwater"]
     nvidia = [s for s, cp in all_products.items() if cp.vendor == "nvidia"]
     assert len(stillwater) == 14
-    assert len(nvidia) == 2
+    assert len(nvidia) == 9  # 9 since S3e: the NVIDIA Jetson Orin / Thor SKUs
 
 
 # ---------------------------------------------------------------------------

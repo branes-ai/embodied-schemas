@@ -497,7 +497,7 @@ def test_v6_does_not_break_existing_catalog():
         counts[kind] = counts.get(kind, 0) + 1
 
     assert counts["kpu"] == 14
-    assert counts["gpu"] == 2
+    assert counts["gpu"] == 9  # 9 since S3e: the NVIDIA Jetson Orin / Thor SKUs
     assert counts["cpu"] == 9  # ... + Xeon 8490H + Xeon 8592+ (sprint #68 PR 1-3))
     assert counts["npu"] == 3
     assert counts["cgra"] == 1

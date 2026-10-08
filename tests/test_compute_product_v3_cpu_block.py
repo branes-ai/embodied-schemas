@@ -530,7 +530,7 @@ def test_v3_does_not_break_existing_catalog():
     )
 
     assert kpu_count == 14
-    assert gpu_count == 2
+    assert gpu_count == 9  # 9 since S3e: the NVIDIA Jetson Orin / Thor SKUs
     # cpu_count was 0 at the v3 schema PR (#22) baseline; v3 data PR
     # added intel_core_i7_12700k as the first CPU SKU. Sprint #62
     # adds: PR 1 -> EPYC 9654 (2), PR 2 -> EPYC 9754 (3),

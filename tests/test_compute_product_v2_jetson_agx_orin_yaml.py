@@ -73,7 +73,8 @@ def test_kpu_skus_still_load_after_gpu_addition(all_products):
 def test_agx_orin_identity(agx_orin):
     assert agx_orin.id == "nvidia_jetson_agx_orin_64gb"
     assert agx_orin.vendor == "nvidia"
-    assert agx_orin.packaging.kind == PackagingKind.MONOLITHIC
+    # A module since S3e: the SKU as sold (SoM), generated from the family template.
+    assert agx_orin.packaging.kind == PackagingKind.BOARD
     assert agx_orin.packaging.num_dies == 1
     assert agx_orin.lifecycle == LifecycleStatus.PRODUCTION
 

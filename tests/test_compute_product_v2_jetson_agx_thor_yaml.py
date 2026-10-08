@@ -86,9 +86,16 @@ def test_catalog_now_includes_two_gpu_skus(all_products):
     catalog change and should fire this test as a reminder to update
     here (and any consumers that hardcoded the count)."""
     nvidia_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "nvidia")
-    assert nvidia_skus == [
+    assert nvidia_skus == [  # S3e: all NVIDIA Jetson Orin / Thor SKUs
+        "nvidia_jetson_agx_orin_32gb",
         "nvidia_jetson_agx_orin_64gb",
+        "nvidia_jetson_agx_orin_industrial",
         "nvidia_jetson_agx_thor_128gb",
+        "nvidia_jetson_orin_nano_4gb",
+        "nvidia_jetson_orin_nano_8gb",
+        "nvidia_jetson_orin_nx_16gb",
+        "nvidia_jetson_orin_nx_8gb",
+        "nvidia_jetson_t4000",
     ]
 
 
@@ -106,7 +113,8 @@ def test_kpu_skus_unaffected_by_thor_addition(all_products):
 def test_thor_identity(thor):
     assert thor.id == "nvidia_jetson_agx_thor_128gb"
     assert thor.vendor == "nvidia"
-    assert thor.packaging.kind == PackagingKind.MONOLITHIC
+    # A module since S3e: the SKU as sold (SoM), generated from the family template.
+    assert thor.packaging.kind == PackagingKind.BOARD
     assert thor.packaging.num_dies == 1
     assert thor.lifecycle == LifecycleStatus.PRODUCTION
 
@@ -198,13 +206,12 @@ def test_thor_noc_is_2d_mesh(thor_gpu_block):
 
 
 def test_thor_thermal_profiles_cover_all_three_modes(thor):
-    """Thor ships three nvpmodel profiles (no MAXN; the 100W mode is
-    the unconstrained equivalent)."""
+    """NVIDIA T5000 power modes: 70W / 90W / 120W (default) / MAXN (130 W TMP)."""
     power = thor.power
-    assert power.tdp_watts == 60.0
-    assert power.default_thermal_profile == "60W"
+    assert power.tdp_watts == 120.0  # NVIDIA default mode (S3e)
+    assert power.default_thermal_profile == "120W"
     profile_names = {p.name for p in power.thermal_profiles}
-    assert profile_names == {"30W", "60W", "100W"}
+    assert profile_names == {"70W", "90W", "120W", "MAXN"}  # NVIDIA DS-11945 modes
 
 
 def test_thor_round_trips_through_serialize(thor):

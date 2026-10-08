@@ -421,7 +421,7 @@ def test_v4_does_not_break_existing_catalog():
     )
 
     assert kpu_count == 14
-    assert gpu_count == 2
+    assert gpu_count == 9  # 9 since S3e: the NVIDIA Jetson Orin / Thor SKUs
     assert cpu_count == 9  # ... + Xeon 8490H + Xeon 8592+ (sprint #68 PR 1-3))
     # NPU count history: 0 at the v4 schema PR (#25); Hailo-8 (#26)
     # brought it to 1; Hailo-10H (#31, first KVCacheSpec user from #30)
