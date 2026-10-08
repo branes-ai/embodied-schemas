@@ -206,13 +206,12 @@ def test_thor_noc_is_2d_mesh(thor_gpu_block):
 
 
 def test_thor_thermal_profiles_cover_all_three_modes(thor):
-    """Thor ships three nvpmodel profiles (no MAXN; the 100W mode is
-    the unconstrained equivalent)."""
+    """NVIDIA T5000 power modes: 70W / 90W / 120W (default) / MAXN (130 W TMP)."""
     power = thor.power
-    assert power.tdp_watts == 60.0
-    assert power.default_thermal_profile == "60W"
+    assert power.tdp_watts == 120.0  # NVIDIA default mode (S3e)
+    assert power.default_thermal_profile == "120W"
     profile_names = {p.name for p in power.thermal_profiles}
-    assert profile_names == {"30W", "60W", "100W"}
+    assert profile_names == {"70W", "90W", "120W", "MAXN"}  # NVIDIA DS-11945 modes
 
 
 def test_thor_round_trips_through_serialize(thor):

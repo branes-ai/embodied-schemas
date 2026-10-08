@@ -133,3 +133,31 @@ def test_floorsweep_mismatch_fails_generation(db, monkeypatch):
     monkeypatch.setattr(obs, "value", 1800.0)
     with pytest.raises(ValueError, match="not a multiple"):
         gen.build(bad, db)
+
+
+def test_thor_flagship_power_modes_follow_nvidia(products, db):
+    """T5000: NVIDIA's 70 / 90 / 120 (default) / MAXN modes, 130 W TMP. 120 W
+    and MAXN clocks are NVIDIA's; 70 / 90 W clocks are derived estimates."""
+    thor = products["nvidia_jetson_agx_thor_128gb"]
+    clocks = {o.variant: o for o in db.find("frequency", "nvidia_jetson_t5000")}
+    profiles = {p.name: p for p in thor.power.thermal_profiles}
+    assert set(profiles) == {"70W", "90W", "120W", "MAXN"}
+    assert thor.power.default_thermal_profile == "120W"
+    assert (
+        thor.power.max_power_watts
+        == db.find("power", "nvidia_jetson_t5000", variant="max")[0].value
+    )
+    assert profiles["120W"].clock_mhz == clocks["gpu_120w"].value
+    assert profiles["MAXN"].clock_mhz == clocks["gpu_max"].value
+    for mode in ("70W", "90W"):
+        est = clocks[f"gpu_{mode.lower()}"]
+        assert est.basis.value == "derived" and "ESTIMATE" in est.notes
+        assert profiles[mode].clock_mhz == est.value
+        assert est.value == round(clocks["gpu_120w"].value * (int(mode[:-1]) / 120) ** (1 / 3))
+
+
+def test_thor_flagship_fp32_matches_nvidia_at_120w(products):
+    """NVIDIA: 'Jetson T5000: 7.096 FP32 TFLOPs' at 120 W."""
+    assert products["nvidia_jetson_agx_thor_128gb"].performance.fp32_tflops == pytest.approx(
+        7.096, abs=0.01
+    )

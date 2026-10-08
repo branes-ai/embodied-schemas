@@ -76,14 +76,15 @@ def test_thor_tensor_core_gap_is_known(products):
 
 
 def test_thor_peaks_follow_the_floorsweep(products):
-    """GPU-only dense peaks at the 1.1 GHz default profile from the enabled units."""
+    """GPU-only dense peaks at the default profile's clock from the enabled units."""
     thor = products["nvidia_jetson_agx_thor_128gb"]
     gpu = thor.dies[0].blocks[0]
+    ghz = thor.power.default_profile.clock_mhz * 1e6
     cuda = gpu.num_sms * gpu.cuda_cores_per_sm
     tensor = gpu.num_sms * gpu.tensor_cores_per_sm
-    assert thor.performance.fp32_tflops == pytest.approx(cuda * 2 * 1.1e9 / 1e12, abs=0.01)
+    assert thor.performance.fp32_tflops == pytest.approx(cuda * 2 * ghz / 1e12, abs=0.01)
     assert thor.performance.int8_tops == pytest.approx(
-        (cuda * 2 + tensor * 64) * 1.1e9 / 1e12, abs=0.01
+        (cuda * 2 + tensor * 64) * ghz / 1e12, abs=0.01
     )
 
 

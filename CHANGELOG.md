@@ -43,6 +43,20 @@ SKU is that template plus its source-DB figures. `--check` runs as a test.
   - AGX Orin 64GB `launch_msrp_usd` 1999 → **1599**. $1,999 was the dev-kit
     price; NVIDIA's module 1KU launch price is $1,599.
   - Thor `launch_date` 2025-12-01 → **2025-08-25**.
+- **Thor flagship (T5000) power modes now follow NVIDIA:**
+  - profiles 70 W / 90 W / **120 W (default)** / MAXN, with
+    `max_power_watts` **130** (the Total Module Power). These replace the
+    projected 30 / 60 / 100 W profiles and their efficiency / Vdd figures,
+    which had no Thor silicon behind them.
+  - 120 W (1,386 MHz) and MAXN (1,575 MHz) clocks are NVIDIA's.
+  - NVIDIA publishes no 70 / 90 W clock. Those are **estimated** as
+    f = 1386 × (P/120)^(1/3), from GPU power ~ f³ under DVFS: 1,158 and
+    1,259 MHz. They are recorded as derived in the source DB.
+  - Die boost clock is 1,575 MHz.
+  - Peaks are at the 120 W default: FP32 **7.10** TFLOPS (NVIDIA: 7.096),
+    FP16 / INT8 14.19.
+  - Cooling stays `active_fan`. No catalog class is rated above 100 W, so
+    SWaP-C² resolution warns at 120 W and MAXN, a known gap.
 - **Thor Tensor cores:** the floorsweep omits them, because NVIDIA withdrew
   the counts. The reseller's "96" record is annotated as quoting the
   withdrawn spec.
@@ -57,7 +71,8 @@ SKU is that template plus its source-DB figures. `--check` runs as a test.
 duplicates AGX Orin's die. The floorsweep validator now rejects that
 synthetic product (32 SMs against the SKU's 16), so the test should drop
 `sku`. The IP templates' version string also needs regenerating. graphs'
-AGX Orin and Thor parity tests pass unchanged.
+AGX Orin parity tests pass unchanged; the Thor contract test's profile
+names / TDPs change to 70 / 90 / 120 W / MAXN, with 120 W the default.
 
 **Tests:** per-vendor and GPU counts now expect 9 NVIDIA / GPU products.
 `tests/test_jetson_skus.py` adds 26 tests.

@@ -2013,3 +2013,49 @@
     mode: MAXN
     gpu_clock_mhz: 1530.0
   quote: 'Jetson T4000: 4.700 FP32 TFLOPS'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_120w
+  value: 1386.0
+  unit: mhz
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    mode: 120W
+  quote: '120W: Jetson T5000: 1.386 GHz'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_70w
+  value: 1158.0
+  unit: mhz
+  as_of: 2026-06
+  basis: derived
+  source_id: nvidia_jetson_thor_ds
+  derived_from:
+  - nvidia_jetson_t5000.frequency.gpu_120w@nvidia_jetson_thor_ds
+  conditions:
+    mode: 70W
+    model: f = f_120W x (P/120)^(1/3)
+  quote: 'Jetson T5000 Power Modes: 70W | 90W | 120W(Note 2) | MAXN(Note 3)'
+  notes: 'ESTIMATE: NVIDIA lists the 70W mode but publishes no GPU clock for it. Estimated from the 120W clock with GPU dynamic
+    power ~ f^3 under DVFS: 1386 x (70/120)^(1/3) = 1158 MHz.'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_90w
+  value: 1259.0
+  unit: mhz
+  as_of: 2026-06
+  basis: derived
+  source_id: nvidia_jetson_thor_ds
+  derived_from:
+  - nvidia_jetson_t5000.frequency.gpu_120w@nvidia_jetson_thor_ds
+  conditions:
+    mode: 90W
+    model: f = f_120W x (P/120)^(1/3)
+  quote: 'Jetson T5000 Power Modes: 70W | 90W | 120W(Note 2) | MAXN(Note 3)'
+  notes: 'ESTIMATE: NVIDIA lists the 90W mode but publishes no GPU clock for it. Estimated from the 120W clock with GPU dynamic
+    power ~ f^3 under DVFS: 1386 x (90/120)^(1/3) = 1259 MHz.'

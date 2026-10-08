@@ -89,7 +89,7 @@ dies:
         kinds)
   clocks:
     base_clock_mhz: 800.0
-    boost_clock_mhz: 1300.0
+    boost_clock_mhz: 1575.0
   blocks:
   - kind: gpu
     num_sms: 20
@@ -153,43 +153,32 @@ dies:
     wave_quantization: 4
   interconnects: []
 performance:
-  int8_tops: 11.26
-  bf16_tflops: 11.26
-  fp32_tflops: 5.63
+  int8_tops: 14.19
+  bf16_tflops: 14.19
+  fp32_tflops: 7.1
 power:
-  tdp_watts: 60.0
-  max_power_watts: 100.0
-  min_power_watts: 30.0
+  tdp_watts: 120.0
+  max_power_watts: 130.0
+  min_power_watts: 70.0
   idle_power_watts: 8.0
-  default_thermal_profile: 60W
+  default_thermal_profile: 120W
   thermal_profiles:
-  - name: 30W
-    tdp_watts: 30.0
-    clock_mhz: 750.0
+  - name: 70W
+    tdp_watts: 70.0
+    clock_mhz: 1158.0
     cooling_solution_id: active_fan
-    efficiency_factor_by_precision:
-      int8: 0.5
-      fp16: 0.45
-      fp32: 0.3
-    vdd_v: 0.72
-  - name: 60W
-    tdp_watts: 60.0
-    clock_mhz: 1100.0
+  - name: 90W
+    tdp_watts: 90.0
+    clock_mhz: 1259.0
     cooling_solution_id: active_fan
-    efficiency_factor_by_precision:
-      int8: 0.65
-      fp16: 0.6
-      fp32: 0.45
-    vdd_v: 0.82
-  - name: 100W
-    tdp_watts: 100.0
-    clock_mhz: 1250.0
+  - name: 120W
+    tdp_watts: 120.0
+    clock_mhz: 1386.0
     cooling_solution_id: active_fan
-    efficiency_factor_by_precision:
-      int8: 0.8
-      fp16: 0.7
-      fp32: 0.55
-    vdd_v: 0.95
+  - name: MAXN
+    tdp_watts: 130.0
+    clock_mhz: 1575.0
+    cooling_solution_id: active_fan
 market:
   launch_date: '2025-08-25'
   launch_msrp_usd: 2999.0

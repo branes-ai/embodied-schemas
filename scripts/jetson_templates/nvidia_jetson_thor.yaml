@@ -168,7 +168,7 @@ dies:
       notes: ARM CPU complex (14x A78AE) + DLA + PVA + ISP + codecs + display (pending dedicated block kinds)
   clocks:
     base_clock_mhz: 800.0
-    boost_clock_mhz: 1300.0
+    boost_clock_mhz: 1575.0   # NVIDIA MAXN GPU clock (DS-11945 v1.5)
   blocks:
   - kind: gpu
     num_sms: 20                       # T5000: 2560 CUDA cores / 128 per SM
@@ -250,58 +250,54 @@ dies:
   interconnects: []
 
 # Chip-level performance roll-up, derived from the per-fabric arithmetic
-# above at the 60W default profile (1.1 GHz sustained), for the T5000's
-# enabled units (20 SMs; 80 modeled Tensor cores):
-#   FP32: CUDA  = 2560 cores * 2 ops/clk * 1.1e9 = 5.63 TFLOPS
-#   FP16: CUDA + Tensor = 2560*2 + 80*64 = 10240 ops/clk * 1.1e9 = 11.26 TFLOPS
-#   INT8: CUDA + Tensor = 2560*2 + 80*64 = 10240 ops/clk * 1.1e9 = 11.26 TOPS
-# (Was 18.0 / 36.0 / 36.0 from the incorrect 64-SM count.)
-# NVIDIA's marketed Thor peaks (1000 / 2000 TOPS INT8) include sparsity
-# and all engines (GPU + 2x DLA + PVA); the numbers below are GPU-only
-# DENSE peaks. BF16 not separately reported because its modeled rate
-# matches FP16 (same tensor-core path, same ops/clock).
+# above at the 120W default profile (1.386 GHz, NVIDIA DS-11945 v1.5), for
+# the T5000's enabled units (20 SMs; 80 modeled Tensor cores):
+#   FP32: CUDA  = 2560 cores * 2 ops/clk * 1.386e9 = 7.10 TFLOPS (NVIDIA: 7.096)
+#   FP16: CUDA + Tensor = 2560*2 + 80*64 = 10240 ops/clk * 1.386e9 = 14.19 TFLOPS
+#   INT8: CUDA + Tensor = 2560*2 + 80*64 = 10240 ops/clk * 1.386e9 = 14.19 TOPS
+# NVIDIA's marketed Thor peaks (2070 FP4 / 1035 FP8 sparse TFLOPS) use the
+# tensor engines' FP4/FP8 paths and sparsity; the numbers below are GPU-only
+# DENSE peaks of the modeled fabrics. BF16 matches FP16 (same tensor path).
 performance:
-  int8_tops: 11.26
-  bf16_tflops: 11.26
-  fp32_tflops: 5.63
+  int8_tops: 14.19
+  bf16_tflops: 14.19
+  fp32_tflops: 7.1
 
 power:
-  tdp_watts: 60.0
-  max_power_watts: 100.0
-  min_power_watts: 30.0
+  tdp_watts: 120.0
+  max_power_watts: 130.0
+  min_power_watts: 70.0
   idle_power_watts: 8.0
-  default_thermal_profile: 60W
-  # Three nvpmodel profiles. Same KPUThermalProfile shape as Orin AGX
-  # -- per-precision GPU DVFS extras live inside GPUBlock; chip-level
-  # profile carries scalar clock_mhz + per-precision efficiency_factor.
+  default_thermal_profile: 120W
+  # NVIDIA's T5000 power modes (DS-11945 v1.5): "70W | 90W | 120W | MAXN",
+  # 120W the default, Maximum Total Module Power (TMP) 130W. GPU clocks:
+  #   120W  1386 MHz  NVIDIA ("120W: Jetson T5000: 1.386 GHz")
+  #   MAXN  1575 MHz  NVIDIA ("MAXN: Jetson T5000: 1.575 GHz"), at the 130W TMP
+  #   70W   1158 MHz  ESTIMATED, 90W 1259 MHz ESTIMATED: NVIDIA publishes no
+  #         clock for these modes; f = 1386 x (P/120)^(1/3), GPU dynamic power
+  #         ~ f^3 under DVFS (source DB: nvidia_jetson_t5000.frequency.gpu_70w /
+  #         gpu_90w, basis derived).
+  # The previous 30W / 60W / 100W profiles and their efficiency / Vdd figures
+  # were Orin-style projections with no Thor silicon behind them; dropped.
+  # Cooling: active_fan throughout. No catalog cooling class is rated above
+  # 100 W, so SWaP-C2 resolution warns at 120W and MAXN -- a known gap.
   thermal_profiles:
-  - name: 30W
-    tdp_watts: 30.0
-    clock_mhz: 750.0
+  - name: 70W
+    tdp_watts: 70.0
+    clock_mhz: 1158.0
     cooling_solution_id: active_fan
-    efficiency_factor_by_precision:
-      int8: 0.50
-      fp16: 0.45
-      fp32: 0.30
-    vdd_v: 0.72
-  - name: 60W
-    tdp_watts: 60.0
-    clock_mhz: 1100.0
+  - name: 90W
+    tdp_watts: 90.0
+    clock_mhz: 1259.0
     cooling_solution_id: active_fan
-    efficiency_factor_by_precision:
-      int8: 0.65
-      fp16: 0.60
-      fp32: 0.45
-    vdd_v: 0.82
-  - name: 100W
-    tdp_watts: 100.0
-    clock_mhz: 1250.0
+  - name: 120W
+    tdp_watts: 120.0
+    clock_mhz: 1386.0
     cooling_solution_id: active_fan
-    efficiency_factor_by_precision:
-      int8: 0.80
-      fp16: 0.70
-      fp32: 0.55
-    vdd_v: 0.95
+  - name: MAXN
+    tdp_watts: 130.0
+    clock_mhz: 1575.0
+    cooling_solution_id: active_fan
 
 market:
   launch_date: '2025-12-01'
