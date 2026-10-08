@@ -2059,3 +2059,70 @@
   quote: 'Jetson T5000 Power Modes: 70W | 90W | 120W(Note 2) | MAXN(Note 3)'
   notes: 'ESTIMATE: NVIDIA lists the 90W mode but publishes no GPU clock for it. Estimated from the 120W clock with GPU dynamic
     power ~ f^3 under DVFS: 1386 x (90/120)^(1/3) = 1259 MHz.'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: input_voltage
+  value: 5.0
+  value_min: 4.75
+  value_max: 5.25
+  unit: v
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    rail: VDD_IN
+  quote: 'Supported Power Input: 5V | VDD_IN (MODULE_ID low) 4.75 5 5.25 V. Note: MODULE_ID low is for Nano'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: input_voltage
+  value: 12.5
+  value_min: 5.0
+  value_max: 20.0
+  unit: v
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    rail: VDD_IN
+  quote: 'Supported Power Input: 5V-20V (8V-20V for MAXN_SUPER)'
+  notes: value is the midpoint; NVIDIA gives a range only.
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: input_voltage
+  variant: min_maxn_super
+  value: 8.0
+  unit: v
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    rail: VDD_IN
+    mode: MAXN_SUPER
+  quote: 'Note: MAXN_SUPER at 40W for Jetson Orin NX requires minimum 8.0V to the VDD_IN.'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: input_voltage
+  value: 12.5
+  value_min: 5.0
+  value_max: 20.0
+  unit: v
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    rail: VDD_IN
+  quote: 'Supported Power Input: 5V-20V (8V-20V for MAXN_SUPER)'
+  notes: value is the midpoint; NVIDIA gives a range only.
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: input_voltage
+  variant: min_maxn_super
+  value: 8.0
+  unit: v
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    rail: VDD_IN
+    mode: MAXN_SUPER
+  quote: 'Note: MAXN_SUPER at 40W for Jetson Orin NX requires minimum 8.0V to the VDD_IN.'

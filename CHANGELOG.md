@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-10-08
+
+Legacy `HardwareEntry` Jetson files corrected from the source DB. Data only;
+no schema change.
+
+- **Fixed:** the six legacy entries (AGX Orin 64GB / 32GB, Orin NX 16GB /
+  8GB, Orin Nano 8GB, AGX Thor 128GB = T5000) now carry NVIDIA's module
+  figures:
+  - **Mass.** AGX Orin 306 g (was 200), Thor 350 g (was 280), NX / Nano 28 g
+    (was 88-90).
+  - **Size.** AGX 100 x 87 x 16 mm, Thor 100 x 87 x 15.29 mm, NX / Nano
+    69.6 x 45 mm.
+  - **Memory and cores.** Memory, bandwidth, CUDA and Tensor cores. Thor's
+    Tensor Core count is unset, because NVIDIA withdrew it.
+  - **INT8.** Sparse INT8 (FP8 on Thor), at MAXN_SUPER where NVIDIA
+    publishes one.
+  - **Power.** Maximum module power and NVIDIA's power modes. Thor is
+    70 / 90 / 120 W plus MAXN at 130 W. Its 70 / 90 W GPU clocks are
+    estimates derived from the 120 W clock.
+  - **Price.** Current 1KU price; the old figures were dev-kit-like (e.g.
+    AGX Orin 64GB $1999 -> $2999, Thor $2999 -> $4999).
+  - **Orin Nano 8GB.** The entry described the Developer Kit and now
+    describes the module: 5 V VDD_IN (4.75-5.25 V; was the Dev Kit's
+    5-19 V) and the module datasheet URL.
+  - **Orin NX.** VDD_IN 5-20 V, and the MAXN_SUPER mode states NVIDIA's
+    minimum of 8 V.
+- **Removed:** unsourced figures, which are now unset: CPU clocks, per-mode
+  GPU clocks NVIDIA doesn't publish, and FP16 / BF16 / FP32 peaks, which
+  were overstated by up to ~13x. Thor FP32 is NVIDIA's 8.064 TFLOPS at
+  MAXN.
+- **Source DB:** new quantity `input_voltage` (V). It holds VDD_IN for the
+  Orin NX and Nano modules, quoted from NVIDIA DS-10712 v1.7 and
+  DS-11105 v1.5.
+- **Tests:** `tests/test_legacy_hardware_jetson.py` holds these entries to
+  the NVIDIA observations: exact power-mode lists, each mode's own GPU
+  clock, and VDD_IN.
+
 ## [0.23.0] - 2026-10-07
 
 All 9 NVIDIA Jetson SKUs as `module` products, generated from a family
