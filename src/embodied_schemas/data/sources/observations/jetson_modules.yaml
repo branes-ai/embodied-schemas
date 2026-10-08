@@ -8,7 +8,8 @@
    quote: "NVIDIA Blackwell architecture with 2560 NVIDIA CUDA® cores and 96 Tensor Cores"}
 - {subject: nvidia_jetson_t5000, category: jetson_som, quantity: tensor_cores, value: 96, unit: count,
    as_of: "2025-08", basis: datasheet, source_id: edom_jetson_t5000,
-   quote: "NVIDIA Blackwell architecture with 2560 NVIDIA CUDA® cores and 96 Tensor Cores"}
+   quote: "NVIDIA Blackwell architecture with 2560 NVIDIA CUDA® cores and 96 Tensor Cores",
+   notes: "Reseller quote of a figure NVIDIA withdrew from the datasheet in v1.4; not used for the floorsweep. See nvidia_thor_gpu.tensor_cores_per_sm."}
 - {subject: nvidia_jetson_t5000, category: jetson_som, quantity: cpu_cores, value: 14, unit: count,
    as_of: "2025-08", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
    quote: "14-core Arm® Neoverse®-V3AE 64-bit CPU"}
@@ -1895,3 +1896,120 @@
   basis: datasheet
   source_id: nvidia_thor_trm
   quote: The Blackwell Streaming Multiprocessor (SM) has 128 CUDA cores.
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 256.0
+  unit: bits
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: 64GB 256-bit LPDDR5 DRAM'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 256.0
+  unit: bits
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: 32GB 256-bit LPDDR5 DRAM'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 256.0
+  unit: bits
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: 64GB 256-bit LPDDR5 DRAM with ECC Support'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 128.0
+  unit: bits
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: ONX 16GB (2x 8GB) memory with 128bit LPDDR5 DRAM
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 128.0
+  unit: bits
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: ONX 8GB (2x 4GB) memory with 128bit LPDDR5 DRAM
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 128.0
+  unit: bits
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: Jetson Orin Nano 8GB 128-bit LPDDR5 DRAM
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 64.0
+  unit: bits
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: Jetson Orin Nano 4GB 64-bit LPDDR5 DRAM
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 256.0
+  unit: bits
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 128GB (8x 16GB) memory with 256-bit LPDDR5X DRAM
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: memory_bus_width
+  value: 256.0
+  unit: bits
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 64GB (8x 8GB) memory with 256-bit LPDDR5X DRAM
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 273.0
+  unit: gb_per_s
+  as_of: 2026-01
+  basis: datasheet
+  source_id: nvidia_jetson_thor_module_ds
+  quote: Memory 128 GB 256-bit LPDDR5X | 64 GB 256-bit LPDDR5X / 273 GB/s | 273 GB/s
+  notes: Spec table row; columns are Jetson T5000 | Jetson T4000.
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: fp32_throughput
+  variant: maxn
+  value: 8.064
+  unit: tflops
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    mode: MAXN
+    gpu_clock_mhz: 1575.0
+  quote: 'Jetson T5000: 8.064 FP32 TFLOPs'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: fp32_throughput
+  variant: maxn
+  value: 4.7
+  unit: tflops
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    mode: MAXN
+    gpu_clock_mhz: 1530.0
+  quote: 'Jetson T4000: 4.700 FP32 TFLOPS'

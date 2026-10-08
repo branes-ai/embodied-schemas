@@ -86,9 +86,16 @@ def test_catalog_now_includes_two_gpu_skus(all_products):
     catalog change and should fire this test as a reminder to update
     here (and any consumers that hardcoded the count)."""
     nvidia_skus = sorted(s for s, cp in all_products.items() if cp.vendor == "nvidia")
-    assert nvidia_skus == [
+    assert nvidia_skus == [  # S3e: all NVIDIA Jetson Orin / Thor SKUs
+        "nvidia_jetson_agx_orin_32gb",
         "nvidia_jetson_agx_orin_64gb",
+        "nvidia_jetson_agx_orin_industrial",
         "nvidia_jetson_agx_thor_128gb",
+        "nvidia_jetson_orin_nano_4gb",
+        "nvidia_jetson_orin_nano_8gb",
+        "nvidia_jetson_orin_nx_16gb",
+        "nvidia_jetson_orin_nx_8gb",
+        "nvidia_jetson_t4000",
     ]
 
 
@@ -106,7 +113,8 @@ def test_kpu_skus_unaffected_by_thor_addition(all_products):
 def test_thor_identity(thor):
     assert thor.id == "nvidia_jetson_agx_thor_128gb"
     assert thor.vendor == "nvidia"
-    assert thor.packaging.kind == PackagingKind.MONOLITHIC
+    # A module since S3e: the SKU as sold (SoM), generated from the family template.
+    assert thor.packaging.kind == PackagingKind.BOARD
     assert thor.packaging.num_dies == 1
     assert thor.lifecycle == LifecycleStatus.PRODUCTION
 

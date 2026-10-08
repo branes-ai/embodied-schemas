@@ -164,4 +164,4 @@ class TestFloorsweep:
             )
 
     def test_unset_sku_not_dumped(self, products):
-        assert "sku" not in products["nvidia_jetson_agx_orin_64gb"].model_dump()
+        assert "sku" not in products["hailo_hailo_8"].model_dump()
