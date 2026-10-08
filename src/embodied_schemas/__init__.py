@@ -259,6 +259,8 @@ from embodied_schemas.swapc2 import (
 )
 from embodied_schemas.compute_product import (
     ComputeProduct,
+    EnabledUnits,
+    SKUSpec,
     MemorySummary,
     PeakAggregation,
     ProductRef,
@@ -412,7 +414,7 @@ from embodied_schemas.loaders import (
 # It drifted before that test existed: 0.10.0 and 0.11.0 both shipped
 # reporting "0.9.0", because a release bumps pyproject and nothing pointed
 # back here.
-__version__ = "0.21.1"
+__version__ = "0.22.0"
 
 __all__ = [
     # Hardware
@@ -658,6 +660,8 @@ __all__ = [
     # ComputeProduct (v1 + v2) -- unified spine, additive
     "ComputeProduct",
     # v14: levels of integration (D6/D8), D4 peak aggregation
+    "EnabledUnits",
+    "SKUSpec",
     "MemorySummary",
     "PeakAggregation",
     "ProductRef",

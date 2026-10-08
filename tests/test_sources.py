@@ -406,3 +406,83 @@ class TestHardening:
         )
         with pytest.raises(ValueError, match="no observation files"):
             load_source_db(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# 7. NVIDIA Jetson SKU figures (S3e): relations NVIDIA's own data must satisfy
+# ---------------------------------------------------------------------------
+
+JETSON = "jetson_som"
+
+
+def _v(db, subject, quantity, variant=None):
+    hits = db.find(quantity, subject, variant=variant)
+    return hits[0].value if hits else None
+
+
+class TestJetsonFigures:
+    def test_all_nine_skus_recorded(self, db):
+        assert len(db.subjects("cuda_cores", category=JETSON)) == 9
+
+    def test_floorsweep_tpc_times_sms_times_cores(self, db):
+        """CUDA cores = TPC x SMs-per-TPC x cores-per-SM, per family."""
+        families = {
+            "nvidia_jetson_agx_orin": "nvidia_orin_gpu",
+            "nvidia_jetson_t": "nvidia_thor_gpu",
+        }
+        thor_cores_per_sm = db.value("nvidia_thor_gpu.cuda_cores_per_sm@nvidia_thor_trm")
+        for sku in db.subjects("tpc", category=JETSON):
+            arch = next(a for prefix, a in families.items() if sku.startswith(prefix))
+            sm_per_tpc = db.find("sm_per_tpc", arch)[0].value
+            sms = _v(db, sku, "tpc") * sm_per_tpc
+            cuda = _v(db, sku, "cuda_cores")
+            assert cuda % sms == 0, sku
+            if arch == "nvidia_thor_gpu":
+                assert cuda == sms * thor_cores_per_sm, sku
+
+    def test_orin_cores_per_sm_is_constant(self, db):
+        """Every Orin SKU with a TPC count gives the same CUDA cores per SM."""
+        per_sm = {
+            _v(db, s, "cuda_cores") / (_v(db, s, "tpc") * 2)
+            for s in db.subjects("tpc", category=JETSON)
+            if s.startswith("nvidia_jetson_agx_orin")
+        }
+        assert per_sm == {128.0}
+
+    def test_dense_is_half_of_sparse(self, db):
+        pairs = [
+            ("int8_sparse", "int8_dense"),
+            ("int8_sparse_super", "int8_dense_super"),
+            ("fp8_sparse", "fp8_dense"),
+        ]
+        for sku in db.subjects("ai_throughput", category=JETSON):
+            for sparse_v, dense_v in pairs:
+                sparse = _v(db, sku, "ai_throughput", sparse_v)
+                dense = _v(db, sku, "ai_throughput", dense_v)
+                if sparse is not None and dense is not None:
+                    assert dense == pytest.approx(sparse / 2, abs=1.0), (sku, sparse_v)
+
+    def test_power_modes_within_module_max(self, db):
+        for sku in db.subjects("power", category=JETSON):
+            maximum = _v(db, sku, "power", "max")
+            modes = [
+                o.value for o in db.find("power", sku) if (o.variant or "").startswith("mode_")
+            ]
+            assert modes and all(m <= maximum for m in modes), sku
+
+    def test_super_mode_never_below_base(self, db):
+        for sku in db.subjects("frequency", category=JETSON):
+            base = _v(db, sku, "frequency", "gpu_max")
+            sup = _v(db, sku, "frequency", "gpu_max_super")
+            if sup is not None:
+                assert sup >= base, sku
+
+    def test_price_trend_is_chronological_and_non_decreasing(self, db):
+        for sku in db.subjects("unit_price", category=JETSON):
+            series = db.series("unit_price", sku)
+            assert [o.as_of for o in series] == sorted(o.as_of for o in series)
+            assert [o.value for o in series] == sorted(o.value for o in series), sku
+
+    def test_thor_tensor_cores_per_sm_is_architectural(self, db):
+        """NVIDIA's '4 per SM' stands; its 96 / 64 totals were withdrawn."""
+        assert db.value("nvidia_thor_gpu.tensor_cores_per_sm@nvidia_jetson_thor_tb") == 4

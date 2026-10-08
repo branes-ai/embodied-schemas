@@ -239,3 +239,94 @@
   kind: product_page
   url: https://www.edomtech.com/en/product-detail/nvidia-jetson-t5000-module/
   accessed: "2026-10-04"
+
+# --- NVIDIA Jetson Orin family (S3e) -----------------------------------------
+- id: nvidia_jetson_agx_orin_ds
+  title: Jetson AGX Orin Series Data Sheet (DS-10662-001 v1.8)
+  publisher: NVIDIA
+  kind: datasheet
+  published: "2025-09-29"
+  url: https://static.generation-robots.com/media/Jetson-AGX-Orin-Data-Sheet.pdf
+  accessed: "2026-10-04"
+  access_note: full copy hosted by distributor Generation Robotics; NVIDIA's copy is in the developer secure area
+- id: nvidia_jetson_orin_nx_ds
+  title: Jetson Orin NX Series Modules Data Sheet (DS-10712-001 v1.7)
+  publisher: NVIDIA
+  kind: datasheet
+  published: "2026-02-20"
+  url: https://developer.nvidia.com/downloads/jetson-orin-nx-module-series-data-sheet
+  accessed: "2026-10-04"
+- id: nvidia_jetson_orin_nano_ds
+  title: Jetson Orin Nano Series Modules Data Sheet (DS-11105-001 v1.5)
+  publisher: NVIDIA
+  kind: datasheet
+  published: "2024-12"
+  url: https://www.esys.ir/images/img_Item/3029/Files/Jetson-Orin-Nano-Series-Modules-Datasheet_DS-11105-001_v1.5.pdf
+  accessed: "2026-10-04"
+  access_note: mirror; NVIDIA's copy is in the developer secure area
+- id: nvidia_jetson_faq
+  title: Jetson FAQ (part numbers and 1KU prices)
+  publisher: NVIDIA
+  kind: price_listing
+  url: https://developer.nvidia.com/embedded/faq
+  accessed: "2026-10-04"
+  notes: Undated page; prices current as of the July 2026 increase (dated by CNX Software 2026-07-22).
+- id: nvidia_blog_2022_jetson_orin
+  title: Delivering Server-Class Performance at the Edge with NVIDIA Jetson Orin
+  publisher: NVIDIA Technical Blog
+  kind: article
+  published: "2022-04-08"
+  url: https://developer.nvidia.com/blog/delivering-server-class-performance-at-the-edge-with-nvidia-jetson-orin/
+  accessed: "2026-10-04"
+- id: nvidia_blog_2022_orin_nano
+  title: Solving Entry-Level Edge AI Challenges with NVIDIA Jetson Orin Nano
+  publisher: NVIDIA Technical Blog
+  kind: article
+  published: "2022-09-21"
+  url: https://developer.nvidia.com/blog/solving-entry-level-edge-ai-challenges-with-nvidia-jetson-orin-nano/
+  accessed: "2026-10-04"
+
+# --- NVIDIA Jetson Thor family (S3e) -----------------------------------------
+- id: nvidia_jetson_thor_ds
+  title: Jetson Thor Series Modules Data Sheet (DS-11945-001 v1.5)
+  publisher: NVIDIA
+  kind: datasheet
+  published: "2026-06"
+  url: https://developer.nvidia.com/downloads/assets/embedded/secure/jetson/thor/docs/jetson-thor-series-modules-datasheet_ds-11945-001.pdf
+  accessed: "2026-10-04"
+  notes: v1.4 removed the Tensor Core counts ("Removed Tensor Core count from Chapter 1 and Table 2-1").
+- id: nvidia_jetson_thor_tb
+  title: Jetson Thor Technical Brief (TB-12572-001)
+  publisher: NVIDIA
+  kind: datasheet
+  published: "2025-08-29"
+  url: https://dam-cdn.nvd.orangelogic.com/AssetLink/v686u306w26ftuk863xjeimilimtx55e.pdf
+  accessed: "2026-10-04"
+- id: nvidia_thor_trm
+  title: Thor SoC Technical Reference Manual (DP-11881-002 v1.1)
+  publisher: NVIDIA
+  kind: datasheet
+  url: https://forums.developer.nvidia.com/uploads/short-url/mTROJTdKYTETulbSno8TAJK5u0u.pdf
+  accessed: "2026-10-04"
+  access_note: attached by NVIDIA to a developer-forum post
+- id: nvidia_blog_2025_jetson_thor_launch
+  title: NVIDIA Jetson Thor (launch announcement)
+  publisher: NVIDIA Blog
+  kind: article
+  published: "2025-08-25"
+  url: https://blogs.nvidia.com/blog/jetson-thor-physical-ai-edge/
+  accessed: "2026-10-04"
+- id: nvidia_news_2026_jetson_t4000
+  title: NVIDIA Releases New Physical AI Models as Global Partners Unveil Next-Generation Robots
+  publisher: NVIDIA Newsroom
+  kind: article
+  published: "2026-01-05"
+  url: https://nvidianews.nvidia.com/news/nvidia-releases-new-physical-ai-models-as-global-partners-unveil-next-generation-robots
+  accessed: "2026-10-04"
+- id: nvidia_jetson_orin_spec_page
+  title: NVIDIA Jetson Orin technical specifications
+  publisher: NVIDIA
+  kind: product_page
+  url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
+  accessed: "2026-10-04"
+  notes: Its first table's AGX Orin 32GB column appears misaligned (241 TOPS, 1.3 GHz, 15-60 W), contradicting the datasheet and this page's own compute table; only figures that agree with the datasheet are used.
