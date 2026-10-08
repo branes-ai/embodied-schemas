@@ -48,7 +48,7 @@ environmental:
   storage_temp_c: [-40, 85]
 
 power:
-  input_voltage_v: [5.0, 19.0]
+  input_voltage_v: [4.75, 5.25]  # VDD_IN 5 V module (NVIDIA DS-11105 v1.5; the 5-19 V range was the Developer Kit)
   power_modes:
     - name: "7W"
       power_watts: 7.0
@@ -122,7 +122,7 @@ notes: |
   Supports NVIDIA Isaac, Riva, and TAO.
   Developer kit includes carrier board and power supply.
   Corrected 2026-10-08 from the source DB (data/sources/observations/jetson_modules.yaml, subject nvidia_jetson_orin_nano_8gb): module mass, dimensions, memory, CUDA/Tensor cores, sparse INT8, maximum power, power modes and 1KU price per NVIDIA's datasheets and FAQ. Per-mode GPU clocks are kept only where sourced; CPU clocks dropped and unsourced FP16/BF16/FP32 peaks nulled (legacy values were overstated).
-datasheet_url: https://developer.nvidia.com/embedded/jetson-orin-nano-developer-kit
+datasheet_url: https://developer.nvidia.com/downloads/jetson-orin-nano-series-data-sheet
 product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/
 last_updated: "2026-10-08"
 chip_id: nvidia_orin_nano_soc

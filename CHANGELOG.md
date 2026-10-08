@@ -29,13 +29,20 @@ no schema change.
   - **Price.** Current 1KU price; the old figures were dev-kit-like (e.g.
     AGX Orin 64GB $1999 -> $2999, Thor $2999 -> $4999).
   - **Orin Nano 8GB.** The entry described the Developer Kit and now
-    describes the module.
+    describes the module: 5 V VDD_IN (4.75-5.25 V; was the Dev Kit's
+    5-19 V) and the module datasheet URL.
+  - **Orin NX.** VDD_IN 5-20 V, and the MAXN_SUPER mode states NVIDIA's
+    minimum of 8 V.
 - **Removed:** unsourced figures, which are now unset: CPU clocks, per-mode
   GPU clocks NVIDIA doesn't publish, and FP16 / BF16 / FP32 peaks, which
   were overstated by up to ~13x. Thor FP32 is NVIDIA's 8.064 TFLOPS at
   MAXN.
+- **Source DB:** new quantity `input_voltage` (V). It holds VDD_IN for the
+  Orin NX and Nano modules, quoted from NVIDIA DS-10712 v1.7 and
+  DS-11105 v1.5.
 - **Tests:** `tests/test_legacy_hardware_jetson.py` holds these entries to
-  the NVIDIA observations.
+  the NVIDIA observations: exact power-mode lists, each mode's own GPU
+  clock, and VDD_IN.
 
 ## [0.23.0] - 2026-10-07
 

@@ -48,7 +48,7 @@ environmental:
   storage_temp_c: [-40, 85]
 
 power:
-  input_voltage_v: [5.0, 20.0]
+  input_voltage_v: [5.0, 20.0]  # VDD_IN, NVIDIA DS-10712 v1.7; MAXN_SUPER needs >= 8 V
   power_modes:
     - name: "10W"
       power_watts: 10.0
@@ -62,7 +62,7 @@ power:
     - name: "MAXN_SUPER"
       power_watts: 40.0
       gpu_freq_mhz: 1173
-      description: "NVIDIA MAXN_SUPER (JetPack 6.2): max GPU clock at maximum module power"
+      description: "NVIDIA MAXN_SUPER (JetPack 6.2): max GPU clock at maximum module power; requires VDD_IN >= 8 V"
   tdp_watts: 40.0  # NVIDIA maximum module power
   typical_power_watts: 15.0
   battery_compatible: true

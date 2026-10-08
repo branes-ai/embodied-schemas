@@ -104,24 +104,44 @@ def test_thor_fp32_is_nvidia_maxn(hw, db):
 
 @pytest.mark.parametrize("legacy_id", LEGACY)
 def test_power_modes_are_nvidias(hw, db, legacy_id):
-    """Every NVIDIA power mode appears, then MAXN / MAXN_SUPER at maximum
-    module power; GPU clocks are set only where the DB has them."""
+    """Exactly NVIDIA's power modes, then MAXN / MAXN_SUPER at maximum module
+    power when that is above the top mode. A mode's GPU clock is its own
+    sourced clock; only the maximum-power mode takes the max GPU clock; any
+    other mode without one leaves it unset."""
     s = LEGACY[legacy_id]
     power = hw[legacy_id].power
     pmax = _v(db, s, "power", "max")
     assert power.tdp_watts == pmax
-    modes = sorted(o.value for o in db.find("power", s) if (o.variant or "").startswith("mode_"))
-    watts = [m.power_watts for m in power.power_modes]
-    assert watts[: len(modes)] == modes
-    assert watts[-1] == pmax
+    expected = sorted(o.value for o in db.find("power", s) if (o.variant or "").startswith("mode_"))
+    if pmax > expected[-1]:
+        expected.append(pmax)
+    assert [m.power_watts for m in power.power_modes] == expected
     clocks = {o.variant: o.value for o in db.find("frequency", s)}
+    top = clocks.get("gpu_max_super", clocks.get("gpu_max"))
     for mode in power.power_modes:
-        assert mode.cpu_freq_mhz is None
-        if mode.gpu_freq_mhz is None:
-            continue
-        per_mode = clocks.get(f"gpu_{int(mode.power_watts)}w")
-        top = clocks.get("gpu_max_super", clocks.get("gpu_max"))
-        assert mode.gpu_freq_mhz in (per_mode, top), mode.name
+        assert mode.cpu_freq_mhz is None, mode.name
+        own = clocks.get(f"gpu_{int(mode.power_watts)}w")
+        if own is None and mode.power_watts == pmax:
+            own = top
+        assert mode.gpu_freq_mhz == own, mode.name
+
+
+@pytest.mark.parametrize(
+    "legacy_id",
+    ["nvidia_jetson_orin_nx_16gb", "nvidia_jetson_orin_nx_8gb", "nvidia_jetson_orin_nano_8gb"],
+)
+def test_input_voltage_matches_datasheet(hw, db, legacy_id):
+    """The VDD_IN range is sourced for the NX / Nano modules (the AGX / Thor
+    entries keep their legacy ranges until the DB holds them)."""
+    (rng,) = [o for o in _nvidia(db, LEGACY[legacy_id], "input_voltage") if o.variant is None]
+    assert hw[legacy_id].power.input_voltage_v == [rng.value_min, rng.value_max]
+
+
+@pytest.mark.parametrize("legacy_id", ["nvidia_jetson_orin_nx_16gb", "nvidia_jetson_orin_nx_8gb"])
+def test_maxn_super_states_its_minimum_input_voltage(hw, db, legacy_id):
+    vmin = _v(db, LEGACY[legacy_id], "input_voltage", "min_maxn_super")
+    (mode,) = [m for m in hw[legacy_id].power.power_modes if m.name == "MAXN_SUPER"]
+    assert f"VDD_IN >= {vmin:g} V" in mode.description
 
 
 def test_thor_modes_are_70_90_120_maxn(hw):

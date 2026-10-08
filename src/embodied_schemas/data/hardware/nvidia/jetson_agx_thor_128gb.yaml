@@ -153,7 +153,7 @@ notes: |
   7.5x AI performance vs AGX Orin, 3.5x efficiency.
   Supports Llama, DeepSeek, Qwen, and Isaac GR00T models.
   First Jetson designed for general-purpose humanoid robotics.
-  Corrected 2026-10-08 from the source DB (data/sources/observations/jetson_modules.yaml, subject nvidia_jetson_t5000): module mass, dimensions, memory, CUDA/Tensor cores, sparse INT8, maximum power, power modes and 1KU price per NVIDIA's datasheets and FAQ. Per-mode GPU clocks are kept only where sourced; CPU clocks dropped and unsourced FP16/BF16/FP32 peaks nulled (legacy values were overstated).
+  Corrected 2026-10-08 from the source DB (data/sources/observations/jetson_modules.yaml, subject nvidia_jetson_t5000): module mass, dimensions, memory, CUDA/Tensor cores, sparse INT8, maximum power, power modes and 1KU price per NVIDIA's datasheets and FAQ. Per-mode GPU clocks are NVIDIA's where published (120W, MAXN); the 70W / 90W clocks are ESTIMATES derived from the 120W clock (f ~ P^(1/3); basis derived in the source DB). CPU clocks dropped and unsourced FP16/BF16/FP32 peaks nulled (legacy values were overstated).
 datasheet_url: https://developer.nvidia.com/embedded/jetson-thor
 product_url: https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/
 last_updated: "2026-10-08"
