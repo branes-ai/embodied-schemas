@@ -29,3 +29,1869 @@
 - {subject: nvidia_jetson_t4000, category: jetson_som, quantity: memory_capacity, value: 64, unit: gb,
    as_of: "2026", basis: datasheet, source_id: connecttech_jetson_t4000_t5000,
    quote: "64 GB 256-bit LPDDR5X"}
+
+# --- NVIDIA datasheets and pricing (S3e) Orin and Thor SKUs -------------------
+- subject: nvidia_orin_gpu
+  category: gpu_architecture
+  quantity: sm_per_tpc
+  value: 2.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: each TPC includes two SMs
+- subject: nvidia_thor_gpu
+  category: gpu_architecture
+  quantity: sm_per_tpc
+  value: 2.0
+  unit: count
+  as_of: '2026'
+  basis: datasheet
+  source_id: nvidia_thor_trm
+  quote: 'Up to Four Texture Processing Clusters (TPCs), each consisting of: Two Streaming Multiprocessors (SMs)'
+- subject: nvidia_thor_gpu
+  category: gpu_architecture
+  quantity: tensor_cores_per_sm
+  value: 4.0
+  unit: count
+  as_of: 2025-08
+  basis: datasheet
+  source_id: nvidia_jetson_thor_tb
+  quote: Thor GPU contains four 5th Generation Tensor Cores per SM
+  notes: "The same brief also states '2560 CUDA cores with 96 Tensor Cores', which 20 SMs x 4 contradicts. NVIDIA removed Tensor Core counts from the datasheet in v1.4 and declined to publish them: NVIDIA staff, 2026-01-09, 'future documentation versions will not specify internal Tensor Core counts' (https://forums.developer.nvidia.com/t/clarification-on-cuda-core-and-tensor-core-counts-for-jetson-agx-thor/356355)."
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: cuda_cores
+  value: 2048.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: tensor_cores
+  value: 64.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: gpc
+  value: 2.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: tpc
+  value: 8.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 1300.0
+  unit: mhz
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: ... Maximum Operating Frequency: 1.3 GHz'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: cpu_cores
+  value: 12.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: 12x cores | three CPU clusters (four cores/cluster) | 259 SPECint_rate2006 | Maximum Operating Frequency:
+    2.2 GHz'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: memory_capacity
+  value: 64.0
+  unit: gb
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: 64GB 256-bit LPDDR5 DRAM'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse
+  value: 275.0
+  unit: tops
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+  quote: 'JAO 64GB: Up to 275 Sparse TOPS (INT8)'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: power
+  variant: mode_15w
+  value: 15.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: 15W | 30W | 50W, and up to 60W'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: power
+  variant: mode_30w
+  value: 30.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: 15W | 30W | 50W, and up to 60W'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: power
+  variant: mode_50w
+  value: 50.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: 15W | 30W | 50W, and up to 60W'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 60.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 64GB: 15W | 30W | 50W, and up to 60W'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: length
+  value: 100.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: width
+  value: 87.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: height
+  value: 16.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: mass
+  value: 306.0
+  value_min: 299.88
+  value_max: 312.12
+  unit: g
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Weight: 0.306kg ±2%'
+  notes: The datasheet gives one module weight, not split by SKU; includes the integrated thermal transfer plate.
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 2999.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson AGX Orin 64GB Module $2999 (1KU+)
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 1599.0
+  unit: usd
+  as_of: 2022-04
+  basis: list_price
+  source_id: nvidia_blog_2022_jetson_orin
+  conditions:
+    quantity: 1000
+    listing: launch
+  quote: $1,599 (1KU+)
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: cuda_cores
+  value: 1792.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: two graphics processing cluster (GPC) | seven texture processing clusters (TPC) | 1792 NVIDIA® CUDA® cores
+    | 56 Tensor cores'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: tensor_cores
+  value: 56.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: two graphics processing cluster (GPC) | seven texture processing clusters (TPC) | 1792 NVIDIA® CUDA® cores
+    | 56 Tensor cores'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: gpc
+  value: 2.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: two graphics processing cluster (GPC) | seven texture processing clusters (TPC) | 1792 NVIDIA® CUDA® cores
+    | 56 Tensor cores'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: tpc
+  value: 7.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: two graphics processing cluster (GPC) | seven texture processing clusters (TPC) | 1792 NVIDIA® CUDA® cores
+    | 56 Tensor cores'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 939.0
+  unit: mhz
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: ... Maximum Operating Frequency: 939 MHz'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: cpu_cores
+  value: 8.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: 8x cores | two CPU clusters (four cores/cluster) | 177 SPECint_rate2006 | Maximum Operating Frequency:
+    2.2 GHz'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: memory_capacity
+  value: 32.0
+  unit: gb
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: 32GB 256-bit LPDDR5 DRAM'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse
+  value: 200.0
+  unit: tops
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+  quote: 'JAO 32GB: Up to 200 Sparse TOPs (INT8)'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: power
+  variant: mode_15w
+  value: 15.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: 15W | 30W | 40W'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: power
+  variant: mode_30w
+  value: 30.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: 15W | 30W | 40W'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: power
+  variant: mode_40w
+  value: 40.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: 15W | 30W | 40W'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 40.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAO 32GB: 15W | 30W | 40W'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: length
+  value: 100.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: width
+  value: 87.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: height
+  value: 16.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: mass
+  value: 306.0
+  value_min: 299.88
+  value_max: 312.12
+  unit: g
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Weight: 0.306kg ±2%'
+  notes: The datasheet gives one module weight, not split by SKU; includes the integrated thermal transfer plate.
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 1799.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson AGX Orin 32GB Module $1799 (1KU+)
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 899.0
+  unit: usd
+  as_of: 2022-04
+  basis: list_price
+  source_id: nvidia_blog_2022_jetson_orin
+  conditions:
+    quantity: 1000
+    listing: launch
+  quote: $899 (1KU+)
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: cuda_cores
+  value: 2048.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: tensor_cores
+  value: 64.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: gpc
+  value: 2.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: tpc
+  value: 8.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: two graphics processing cluster (GPC) | eight texture processing clusters (TPC) | 2048 NVIDIA® CUDA® cores
+    | 64 Tensor cores'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 1185.0
+  unit: mhz
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: ... Maximum Operating Frequency: 1.185 GHz'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: cpu_cores
+  value: 12.0
+  unit: count
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: 12x cores | three CPU clusters (four cores/cluster) | 259 SPECint_rate2006 | Maximum Operating Frequency:
+    1.971 GHz'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: memory_capacity
+  value: 64.0
+  unit: gb
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: 64GB 256-bit LPDDR5 DRAM with ECC Support'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse
+  value: 248.0
+  unit: tops
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+  quote: 'JAOi: Up to 248 TOPs (INT8)'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: power
+  variant: mode_15w
+  value: 15.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: 15W | 35W | 60W, and up to 75W'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: power
+  variant: mode_35w
+  value: 35.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: 15W | 35W | 60W, and up to 75W'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: power
+  variant: mode_60w
+  value: 60.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: 15W | 35W | 60W, and up to 75W'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 75.0
+  unit: w
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'JAOi: 15W | 35W | 60W, and up to 75W'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: length
+  value: 100.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: width
+  value: 87.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: height
+  value: 16.0
+  unit: mm
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Module Size: 100.0 mm x 87.0 mm x 16.0 mm'
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: mass
+  value: 306.0
+  value_min: 299.88
+  value_max: 312.12
+  unit: g
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: 'Weight: 0.306kg ±2%'
+  notes: The datasheet gives one module weight, not split by SKU; includes the integrated thermal transfer plate.
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 3199.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson AGX Orin Industrial $3199 (1KU+)
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 204.8
+  unit: gb_per_s
+  as_of: 2025-09
+  basis: datasheet
+  source_id: nvidia_jetson_agx_orin_ds
+  quote: Maximum Memory Bus Bandwidth (up to) 204.8 GB/s
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 204.8
+  unit: gb_per_s
+  as_of: 2026-10
+  basis: datasheet
+  source_id: nvidia_jetson_orin_spec_page
+  quote: 32GB 256-bit LPDDR5 204.8GB/s
+- subject: nvidia_jetson_agx_orin_industrial
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 204.8
+  unit: gb_per_s
+  as_of: 2026-10
+  basis: datasheet
+  source_id: nvidia_jetson_orin_spec_page
+  quote: 64GB 256-bit LPDDR5 (+ ECC) 204.8GB/s
+- subject: nvidia_jetson_agx_orin_64gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense
+  value: 138.0
+  unit: tops
+  as_of: 2022-04
+  basis: datasheet
+  source_id: nvidia_blog_2022_jetson_orin
+  conditions:
+    precision: int8
+    sparsity: dense
+  quote: 275 SPARSE|138 DENSE, INT8 TOPS
+- subject: nvidia_jetson_agx_orin_32gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense
+  value: 100.0
+  unit: tops
+  as_of: 2022-04
+  basis: datasheet
+  source_id: nvidia_blog_2022_jetson_orin
+  conditions:
+    precision: int8
+    sparsity: dense
+  quote: 200 SPARSE|100 DENSE, INT8 TOPS
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: cuda_cores
+  value: 1024.0
+  unit: count
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 1024 NVIDIA® CUDA® cores | 32 Tensor cores
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: tensor_cores
+  value: 32.0
+  unit: count
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 1024 NVIDIA® CUDA® cores | 32 Tensor cores
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 918.0
+  unit: mhz
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: '1024 NVIDIA® CUDA® cores | 32 Tensor cores: Maximum Operating Frequency (up to): 918 MHz 1,173 MHz'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max_super
+  value: 1173.0
+  unit: mhz
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: '1024 NVIDIA® CUDA® cores | 32 Tensor cores: Maximum Operating Frequency (up to): 918 MHz 1,173 MHz'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: cpu_cores
+  value: 8.0
+  unit: count
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'ONX 16GB: 8x cores'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: memory_capacity
+  value: 16.0
+  unit: gb
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: ONX 16GB (2x 8GB) memory with 128bit LPDDR5 DRAM
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 102.0
+  unit: gb_per_s
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: Peak Memory Bandwidth 102 GB/s
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse
+  value: 100.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+  quote: Sparse 100 INT8 TOPs 157 INT8 TOPs … Dense 50 INT8 TOPs 78 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense
+  value: 50.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+  quote: Sparse 100 INT8 TOPs 157 INT8 TOPs … Dense 50 INT8 TOPs 78 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse_super
+  value: 157.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+    mode: MAXN_SUPER
+  quote: Sparse 100 INT8 TOPs 157 INT8 TOPs … Dense 50 INT8 TOPs 78 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense_super
+  value: 78.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+    mode: MAXN_SUPER
+  quote: Sparse 100 INT8 TOPs 157 INT8 TOPs … Dense 50 INT8 TOPs 78 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: power
+  variant: mode_10w
+  value: 10.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Jetson Orin NX 16GB Modes: 10W | 15W | 25W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: power
+  variant: mode_15w
+  value: 15.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Jetson Orin NX 16GB Modes: 10W | 15W | 25W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: power
+  variant: mode_25w
+  value: 25.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Jetson Orin NX 16GB Modes: 10W | 15W | 25W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 40.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Jetson Orin NX 16GB Modes: 10W | 15W | 25W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: length
+  value: 69.6
+  unit: mm
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: width
+  value: 45.0
+  unit: mm
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: mass
+  value: 28.0
+  unit: g
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Module Weight: 0.028kg'
+- subject: nvidia_jetson_orin_nx_16gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 999.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson Orin NX 16GB $999 (1KU+)
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: cuda_cores
+  value: 1024.0
+  unit: count
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 1024 NVIDIA® CUDA® cores | 32 Tensor cores
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: tensor_cores
+  value: 32.0
+  unit: count
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 1024 NVIDIA® CUDA® cores | 32 Tensor cores
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 765.0
+  unit: mhz
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: '1024 NVIDIA® CUDA® cores | 32 Tensor cores: … 765 MHz 1,173 MHz'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max_super
+  value: 1173.0
+  unit: mhz
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: '1024 NVIDIA® CUDA® cores | 32 Tensor cores: … 765 MHz 1,173 MHz'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: cpu_cores
+  value: 6.0
+  unit: count
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'ONX 8GB: 6x cores'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: memory_capacity
+  value: 8.0
+  unit: gb
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: ONX 8GB (2x 4GB) memory with 128bit LPDDR5 DRAM
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 102.0
+  unit: gb_per_s
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: Peak Memory Bandwidth 102 GB/s
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse
+  value: 70.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+  quote: Sparse 70 INT8 TOPs 117 INT8 TOPs … Dense 35 INT8 TOPs 58 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense
+  value: 35.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+  quote: Sparse 70 INT8 TOPs 117 INT8 TOPs … Dense 35 INT8 TOPs 58 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse_super
+  value: 117.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+    mode: MAXN_SUPER
+  quote: Sparse 70 INT8 TOPs 117 INT8 TOPs … Dense 35 INT8 TOPs 58 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense_super
+  value: 58.0
+  unit: tops
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+    mode: MAXN_SUPER
+  quote: Sparse 70 INT8 TOPs 117 INT8 TOPs … Dense 35 INT8 TOPs 58 INT8 TOPs
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: power
+  variant: mode_10w
+  value: 10.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Jetson Orin NX 8GB Modes: 10W | 15W | 20W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: power
+  variant: mode_15w
+  value: 15.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Jetson Orin NX 8GB Modes: 10W | 15W | 20W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: power
+  variant: mode_20w
+  value: 20.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Jetson Orin NX 8GB Modes: 10W | 15W | 20W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 40.0
+  unit: w
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Jetson Orin NX 8GB Modes: 10W | 15W | 20W | 40W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: length
+  value: 69.6
+  unit: mm
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: width
+  value: 45.0
+  unit: mm
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: mass
+  value: 28.0
+  unit: g
+  as_of: 2026-02
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nx_ds
+  quote: 'Module Weight: 0.028kg'
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 649.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson Orin NX 8GB $649 (1KU+)
+- subject: nvidia_jetson_orin_nx_8gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 399.0
+  unit: usd
+  as_of: 2022-04
+  basis: list_price
+  source_id: nvidia_blog_2022_jetson_orin
+  conditions:
+    quantity: 1000
+    listing: launch
+  quote: $399 (1KU+)
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: cuda_cores
+  value: 1024.0
+  unit: count
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 1024 NVIDIA® CUDA® cores | 32 Tensor cores
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: tensor_cores
+  value: 32.0
+  unit: count
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 1024 NVIDIA® CUDA® cores | 32 Tensor cores
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 625.0
+  unit: mhz
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Operating Frequency (up to): • 625 MHz • 1020 MHz (MAXN_Super)'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max_super
+  value: 1020.0
+  unit: mhz
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Operating Frequency (up to): • 625 MHz • 1020 MHz (MAXN_Super)'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: cpu_cores
+  value: 6.0
+  unit: count
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: Six-core Arm® Cortex® A78AE
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: memory_capacity
+  value: 8.0
+  unit: gb
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: Jetson Orin Nano 8GB 128-bit LPDDR5 DRAM
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 68.0
+  unit: gb_per_s
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Jetson Orin Nano 8GB 128-bit LPDDR5 DRAM Peak Memory Bandwidth: 68 GB/s | 102 GB/s (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  variant: super
+  value: 102.0
+  unit: gb_per_s
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Jetson Orin Nano 8GB 128-bit LPDDR5 DRAM Peak Memory Bandwidth: 68 GB/s | 102 GB/s (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse
+  value: 40.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+  quote: Sparse • 40 INT8 TOPs • 67 INT8 TOPs (MAXN_SUPER) Dense • 20 INT8 TOPs • 33 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense
+  value: 20.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+  quote: Sparse • 40 INT8 TOPs • 67 INT8 TOPs (MAXN_SUPER) Dense • 20 INT8 TOPs • 33 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse_super
+  value: 67.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+    mode: MAXN_SUPER
+  quote: Sparse • 40 INT8 TOPs • 67 INT8 TOPs (MAXN_SUPER) Dense • 20 INT8 TOPs • 33 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense_super
+  value: 33.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+    mode: MAXN_SUPER
+  quote: Sparse • 40 INT8 TOPs • 67 INT8 TOPs (MAXN_SUPER) Dense • 20 INT8 TOPs • 33 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: power
+  variant: mode_7w
+  value: 7.0
+  unit: w
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Jetson Orin Nano 8GB Modes: 7W | 15W | 25W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: power
+  variant: mode_15w
+  value: 15.0
+  unit: w
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Jetson Orin Nano 8GB Modes: 7W | 15W | 25W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 25.0
+  unit: w
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Jetson Orin Nano 8GB Modes: 7W | 15W | 25W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: length
+  value: 69.6
+  unit: mm
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: width
+  value: 45.0
+  unit: mm
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: mass
+  value: 28.0
+  unit: g
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Module Weight: 0.028kg'
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 399.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson Orin Nano 8GB $399 (1KU+)
+- subject: nvidia_jetson_orin_nano_8gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 299.0
+  unit: usd
+  as_of: 2022-09
+  basis: list_price
+  source_id: nvidia_blog_2022_orin_nano
+  conditions:
+    quantity: 1000
+    listing: launch
+  quote: Price || $199 † || $299 †
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: cuda_cores
+  value: 512.0
+  unit: count
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 512 NVIDIA® CUDA® cores | 16 Tensor cores
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: tensor_cores
+  value: 16.0
+  unit: count
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 512 NVIDIA® CUDA® cores | 16 Tensor cores
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 625.0
+  unit: mhz
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Operating Frequency (up to): • 625 MHz • 1020 MHz (MAXN_Super)'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max_super
+  value: 1020.0
+  unit: mhz
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Operating Frequency (up to): • 625 MHz • 1020 MHz (MAXN_Super)'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: cpu_cores
+  value: 6.0
+  unit: count
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: Six-core Arm® Cortex® A78AE
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: memory_capacity
+  value: 4.0
+  unit: gb
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: Jetson Orin Nano 4GB 64-bit LPDDR5 DRAM
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 34.0
+  unit: gb_per_s
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Jetson Orin Nano 4GB 64-bit LPDDR5 DRAM Peak Memory Bandwidth: 34 GB/s | 51 GB/s (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: memory_bandwidth
+  variant: super
+  value: 51.0
+  unit: gb_per_s
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Jetson Orin Nano 4GB 64-bit LPDDR5 DRAM Peak Memory Bandwidth: 34 GB/s | 51 GB/s (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse
+  value: 20.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+  quote: Sparse • 20 INT8 TOPs • 34 INT8 TOPs (MAXN_SUPER) Dense • 10 INT8 TOPs • 17 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense
+  value: 10.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+  quote: Sparse • 20 INT8 TOPs • 34 INT8 TOPs (MAXN_SUPER) Dense • 10 INT8 TOPs • 17 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_sparse_super
+  value: 34.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: sparse
+    mode: MAXN_SUPER
+  quote: Sparse • 20 INT8 TOPs • 34 INT8 TOPs (MAXN_SUPER) Dense • 10 INT8 TOPs • 17 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: ai_throughput
+  variant: int8_dense_super
+  value: 17.0
+  unit: tops
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    precision: int8
+    sparsity: dense
+    mode: MAXN_SUPER
+  quote: Sparse • 20 INT8 TOPs • 34 INT8 TOPs (MAXN_SUPER) Dense • 10 INT8 TOPs • 17 INT8 TOPs (MAXN_SUPER)
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: power
+  variant: mode_7w
+  value: 7.0
+  unit: w
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Jetson Orin Nano 4GB Modes: 7W | 10W | 25W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: power
+  variant: mode_10w
+  value: 10.0
+  unit: w
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Jetson Orin Nano 4GB Modes: 7W | 10W | 25W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 25.0
+  unit: w
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  conditions:
+    mode: MAXN_SUPER
+  quote: 'Jetson Orin Nano 4GB Modes: 7W | 10W | 25W (MAXN_SUPER)'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: length
+  value: 69.6
+  unit: mm
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: width
+  value: 45.0
+  unit: mm
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Module Size: 69.6 mm x 45 mm'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: mass
+  value: 28.0
+  unit: g
+  as_of: 2024-12
+  basis: datasheet
+  source_id: nvidia_jetson_orin_nano_ds
+  quote: 'Module Weight: 0.028kg'
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 349.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson Orin Nano 4GB $349 (1KU+)
+- subject: nvidia_jetson_orin_nano_4gb
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 199.0
+  unit: usd
+  as_of: 2022-09
+  basis: list_price
+  source_id: nvidia_blog_2022_orin_nano
+  conditions:
+    quantity: 1000
+    listing: launch
+  quote: Price || $199 † || $299 †
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: gpc
+  value: 3.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T5000: 3GPC, 10 TPC, 2560 NVIDIA® CUDA® cores'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: tpc
+  value: 10.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T5000: 3GPC, 10 TPC, 2560 NVIDIA® CUDA® cores'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: cuda_cores
+  value: 2560.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T5000: 3GPC, 10 TPC, 2560 NVIDIA® CUDA® cores'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 1575.0
+  unit: mhz
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    mode: MAXN
+  quote: 'Jetson T5000: 1.575 GHz'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: cpu_cores
+  value: 14.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 14 CPU clusters | One core per cluster | Arm® Neoverse V3AE
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: memory_capacity
+  value: 128.0
+  unit: gb
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 128GB (8x 16GB) memory with 256-bit LPDDR5X DRAM
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: ai_throughput
+  variant: fp8_sparse
+  value: 1035.0
+  unit: tops
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    precision: fp8
+    sparsity: sparse
+    mode: MAXN
+  quote: 'Jetson T5000: Up to 2070 FP4 TFLOPs | 1035 FP8 TFLOPs'
+  notes: 'DS note 5: ''FP8 TFLOPs is equivalent to INT8 TOPs.'''
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: ai_throughput
+  variant: fp8_dense
+  value: 517.0
+  unit: tops
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    precision: fp8
+    sparsity: dense
+    mode: MAXN
+  quote: 'Jetson T5000: Up to 1035 FP4 TFLOPs | 517 FP8 TFLOPs'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: power
+  variant: mode_70w
+  value: 70.0
+  unit: w
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T5000 Power Modes: 70W | 90W | 120W | MAXN Maximum Total Module Power (TMP): 130W'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: power
+  variant: mode_90w
+  value: 90.0
+  unit: w
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T5000 Power Modes: 70W | 90W | 120W | MAXN Maximum Total Module Power (TMP): 130W'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: power
+  variant: mode_120w
+  value: 120.0
+  unit: w
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T5000 Power Modes: 70W | 90W | 120W | MAXN Maximum Total Module Power (TMP): 130W'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 130.0
+  unit: w
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T5000 Power Modes: 70W | 90W | 120W | MAXN Maximum Total Module Power (TMP): 130W'
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: length
+  value: 100.0
+  unit: mm
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 87.0 mm (width) x 100 mm (length) x 15.29 mm (height)
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: width
+  value: 87.0
+  unit: mm
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 87.0 mm (width) x 100 mm (length) x 15.29 mm (height)
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: height
+  value: 15.29
+  unit: mm
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 87.0 mm (width) x 100 mm (length) x 15.29 mm (height)
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: mass
+  value: 350.0
+  value_min: 336.0
+  value_max: 364.0
+  unit: g
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Weight: 0.350kg ±4%'
+  notes: One weight for both Thor modules; includes the integrated thermal transfer plate with heatpipe.
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 4999.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson T5000 Module $4999 (1KU+)
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 2999.0
+  unit: usd
+  as_of: 2025-08
+  basis: list_price
+  source_id: nvidia_blog_2025_jetson_thor_launch
+  conditions:
+    quantity: 1000
+    listing: launch
+  quote: Jetson T5000 modules are available starting at $2,999 for 1,000 units.
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: gpc
+  value: 2.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T4000: 2GPC, 6 TPC, 1536 NVIDIA® CUDA® cores'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: tpc
+  value: 6.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T4000: 2GPC, 6 TPC, 1536 NVIDIA® CUDA® cores'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: cuda_cores
+  value: 1536.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T4000: 2GPC, 6 TPC, 1536 NVIDIA® CUDA® cores'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: frequency
+  variant: gpu_max
+  value: 1530.0
+  unit: mhz
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    mode: MAXN
+  quote: 'Jetson T4000: 1.53 GHz'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: cpu_cores
+  value: 12.0
+  unit: count
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T4000: 12 CPU clusters | One core per cluster'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: memory_capacity
+  value: 64.0
+  unit: gb
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 64GB (8x 8GB) memory with 256-bit LPDDR5X DRAM
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: ai_throughput
+  variant: fp8_sparse
+  value: 600.0
+  unit: tops
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    precision: fp8
+    sparsity: sparse
+    mode: MAXN
+  quote: 'Jetson T4000: Up to 1200 FP4 TFLOPs | 600 FP8 TFLOPs'
+  notes: 'DS note 5: ''FP8 TFLOPs is equivalent to INT8 TOPs.'''
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: ai_throughput
+  variant: fp8_dense
+  value: 300.0
+  unit: tops
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  conditions:
+    precision: fp8
+    sparsity: dense
+    mode: MAXN
+  quote: 'Jetson T4000: Up to 600 FP4 TFLOPs | 300 FP8 TFLOPs'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: power
+  variant: mode_70w
+  value: 70.0
+  unit: w
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T4000 Power Modes: 70W | MAXN Maximum Total Module Power (TMP): 90W'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: power
+  variant: max
+  value: 90.0
+  unit: w
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Jetson T4000 Power Modes: 70W | MAXN Maximum Total Module Power (TMP): 90W'
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: length
+  value: 100.0
+  unit: mm
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 87.0 mm (width) x 100 mm (length) x 15.29 mm (height)
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: width
+  value: 87.0
+  unit: mm
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 87.0 mm (width) x 100 mm (length) x 15.29 mm (height)
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: height
+  value: 15.29
+  unit: mm
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 87.0 mm (width) x 100 mm (length) x 15.29 mm (height)
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: mass
+  value: 350.0
+  value_min: 336.0
+  value_max: 364.0
+  unit: g
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: 'Weight: 0.350kg ±4%'
+  notes: One weight for both Thor modules; includes the integrated thermal transfer plate with heatpipe.
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 2999.0
+  unit: usd
+  as_of: 2026-07
+  basis: list_price
+  source_id: nvidia_jetson_faq
+  conditions:
+    quantity: 1000
+    listing: current
+  quote: Jetson T4000 Module $2999 (1KU+)
+- subject: nvidia_jetson_t4000
+  category: jetson_som
+  quantity: unit_price
+  variant: qty_1000
+  value: 1999.0
+  unit: usd
+  as_of: 2026-01
+  basis: list_price
+  source_id: nvidia_news_2026_jetson_t4000
+  conditions:
+    quantity: 1000
+    listing: launch
+  quote: Jetson™ T4000 module … for $1,999 at 1,000-unit volume
+- subject: nvidia_jetson_t5000
+  category: jetson_som
+  quantity: memory_bandwidth
+  value: 273.0
+  unit: gb_per_s
+  as_of: 2026-06
+  basis: datasheet
+  source_id: nvidia_jetson_thor_ds
+  quote: Peak Memory Bandwidth 273 GB/s
+- subject: nvidia_thor_gpu
+  category: gpu_architecture
+  quantity: cuda_cores_per_sm
+  value: 128.0
+  unit: count
+  as_of: '2026'
+  basis: datasheet
+  source_id: nvidia_thor_trm
+  quote: The Blackwell Streaming Multiprocessor (SM) has 128 CUDA cores.

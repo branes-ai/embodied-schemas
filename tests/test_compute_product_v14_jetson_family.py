@@ -107,3 +107,61 @@ def test_legacy_thor_entries_match_nvidia():
     hw = load_hardware()["nvidia_jetson_agx_thor_128gb"]
     assert (hw.capabilities.compute_units, hw.capabilities.tensor_cores) == (2560, 96)
     assert load_chips()["nvidia_thor_soc"].gpu_cores == 2560
+
+
+# ---------------------------------------------------------------------------
+# SKUSpec / floorsweep (schema, S3e)
+# ---------------------------------------------------------------------------
+
+
+def _with_sku(product, floorsweep):
+    from embodied_schemas import ComputeProduct
+
+    data = product.model_dump(mode="json")
+    data["sku"] = {"name": "test SKU", "floorsweep": floorsweep}
+    return ComputeProduct.model_validate(data)
+
+
+class TestFloorsweep:
+    def test_consistent_floorsweep_accepted(self, products):
+        p = _with_sku(
+            products["nvidia_jetson_agx_orin_64gb"],
+            [
+                {"unit": "gpu_sm", "enabled": 16},
+                {"unit": "cuda_core", "enabled": 2048},
+                {"unit": "tensor_core", "enabled": 64},
+                {"unit": "cpu_core", "enabled": 12},
+            ],
+        )
+        assert p.sku.enabled("cuda_core") == 2048 and p.sku.enabled("dla") is None
+
+    @pytest.mark.parametrize(
+        "unit,value", [("gpu_sm", 14), ("cuda_core", 1792), ("tensor_core", 56)]
+    )
+    def test_mismatch_with_gpu_block_rejected(self, products, unit, value):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match=f"floorsweep {unit}"):
+            _with_sku(products["nvidia_jetson_agx_orin_64gb"], [{"unit": unit, "enabled": value}])
+
+    def test_physical_below_enabled_rejected(self):
+        from pydantic import ValidationError
+
+        from embodied_schemas import EnabledUnits
+
+        with pytest.raises(ValidationError, match="physical 10 < enabled 20"):
+            EnabledUnits(unit="gpu_sm", enabled=20, physical=10)
+
+    def test_duplicate_unit_rejected(self):
+        from pydantic import ValidationError
+
+        from embodied_schemas import SKUSpec
+
+        with pytest.raises(ValidationError, match="repeats a unit"):
+            SKUSpec(
+                name="x",
+                floorsweep=[{"unit": "gpu_sm", "enabled": 1}, {"unit": "gpu_sm", "enabled": 2}],
+            )
+
+    def test_unset_sku_not_dumped(self, products):
+        assert "sku" not in products["nvidia_jetson_agx_orin_64gb"].model_dump()

@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-07
+
+NVIDIA Jetson SKU data and the SKU floorsweep schema. RFC 0001 phase S3,
+slice e, part 1. The SKU products follow in part 2.
+
+**Source DB: all 9 NVIDIA Jetson SKUs, from NVIDIA's own documents.**
+
+- 175 observations in `observations/jetson_modules.yaml` cover:
+  - Orin family: AGX Orin 64GB / 32GB / Industrial, Orin NX 16GB / 8GB,
+    Orin Nano 8GB / 4GB;
+  - Thor family: T5000, T4000.
+- Each SKU records:
+  - floorsweep: CUDA and Tensor cores, GPC / TPC, CPU cores;
+  - GPU max clock (and MAXN_SUPER);
+  - memory capacity and bandwidth;
+  - INT8 / FP8 throughput, sparse and dense;
+  - power modes and module maximum;
+  - module dimensions and mass (AGX Orin 306 g, NX / Nano 28 g, Thor
+    350 g);
+  - 1KU prices at launch and current, a trend: NVIDIA roughly doubled them
+    in July 2026, e.g. AGX Orin 64GB $1,599 → $2,999 and T5000 $2,999 →
+    $4,999.
+- Sources:
+  - datasheets DS-10662 (AGX Orin), DS-10712 (Orin NX), DS-11105 (Orin
+    Nano) and DS-11945 v1.5 (Thor);
+  - the Thor technical brief and the Thor SoC TRM;
+  - NVIDIA's FAQ and launch posts.
+- Architecture statements:
+  - SMs per TPC: Orin and Thor;
+  - Thor CUDA cores per SM.
+- Thor Tensor cores: NVIDIA's "four per SM" (so 80 on the T5000) stands.
+  NVIDIA withdrew its 96 / 64 totals from the datasheet in v1.4 and
+  declined to publish counts, which the record notes.
+- New quantities: `memory_bandwidth`, `gpc`, `tpc`, `sm_per_tpc`,
+  `tensor_cores_per_sm`, `cuda_cores_per_sm`, `frequency` and
+  `ai_throughput`.
+- `tests/test_sources.py` checks relations NVIDIA's data must satisfy:
+  - CUDA = TPC × SMs per TPC × cores per SM;
+  - dense = sparse / 2;
+  - power modes ≤ module maximum;
+  - Super ≥ base;
+  - 1KU price trend non-decreasing.
+
+  Mutation-checked.
+
+**SKU schema.**
+
+- `ComputeProduct.sku: SKUSpec` (new, optional) holds the vendor SKU name,
+  the part number and a `floorsweep` list of `EnabledUnits`.
+- `EnabledUnits` records the unit kind, the units enabled, the physical
+  units on the die when published, and its source key.
+- A validator holds the floorsweep to the GPU blocks:
+  - enabled SMs = `num_sms`;
+  - CUDA / Tensor cores = `num_sms` × the per-SM count.
+- Unset, `sku` stays out of dumps.
+
 ## [0.21.1] - 2026-10-04
 
 **Jetson Thor floorsweep corrected.** The catalog overstated the T5000's
