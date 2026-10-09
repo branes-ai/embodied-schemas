@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-08
+
+The Elma JetSys-5330 is the first `system` product, and the first product
+that contains a catalog module (the NVIDIA Jetson AGX Orin 64GB). RFC 0001
+phase S3, slice f.
+
+- **Added:** `elma_jetsys_5330_orin` (`kind: system`) contains
+  `nvidia_jetson_agx_orin_64gb`. Every SWaP-C² figure comes from Elma's
+  datasheet (03.04.26):
+  - **Size:** envelope 343.5 x 222.4 x 112.5 mm.
+  - **Mass:** 7.6 kg, the upper end of 6.35-7.6 kg.
+  - **Power:** input 16.5-50 VDC; system draw 52-130 W, with one 130 W
+    profile at the GPU's 1.3 GHz.
+  - **Temperature:** operating -40 to 55 C, storage -40 to 85 C.
+  - **Ruggedization and I/O:** IP67, 40 g shock, and the I/O counts.
+  - **Performance:** the headline is the module GPU at 1.3 GHz; FP32 is
+    5.32 TFLOPS, against Elma's 5.3.
+  - **Cost:** Elma quotes on request, so the system states no price. D5 rolls
+    the 1K cost up from the module, as an estimated lower bound.
+- **Added:** cooling entry `elma_jetsys_5330_enclosure`. The sealed
+  enclosure is the heatsink, and its mass, size and cost are inside the
+  system's own figures. It adds 0 g / 0 cm3 / $0, rated to 130 W and 55 C
+  ambient. The fan kit is not modeled.
+- **Added (source DB):**
+  - New quantity `temperature` (C).
+  - Document `elma_jetsys_5330_ds`.
+  - `observations/rugged_systems.yaml`, with 16 JetSys-5330 figures.
+- **Fixed:** the legacy `HardwareEntry` `elma_jetsys_5330_orin` now matches
+  the datasheet:
+  - **Input voltage:** 16.5-50 V; was 10-36 V.
+  - **Operating temperature:** -40 to 55 C; was an "estimated" -40 to 71 C.
+  - **Storage temperature:** -40 to 85 C.
+  - **Envelope:** stated; it was missing.
+  - **Mass:** 7.6 kg.
+  - **FP32:** 5.3 TFLOPS; was 68.75.
+  - **Interfaces:** from the datasheet.
+  - **Power modes:** 52 / 130 W system configurations. The invented per-mode
+    clocks and the typical power are dropped.
+- **Tests:** `tests/test_compute_product_v14_elma_jetsys_5330.py`.
+
 ## [0.23.1] - 2026-10-08
 
 Legacy `HardwareEntry` Jetson files corrected from the source DB. Data only;

@@ -46,7 +46,7 @@ platforms, and the current schema cannot answer it.
 
 ---
 
-## Status at a glance (2026-10-03)
+## Status at a glance (2026-10-08)
 
 | Phase | Plan (rev 1) | Actual |
 |-------|--------------|--------|
@@ -55,7 +55,7 @@ platforms, and the current schema cannot answer it.
 | 3. Bulk migration | All legacy files into `data/products/` | **Partial.** 45 products in `data/compute_products/` (folder name differs from plan) across 14 vendors. About a dozen of the 76 legacy files have a counterpart. All other products are new (KPU SKUs, TPUs, DSP IP, Xeon/AmpereOne). No datacenter GPU is migrated. |
 | 4. Update consumers | Compatibility shims, then graphs and Embodied-AI-Architect switch | **KPU only.** `data/kpus/` retired; `load_kpus()` is a shim over `load_compute_products()` (#18). No GPU/CPU/NPU/chip shims. |
 | 5. Sunset | Remove legacy models, major bump | **Not started.** `data/{gpus,cpus,npus,chips}/` hold 24/36/4/12 files, with no deprecation notices or warnings. |
-| S. SWaP-C² (new) | -- | **S1 done** (0.16.0): schema, `resolve_swapc2`, D4 aggregation, first module (SECO SOM-SMARC-QCS6490). **S2 done** (0.17.0): `scripts/swapc2_estimators.py` (`cooling_sizing_v1`, `silicon_cost_v1`), sized cooling catalog, wafer cost / D0 for the TSMC nodes with sources. **S3 in progress**: S3a (0.18.0) die cost on the 12 products with sourced silicon inputs; S3b (0.19.0) Hailo-8 / 10H M.2 modules from verified datasheet figures. S3c (0.20.0) cooling footprint (`max_height_mm`), legacy Hailo hardware corrected. S3d (0.21.0) NVIDIA Jetson entries classified as SKUs of the NVIDIA Jetson Orin / Thor families (D6). S3e part 1 (0.22.0): NVIDIA Jetson SKU source data (9 SKUs) and the `sku` / floorsweep schema. S3e part 2 (0.23.0): all 9 Jetson SKUs as generated `module` products (family template + source DB). S4 not started. See [R1](#r1). |
+| S. SWaP-C² (new) | -- | **S1 done** (0.16.0): schema, `resolve_swapc2`, D4 aggregation, first module (SECO SOM-SMARC-QCS6490). **S2 done** (0.17.0): `scripts/swapc2_estimators.py` (`cooling_sizing_v1`, `silicon_cost_v1`), sized cooling catalog, wafer cost / D0 for the TSMC nodes with sources. **S3 in progress**: S3a (0.18.0) die cost on the 12 products with sourced silicon inputs; S3b (0.19.0) Hailo-8 / 10H M.2 modules from verified datasheet figures. S3c (0.20.0) cooling footprint (`max_height_mm`), legacy Hailo hardware corrected. S3d (0.21.0) NVIDIA Jetson entries classified as SKUs of the NVIDIA Jetson Orin / Thor families (D6). S3e part 1 (0.22.0): NVIDIA Jetson SKU source data (9 SKUs) and the `sku` / floorsweep schema. S3e part 2 (0.23.0): all 9 Jetson SKUs as generated `module` products (family template + source DB); 0.23.1 corrected the legacy Jetson hardware entries from the source DB. S3f (0.24.0): Elma JetSys-5330, the first `system`, containing the AGX Orin 64GB module (D5 roll-up through `contains`). Remaining S3: Raspberry Pi 4 / 5, AMD NUCs, Elma VPX / VNX cards and chassis, Jetson TX2, then the `load_hardware()` shim. S4 not started. See [R1](#r1). |
 
 ---
 
