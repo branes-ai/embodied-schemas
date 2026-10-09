@@ -1,0 +1,38 @@
+# Elma JetSys-5330 sealed IP67 enclosure, fanless configuration.
+#
+# RFC 0001 S3f: the enclosure is the system's heatsink. Its mass, size and
+# cost are inside the system's own datasheet figures (Elma states the
+# system's weight and envelope, not a separate heatsink), so this entry adds
+# nothing on top: weight 0, volume 0, cost 0. Binding it keeps
+# resolve_swapc2 from counting the cooling twice.
+
+id: elma_jetsys_5330_enclosure
+name: "Elma JetSys-5330 sealed enclosure (integral, fanless)"
+cooling_mechanism: passive_heatsink_large
+max_power_density_w_per_mm2: 1.0
+max_total_w: 130.0
+ambient_c_max: 55.0
+junction_c_max: 105.0
+form_factor_constraints:
+  - "integral to the system enclosure; IP67"
+  - "optional fan kit adds 4.5 mm height and 26.6 mm depth (not modeled)"
+weight_g: 0.0
+cost_usd: 0.0
+volume_cm3: 0.0
+basis: datasheet
+source: >-
+  elma_jetsys_5330.power.max@elma_jetsys_5330_ds (130 W),
+  elma_jetsys_5330.temperature.operating_max@elma_jetsys_5330_ds (55 C, the
+  lower of "55°C or 71°C operational, depending on the configuration")
+confidence: theoretical
+last_updated: "2026-10-08"
+notes: |
+  max_total_w is the system's maximum power consumption (130 W), and
+  ambient_c_max is the lower of the two operating limits Elma gives. Elma
+  does not say which configuration reaches 71 C, possibly the fan kit, so
+  55 C is taken. The fan kit (117 mm high, 249 mm deep) is not modeled: Elma
+  states no fan power or fan-kit mass.
+
+  cooling_mechanism passive_heatsink_large is a classification, not a
+  sourced fact. junction_c_max 105 C and max_power_density 1.0 W/mm^2 are
+  placeholders copied from passive_heatsink_large.

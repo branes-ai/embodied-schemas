@@ -1,0 +1,175 @@
+# Rugged embedded systems (S3f): size, mass, power, input voltage and
+# temperature, quoted from vendor datasheets. The catalog's system YAMLs are
+# held to these figures by tests/test_compute_product_v14_elma_jetsys_5330.py.
+#
+# Elma gives the JetSys-5330 envelope as Height / Width / Depth. The catalog's
+# length is the longest horizontal side (Elma "Width"), width the other
+# (Elma "Depth").
+
+# --- Elma JetSys-5330 (NVIDIA Jetson AGX Orin) -------------------------------
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: length
+  value: 343.5
+  unit: mm
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Width: 343.5mm (13.52)'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: width
+  value: 222.4
+  unit: mm
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Depth 222.4mm (8.75"), 249mm (9.8") with the fan kit'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: width
+  variant: fan_kit
+  value: 249.0
+  unit: mm
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  conditions:
+    option: fan kit
+  quote: 'Depth 222.4mm (8.75"), 249mm (9.8") with the fan kit'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: height
+  value: 112.5
+  unit: mm
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Height: 112.5mm (4.43"), 117mm (4.6") with the fan kit'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: height
+  variant: fan_kit
+  value: 117.0
+  unit: mm
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  conditions:
+    option: fan kit
+  quote: 'Height: 112.5mm (4.43"), 117mm (4.6") with the fan kit'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: mass
+  variant: min
+  value: 6350.0
+  unit: g
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Weight 6.35kg to 7.6kg (14 to 16.72 lbs) depending on the configuration'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: mass
+  variant: max
+  value: 7600.0
+  unit: g
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Weight 6.35kg to 7.6kg (14 to 16.72 lbs) depending on the configuration'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: power
+  variant: min
+  value: 52.0
+  unit: w
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Power consumption 52W to 130W depending on the configuration'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: power
+  variant: max
+  value: 130.0
+  unit: w
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Power consumption 52W to 130W depending on the configuration'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: input_voltage
+  value: 28.0
+  value_min: 16.5
+  value_max: 50.0
+  unit: v
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Input 16.5VDC to 50VDC, 28VDC Nominal'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: temperature
+  variant: operating_min
+  value: -40.0
+  unit: c
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Temperature: -40°C to 55°C or 71°C operational, depending on the configuration'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: temperature
+  variant: operating_max
+  value: 63.0
+  value_min: 55.0
+  value_max: 71.0
+  unit: c
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: 'Temperature: -40°C to 55°C or 71°C operational, depending on the configuration'
+  notes: value is the midpoint; 55 or 71 C depending on the configuration, which Elma does not name.
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: temperature
+  variant: storage_min
+  value: -40.0
+  unit: c
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: '-40°C to 85°C storage'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: temperature
+  variant: storage_max
+  value: 85.0
+  unit: c
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: '-40°C to 85°C storage'
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: frequency
+  variant: gpu_max
+  value: 1300.0
+  unit: mhz
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  conditions:
+    module: Jetson AGX Orin 64GB
+  quote: The GPU can run up to 1.3 GHz on the 64GB model.
+- subject: elma_jetsys_5330
+  category: rugged_system
+  quantity: fp32_throughput
+  value: 5.3
+  unit: tflops
+  as_of: 2026-03
+  basis: datasheet
+  source_id: elma_jetsys_5330_ds
+  quote: This provides up to 275 TOPS and 5.3 FP32 TFLOPs of CUDA computing power.

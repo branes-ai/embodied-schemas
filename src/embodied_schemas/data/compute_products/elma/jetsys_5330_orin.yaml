@@ -1,0 +1,118 @@
+# Elma JetSys-5330 rugged SFF AI system, NVIDIA Jetson AGX Orin 64GB.
+#
+# RFC 0001 S3f: the first `system`, and the first product that contains a
+# catalog module (nvidia_jetson_agx_orin_64gb). Every SWaP-C² value is a
+# source-DB figure (data/sources/observations/rugged_systems.yaml, Elma
+# datasheet 03.04.26); tests/test_compute_product_v14_elma_jetsys_5330.py
+# holds this file to them.
+#
+# The legacy HardwareEntry `elma_jetsys_5330_orin` disagreed with the
+# datasheet on input voltage (10-36 vs 16.5-50 VDC), operating temperature
+# ("estimated" -40..71 vs -40..55 / 71 C) and FP32 (68.75 vs 5.3 TFLOPS), and
+# had no dimensions. It is corrected in the same change.
+
+id: elma_jetsys_5330_orin
+name: Elma JetSys-5330 Rugged AI System (Jetson AGX Orin 64GB)
+vendor: elma
+kind: system
+packaging:
+  kind: system
+  form_factor: standalone
+  mounting: direct
+  conduction_cooled: false
+
+lifecycle: production
+
+dies: []
+contains:
+- id: nvidia_jetson_agx_orin_64gb
+  role: compute
+  notes: On Elma's JetKit-3110 carrier card. Elma also offers a 32GB configuration.
+
+performance:                            # the contained AGX Orin 64GB GPU at Elma's 1.3 GHz
+  int8_tops: 63.9                       # dense, GPU only (no DLA)
+  bf16_tflops: 31.95
+  fp32_tflops: 5.32                     # Elma: "5.3 FP32 TFLOPs of CUDA computing power"
+
+power:
+  tdp_watts: 130.0                      # "Power consumption 52W to 130W depending on
+  max_power_watts: 130.0                #  the configuration" -- system draw at the
+  min_power_watts: 52.0                 #  input, carrier and I/O included
+  default_thermal_profile: '130W'
+  thermal_profiles:
+  - name: '130W'                        # maximum configuration
+    tdp_watts: 130.0
+    clock_mhz: 1300.0                   # "The GPU can run up to 1.3 GHz on the 64GB model."
+    cooling_solution_id: elma_jetsys_5330_enclosure
+
+swapc2:
+  size:
+    dimensions_mm:
+      length_mm: 343.5
+      width_mm: 222.4
+      height_mm: 112.5
+      basis: datasheet
+      confidence: calibrated
+      source: >-
+        elma_jetsys_5330.length@elma_jetsys_5330_ds,
+        elma_jetsys_5330.width@elma_jetsys_5330_ds,
+        elma_jetsys_5330.height@elma_jetsys_5330_ds
+      notes: >-
+        Elma Width x Depth x Height, without the fan kit (249 mm deep, 117 mm
+        high with it).
+  weight:
+    mass_g:
+      value: 7600.0
+      basis: datasheet
+      confidence: calibrated
+      source: elma_jetsys_5330.mass.max@elma_jetsys_5330_ds
+      notes: >-
+        Upper end of "6.35kg to 7.6kg ... depending on the configuration"
+        (min: elma_jetsys_5330.mass.min). Taken as the payload-budget figure.
+  power:
+    input_voltage_v: [16.5, 50.0]       # "16.5VDC to 50VDC, 28VDC Nominal"
+
+environmental:
+  operating_temp_c: [-40.0, 55.0]       # "-40°C to 55°C or 71°C operational, depending
+  storage_temp_c: [-40.0, 85.0]         #  on the configuration" -- 55 C is the floor
+  humidity_percent: [0.0, 95.0]         # "Up to 95% RH non-condensing"
+  ip_rating: IP67
+  shock_g: 40.0                         # "Operating shock: 40 g; 11ms"
+  mil_std_810: 810G
+  mil_std_461: '461'                    # revision not stated
+  mil_std_704: 704F                     # MIL-HDBK-704F (Elma news release, 2023-05-15)
+  mil_std_1275: 1275D
+
+interfaces:
+  usb3: 5                               # 3x USB 3.2 Gen2 Type A + 2x USB 3.2 Type C
+  usb_c: 2
+  usb2: 4
+  pcie_lanes: 8                         # M.2 M-key x4 + M.2 B-key x1 + 3x mPCIe (x1 each)
+  gpio: 9
+  ethernet: 10gbps                      # 10GBASE-T, plus 1000BASE-T
+  can_bus: 2
+  uart: 3                               # 2x RS-422 FD + 1x RS-232
+
+memory:
+  memory_gb: 64.0
+  memory_type: LPDDR5
+  memory_bandwidth_gbps: 204.8
+
+market:
+  launch_date: '2023-05-15'             # Elma news release
+  target_market: edge
+  product_family: Elma JetSys
+  model_tier: high
+  is_available: true
+  suitable_for: [uas, ugv, usv, edge, eoir, c5isr]
+
+confidence: theoretical
+notes: >
+  No unit price: Elma quotes on request. resolve_swapc2 rolls the unit cost
+  up from the contained AGX Orin module (D5), an estimated lower bound that
+  excludes the carrier, enclosure and I/O. The 130 W profile is the system's
+  maximum configuration. Elma publishes no per-power-mode system draw, so
+  the module's 15-60 W modes are not repeated here.
+datasheet_url: https://s3.us-west-2.amazonaws.com/catsy.655/Datasheet-JetSys5330-Rugged-AI-Platform.pdf
+product_url: https://products.elma.com/products/jetsys-5330-nvidia%C2%AE-jetson-agx-orin%E2%84%A2-som-rugged-computer-with-ai-ivr-ar-capabilities
+last_updated: '2026-10-08'
