@@ -337,3 +337,13 @@
   published: "2026-01"
   url: https://dam-cdn.nvd.orangelogic.com/AssetLink/x20v2h2y15uh0ne54rpb73xh4x7s0m1s.pdf
   accessed: "2026-10-04"
+
+# --- Rugged systems (S3f) ----------------------------------------------------
+- id: elma_jetsys_5330_ds
+  title: JetSys-5330 Rugged AI Platform Data Sheet (03.04.26)
+  publisher: Elma Electronic
+  kind: datasheet
+  published: "2026-03-04"
+  url: https://s3.us-west-2.amazonaws.com/catsy.655/Datasheet-JetSys5330-Rugged-AI-Platform.pdf
+  accessed: "2026-10-08"
+  access_note: linked from the product page, products.elma.com/products/jetsys-5330-...

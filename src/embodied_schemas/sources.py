@@ -87,6 +87,7 @@ QUANTITY_UNITS: dict[str, str] = {
     "ai_throughput": "tops",
     "fp32_throughput": "tflops",
     "input_voltage": "v",
+    "temperature": "c",
 }
 
 
@@ -105,6 +106,7 @@ QUANTITY_BOUNDS: dict[str, tuple[str, float]] = {
     "power": ("ge", 0.0),
     "airflow": ("gt", 0.0),
     "input_voltage": ("gt", 0.0),
+    "temperature": ("ge", -273.15),
     "cuda_cores": ("gt", 0.0),
     "tensor_cores": ("gt", 0.0),
     "cpu_cores": ("gt", 0.0),

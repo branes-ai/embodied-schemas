@@ -1,5 +1,8 @@
 # Elma JetSys-5330 Rugged SFF AI System — NVIDIA Jetson AGX Orin
 # Source: https://www.elma.com/en/news-events/news-releases/rugged-sff-ai-system-powered-by-nvidia-jetson-agx-orin-system-on-module
+# Corrected 2026-10-08 from the Elma datasheet (03.04.26) via the source DB
+# (data/sources/observations/rugged_systems.yaml, subject elma_jetsys_5330).
+# The unified-catalog counterpart is data/compute_products/elma/jetsys_5330_orin.yaml.
 
 id: elma_jetsys_5330_orin
 name: Elma JetSys-5330 Rugged AI System (Jetson AGX Orin)
@@ -17,8 +20,8 @@ optimized_for:
 
 capabilities:
   peak_tops_int8: 275.0  # Jetson AGX Orin
-  peak_tflops_fp16: 137.5
-  peak_tflops_fp32: 68.75
+  peak_tflops_fp16: null  # unsourced (legacy figure overstated)
+  peak_tflops_fp32: 5.3  # Elma: "5.3 FP32 TFLOPs of CUDA computing power"
   memory_gb: 64.0
   memory_type: LPDDR5
   memory_bandwidth_gbps: 204.8
@@ -39,8 +42,8 @@ capabilities:
     - Triton
 
 physical:
-  weight_grams: 7300.0  # 16 lbs max = 7.3 kg
-  dimensions_mm: null  # IP67 enclosure, exact dims not published
+  weight_grams: 7600.0  # Elma: 6.35 to 7.6 kg depending on configuration; max taken
+  dimensions_mm: [343.5, 222.4, 112.5]  # Elma W x D x H, without the fan kit
   form_factor: standalone
   mounting: direct
   vita_standard: null  # SFF, not slot-based
@@ -49,36 +52,39 @@ physical:
   conformal_coated: false
 
 environmental:
-  operating_temp_c: [-40, 71]  # Estimated from MIL-STD-810G
-  storage_temp_c: [-55, 85]
+  operating_temp_c: [-40, 55]  # Elma: -40 to 55 C or 71 C depending on configuration
+  storage_temp_c: [-40, 85]  # Elma datasheet
+  shock_g: 40.0  # Elma: operating shock 40 g; 11 ms
   ip_rating: IP67
   mil_std_810: "810G"
+  mil_std_461: "461"  # revision not stated
   mil_std_704: "704F"
   mil_std_1275: "1275D"
 
 power:
-  input_voltage_v: [10.0, 36.0]  # Typical MIL vehicle power
+  input_voltage_v: [16.5, 50.0]  # Elma: 16.5 to 50 VDC, 28 VDC nominal
   power_modes:
-    - name: "15W"
-      power_watts: 53.0  # System-level low power
-      gpu_freq_mhz: 306
-      cpu_freq_mhz: 1020
-      description: Low power mode — system-level 53W
-    - name: "MAXN"
-      power_watts: 130.0  # System-level max
+    - name: "52W"
+      power_watts: 52.0
+      description: "Elma minimum system configuration (no per-mode clocks published)"
+    - name: "130W"
+      power_watts: 130.0
       gpu_freq_mhz: 1300
-      cpu_freq_mhz: 2200
-      description: Maximum performance — system-level 130W
-  tdp_watts: 130.0
-  typical_power_watts: 80.0
+      description: "Elma maximum system configuration; GPU up to 1.3 GHz (64GB module)"
+  tdp_watts: 130.0  # Elma: 52 W to 130 W depending on the configuration
+  typical_power_watts: null  # unsourced
   battery_compatible: true
 
 interfaces:
-  usb3: 2  # Via mini-PCIe / M.2
-  pcie_lanes: 8  # 3x mini-PCIe + 2x M.2
-  pcie_gen: 4
+  usb3: 5  # 3x USB 3.2 Gen2 Type A + 2x USB 3.2 Type C
+  usb_c: 2
+  usb2: 4
+  pcie_lanes: 8  # M.2 M-key x4 + M.2 B-key x1 + 3x mPCIe
+  pcie_gen: null  # unsourced
   ethernet: 10gbps
-  gpio: 0
+  gpio: 9
+  can_bus: 2
+  uart: 3  # 2x RS-422 + 1x RS-232
 
 software:
   os:
@@ -123,10 +129,13 @@ notes: |
   3x mini-PCIe slots (1x doubles as mSATA) + 2x M.2 (B-Key, M-Key).
   Multiple concurrent video pipelines.
   IP67 rated, MIL-STD-810G, MIL-HDBK-704F, MIL-STD-1275D.
-  Optional fan kit. Max weight 16 lbs / 7.3 kg.
-  Power range 53W to 130W depending on configuration.
-datasheet_url: null
+  Optional fan kit. Weight 6.35 to 7.6 kg depending on configuration.
+  Power range 52W to 130W depending on configuration.
+  Corrected 2026-10-08 from the Elma datasheet: input voltage (was 10-36 V), operating and
+  storage temperature, envelope (was unpublished), mass, FP32 (was 68.75 TFLOPS), interfaces;
+  invented per-mode clocks and typical power dropped.
+datasheet_url: https://s3.us-west-2.amazonaws.com/catsy.655/Datasheet-JetSys5330-Rugged-AI-Platform.pdf
 product_url: https://www.elma.com/en/news-events/news-releases/rugged-sff-ai-system-powered-by-nvidia-jetson-agx-orin-system-on-module
-last_updated: "2026-04-14"
+last_updated: "2026-10-08"
 chip_id: nvidia_orin_soc
 gpu_id: null
